@@ -96,7 +96,7 @@ impl<'a> SpVoice<'a> {
         }
     }
 
-    fn speak (&mut self, string: &str) {
+    fn speak<T: ToWide> (&mut self, string: T) {
         unsafe {
             println!("befor speak");
             self.voice.Speak(string.to_wide_null().as_ptr(), 19, ptr::null_mut());
@@ -110,7 +110,7 @@ impl<'a> SpVoice<'a> {
         }
     }
 
-    fn speak_wait (&mut self, string: &str) {
+    fn speak_wait<T: ToWide> (&mut self, string: T) {
         self.speak(string);
         self.wait();
     }
@@ -133,7 +133,7 @@ fn main() {
     voice.speak_wait("Converting format back and forth.");
     voice.speak_wait("You have in your clipboard.");
     match get_clipboard_string() {
-        Ok(x) => voice.speak_wait(&x),
+        Ok(x) => voice.speak_wait(x),
         Err(x) => {
             voice.speak_wait("oops... error.");
             println!("{:?}", x);
