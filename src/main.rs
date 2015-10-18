@@ -1,8 +1,8 @@
-#[cfg(windows)]
 extern crate winapi;
-#[cfg(windows)]
 extern crate ole32;
+extern crate clipboard_win;
 
+use clipboard_win::{get_clipboard_string};
 use std::mem;
 use std::ptr;
 use std::ffi::OsStr;
@@ -130,8 +130,14 @@ fn main() {
     let com = Com::new();
     let mut voice = SpVoice::new();
 
-    voice.speak_wait("Hello, world!");
-    voice.speak_wait("Hello, you!");
-    voice.speak_wait("Hello, me!");
-
+    voice.speak_wait("Converting format back and forth.");
+    voice.speak_wait("You have in your clipboard.");
+    match get_clipboard_string() {
+        Ok(x) => voice.speak_wait(&x),
+        Err(x) => {
+            voice.speak_wait("oops... error.");
+            println!("{:?}", x);
+        }
+    }
+    voice.speak_wait("Done.");
 }
