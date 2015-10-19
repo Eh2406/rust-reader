@@ -154,6 +154,14 @@ fn send_ctrl_c() {
     send_key_event(VK_CONTROL as u16, KEYEVENTF_KEYUP);
 }
 
+fn what_on_clipboard_seq_num(clip_num: u32) {
+    let mut i = 1;
+    while get_clipboard_seq_num().unwrap_or(clip_num) == clip_num && i <= 5 {
+        std::thread::sleep_ms(10 * i);
+        i += 1;
+    }
+}
+
 fn main() {
     let com = Com::new();
     let mut voice = SpVoice::new();
@@ -167,11 +175,7 @@ fn main() {
     }
     let clip_num: u32 = get_clipboard_seq_num().unwrap_or_else(|| panic!("Lacks sufficient rights to access clipboard(WINSTA_ACCESSCLIPBOARD)"));
     send_ctrl_c();
-    let mut i = 1;
-    while get_clipboard_seq_num().unwrap_or(clip_num) == clip_num && i <= 5 {
-        std::thread::sleep_ms(10 * i);
-        i += 1;
-    }
+    what_on_clipboard_seq_num(clip_num);
 
     match get_clipboard_string() {
         Ok(x) => voice.speak_wait(x),
