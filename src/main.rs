@@ -1,5 +1,6 @@
 extern crate winapi;
 extern crate ole32;
+extern crate user32;
 extern crate clipboard_win;
 
 use clipboard_win::{get_clipboard_string};
@@ -7,6 +8,7 @@ use std::mem;
 use std::ptr;
 use std::ffi::OsStr;
 use std::os::windows::ffi::OsStrExt;
+use std::fmt::Display;
 
 #[inline]
 fn failed(hr: winapi::HRESULT) -> bool {
@@ -96,11 +98,11 @@ impl<'a> SpVoice<'a> {
         }
     }
 
-    fn speak<T: ToWide> (&mut self, string: T) {
+    fn speak<T: ToWide + Display> (&mut self, string: T) {
         unsafe {
-            println!("befor speak");
+            println!("befor speak: {:}", string);
             self.voice.Speak(string.to_wide_null().as_ptr(), 19, ptr::null_mut());
-            println!("after speak");
+            println!("after speak: {:}", string);
         }
     }
 
@@ -110,7 +112,7 @@ impl<'a> SpVoice<'a> {
         }
     }
 
-    fn speak_wait<T: ToWide> (&mut self, string: T) {
+    fn speak_wait<T: ToWide + Display> (&mut self, string: T) {
         self.speak(string);
         self.wait();
     }
@@ -126,11 +128,46 @@ impl<'a> Drop for SpVoice<'a> {
     }
 }
 
+fn send_key_event(vk: u16, flags: u32) {
+    let mut input = winapi::INPUT {
+        type_: winapi::INPUT_KEYBOARD,
+        u: [0u32; 6]
+    };
+    unsafe {
+        *input.ki_mut() = winapi::KEYBDINPUT {
+            wVk: vk,
+            wScan: 0,
+            dwFlags: flags,
+            time: 0,
+            dwExtraInfo: 0,};
+        let mut b = &mut input;
+        user32::SendInput(1, b, mem::size_of::<winapi::INPUT>() as i32);
+    }
+}
+
+fn send_ctrl_c() {
+    use winapi::{VK_CONTROL, KEYEVENTF_KEYUP};
+    send_key_event(VK_CONTROL as u16, 0);
+    send_key_event(67, 0); //ascii for "c"
+    send_key_event(67, KEYEVENTF_KEYUP); //ascii for "c"
+    send_key_event(VK_CONTROL as u16, KEYEVENTF_KEYUP);
+}
+
 fn main() {
     let com = Com::new();
     let mut voice = SpVoice::new();
 
     voice.speak_wait("Converting format back and forth.");
+    voice.speak_wait("You have in your clipboard.");
+    match get_clipboard_string() {
+        Ok(x) => voice.speak_wait(x),
+        Err(x) => {
+            voice.speak_wait("oops... error.");
+            println!("{:?}", x);
+        }
+    }
+    voice.speak_wait("Now sending ctrl-c.");
+    send_ctrl_c();
     voice.speak_wait("You have in your clipboard.");
     match get_clipboard_string() {
         Ok(x) => voice.speak_wait(x),
