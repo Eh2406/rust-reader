@@ -3,7 +3,7 @@ extern crate ole32;
 extern crate user32;
 extern crate clipboard_win;
 
-use clipboard_win::{get_clipboard_string};
+use clipboard_win::{get_clipboard_string, set_clipboard};
 use clipboard_win::wrapper::get_clipboard_seq_num;
 use std::mem;
 use std::ptr;
@@ -154,30 +154,35 @@ fn send_ctrl_c() {
     send_key_event(VK_CONTROL as u16, KEYEVENTF_KEYUP);
 }
 
-fn what_on_clipboard_seq_num(clip_num: u32) {
-    let mut i = 1;
-    while get_clipboard_seq_num().unwrap_or(clip_num) == clip_num && i <= 5 {
+fn what_on_clipboard_seq_num(clip_num: u32, n: u32) -> bool {
+    for i in 1..(n + 1) {
+        if get_clipboard_seq_num().unwrap_or(clip_num) != clip_num {
+            return true;
+        }
         std::thread::sleep_ms(10 * i);
-        i += 1;
     }
+    get_clipboard_seq_num().unwrap_or(clip_num) != clip_num
+}
+
+fn get_text() -> Result<String, clipboard_win::WindowsError> {
+    println!("geting text");
+    let old_clip = get_clipboard_string();
+    let old_clip_num: u32 = get_clipboard_seq_num().unwrap_or_else(|| panic!("Lacks sufficient rights to access clipboard(WINSTA_ACCESSCLIPBOARD)"));
+    send_ctrl_c();
+    if !what_on_clipboard_seq_num(old_clip_num, 15) {
+        return Err(clipboard_win::WindowsError::new(0));
+    }
+    let new_clip = get_clipboard_string();
+    if let Ok(clip) = old_clip {
+        set_clipboard(&clip);
+    }
+    new_clip
 }
 
 fn main() {
     let com = Com::new();
     let mut voice = SpVoice::new();
-
-    match get_clipboard_string() {
-        Ok(x) => voice.speak_wait(x),
-        Err(x) => {
-            voice.speak_wait("oops... error.");
-            println!("{:?}", x);
-        }
-    }
-    let clip_num: u32 = get_clipboard_seq_num().unwrap_or_else(|| panic!("Lacks sufficient rights to access clipboard(WINSTA_ACCESSCLIPBOARD)"));
-    send_ctrl_c();
-    what_on_clipboard_seq_num(clip_num);
-
-    match get_clipboard_string() {
+    match get_text() {
         Ok(x) => voice.speak_wait(x),
         Err(x) => {
             voice.speak_wait("oops... error.");
