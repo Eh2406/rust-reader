@@ -4,6 +4,7 @@ extern crate user32;
 extern crate clipboard_win;
 
 use clipboard_win::{get_clipboard_string};
+use clipboard_win::wrapper::get_clipboard_seq_num;
 use std::mem;
 use std::ptr;
 use std::ffi::OsStr;
@@ -100,9 +101,8 @@ impl<'a> SpVoice<'a> {
 
     fn speak<T: ToWide + Display> (&mut self, string: T) {
         unsafe {
-            println!("befor speak: {:}", string);
+            println!("speaking: {:}", string);
             self.voice.Speak(string.to_wide_null().as_ptr(), 19, ptr::null_mut());
-            println!("after speak: {:}", string);
         }
     }
 
@@ -147,6 +147,7 @@ fn send_key_event(vk: u16, flags: u32) {
 
 fn send_ctrl_c() {
     use winapi::{VK_CONTROL, KEYEVENTF_KEYUP};
+    println!("sending ctrl-c");
     send_key_event(VK_CONTROL as u16, 0);
     send_key_event(67, 0); //ascii for "c"
     send_key_event(67, KEYEVENTF_KEYUP); //ascii for "c"
@@ -157,8 +158,6 @@ fn main() {
     let com = Com::new();
     let mut voice = SpVoice::new();
 
-    voice.speak_wait("Converting format back and forth.");
-    voice.speak_wait("You have in your clipboard.");
     match get_clipboard_string() {
         Ok(x) => voice.speak_wait(x),
         Err(x) => {
@@ -166,9 +165,14 @@ fn main() {
             println!("{:?}", x);
         }
     }
-    voice.speak_wait("Now sending ctrl-c.");
+    let clip_num: u32 = get_clipboard_seq_num().unwrap_or_else(|| panic!("Lacks sufficient rights to access clipboard(WINSTA_ACCESSCLIPBOARD)"));
     send_ctrl_c();
-    voice.speak_wait("You have in your clipboard.");
+    let mut i = 1;
+    while get_clipboard_seq_num().unwrap_or(clip_num) == clip_num && i <= 5 {
+        std::thread::sleep_ms(10 * i);
+        i += 1;
+    }
+
     match get_clipboard_string() {
         Ok(x) => voice.speak_wait(x),
         Err(x) => {
@@ -176,5 +180,4 @@ fn main() {
             println!("{:?}", x);
         }
     }
-    voice.speak_wait("Done.");
 }
