@@ -12,11 +12,13 @@ use std::os::windows::ffi::OsStrExt;
 use std::fmt::Display;
 
 #[inline]
+#[allow(dead_code)]
 fn failed(hr: winapi::HRESULT) -> bool {
     hr < 0
 }
 
 #[inline]
+#[allow(dead_code)]
 fn succeeded(hr: winapi::HRESULT) -> bool {
     !failed(hr)
 }
@@ -68,6 +70,7 @@ struct SpVoice<'a> {
     voice: &'a mut winapi::ISpVoice,
 }
 
+#[allow(dead_code)]
 impl<'a> SpVoice<'a> {
     fn new() -> SpVoice<'a> {
         println!("new for SpVoice");
@@ -117,6 +120,45 @@ impl<'a> SpVoice<'a> {
         self.wait();
     }
 
+    fn pause (&mut self) {
+        unsafe {
+            self.voice.Pause();
+        }
+    }
+
+    fn resume (&mut self) {
+        unsafe {
+            self.voice.Resume();
+        }
+    }
+
+    fn set_rate (&mut self, rate: i32) {
+        unsafe {
+            self.voice.SetRate(rate);
+        }
+    }
+
+    fn get_rate (&mut self) -> i32 {
+        let mut rate = 0;
+        unsafe {
+            self.voice.GetRate(&mut rate);
+        }
+        rate
+    }
+
+    fn set_volume (&mut self, volume: u16) {
+        unsafe {
+            self.voice.SetVolume(volume);
+        }
+    }
+
+    fn get_volume (&mut self) -> u16 {
+        let mut volume = 0;
+        unsafe {
+            self.voice.GetVolume(&mut volume);
+        }
+        volume
+    }
 }
 
 impl<'a> Drop for SpVoice<'a> {
@@ -167,7 +209,7 @@ fn what_on_clipboard_seq_num(clip_num: u32, n: u32) -> bool {
 fn get_text() -> Result<String, clipboard_win::WindowsError> {
     println!("geting text");
     let old_clip = get_clipboard_string();
-    let old_clip_num: u32 = get_clipboard_seq_num().unwrap_or_else(|| panic!("Lacks sufficient rights to access clipboard(WINSTA_ACCESSCLIPBOARD)"));
+    let old_clip_num = get_clipboard_seq_num().unwrap_or_else(|| panic!("Lacks sufficient rights to access clipboard(WINSTA_ACCESSCLIPBOARD)"));
     send_ctrl_c();
     if !what_on_clipboard_seq_num(old_clip_num, 15) {
         return Err(clipboard_win::WindowsError::new(0));
@@ -182,6 +224,11 @@ fn get_text() -> Result<String, clipboard_win::WindowsError> {
 fn main() {
     let com = Com::new();
     let mut voice = SpVoice::new();
+    voice.set_volume(99);
+    println!("volume :{:?}", voice.get_volume());
+    voice.set_rate(6);
+    println!("rate :{:?}", voice.get_rate());
+    voice.speak_wait("Ready!");
     unsafe {
         user32::RegisterHotKey(ptr::null_mut(), 0, 2, 191); // ctrl-? key
         user32::RegisterHotKey(ptr::null_mut(), 1, 7, winapi::VK_ESCAPE as u32); // ctrl-alt-shift-esk
@@ -217,6 +264,6 @@ fn main() {
         user32::UnregisterHotKey(ptr::null_mut(), 0);
         user32::UnregisterHotKey(ptr::null_mut(), 1);
     }
-    println!("bye!");
+    voice.speak_wait("bye!");
     std::thread::sleep_ms(1000);
 }
