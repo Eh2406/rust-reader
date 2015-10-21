@@ -182,11 +182,27 @@ fn get_text() -> Result<String, clipboard_win::WindowsError> {
 fn main() {
     let com = Com::new();
     let mut voice = SpVoice::new();
-    match get_text() {
-        Ok(x) => voice.speak_wait(x),
-        Err(x) => {
-            voice.speak_wait("oops... error.");
-            println!("{:?}", x);
+    unsafe {
+        user32::RegisterHotKey(ptr::null_mut(), 0, 2, 191); // ? key
+        let mut msg = mem::uninitialized();
+        while user32::GetMessageW(&mut msg, ptr::null_mut(), 0, 0) > 0 {
+            println!("msg");
+            match msg.message {
+                winapi::WM_HOTKEY => {
+                    match get_text() {
+                        Ok(x) => voice.speak_wait(x),
+                        Err(x) => {
+                            voice.speak_wait("oops... error.");
+                            println!("{:?}", x);
+                        }
+                    }
+                }
+                _ => {
+                    user32::TranslateMessage(&msg);
+                    user32::DispatchMessageW(&msg);
+                }
+            }
         }
+        user32::UnregisterHotKey(ptr::null_mut(), 0); // CTRL-G
     }
 }
