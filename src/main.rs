@@ -159,6 +159,28 @@ impl<'a> SpVoice<'a> {
         }
         volume
     }
+
+    fn get_status (&mut self) -> winapi::SPVOICESTATUS {
+        let mut status = winapi::SPVOICESTATUS {
+                                        ulCurrentStream: 0,
+                                        ulLastStreamQueued: 0,
+                                        hrLastResult: 0,
+                                        dwRunningState: 0,
+                                        ulInputWordPos: 0,
+                                        ulInputWordLen: 0,
+                                        ulInputSentPos: 0,
+                                        ulInputSentLen: 0,
+                                        lBookmarkId: 0,
+                                        PhonemeId: 0,
+                                        VisemeId: winapi::SP_VISEME_0,
+                                        dwReserved1: 0,
+                                        dwReserved2: 0,
+        };
+        unsafe {
+            self.voice.GetStatus(&mut status, 0u16 as *mut *mut u16);
+        }
+        status
+    }
 }
 
 impl<'a> Drop for SpVoice<'a> {
@@ -232,6 +254,8 @@ fn main() {
     unsafe {
         user32::RegisterHotKey(ptr::null_mut(), 0, 2, 191); // ctrl-? key
         user32::RegisterHotKey(ptr::null_mut(), 1, 7, winapi::VK_ESCAPE as u32); // ctrl-alt-shift-esk
+        user32::RegisterHotKey(ptr::null_mut(), 2, 7, 191); // ctrl-alt-shift-?
+        user32::RegisterHotKey(ptr::null_mut(), 3, 2, winapi::VK_OEM_PERIOD as u32); // ctrl-.
         let mut msg = mem::uninitialized();
         while user32::GetMessageW(&mut msg, ptr::null_mut(), 0, 0) > 0 {
             println!("msg");
@@ -239,8 +263,9 @@ fn main() {
                 winapi::WM_HOTKEY => {
                     match msg.wParam {
                         0 => {
+                            voice.resume();
                             match get_text() {
-                                Ok(x) => voice.speak_wait(x),
+                                Ok(x) => voice.speak(x),
                                 Err(x) => {
                                     voice.speak_wait("oops... error.");
                                     println!("{:?}", x);
@@ -249,6 +274,15 @@ fn main() {
                         }
                         1 => {
                             break;
+                        }
+                        2 => {
+                            println!("dwRunningState {}", voice.get_status().dwRunningState)
+                        }
+                        3 => {
+                            match voice.get_status().dwRunningState {
+                                2 => voice.pause(),
+                                _ => voice.resume(),
+                            }
                         }
                         _ => {
                             println!("unknown hot {}", msg.wParam);
@@ -263,7 +297,9 @@ fn main() {
         }
         user32::UnregisterHotKey(ptr::null_mut(), 0);
         user32::UnregisterHotKey(ptr::null_mut(), 1);
+        user32::UnregisterHotKey(ptr::null_mut(), 2);
+        user32::UnregisterHotKey(ptr::null_mut(), 3);
     }
+    voice.resume();
     voice.speak_wait("bye!");
-    std::thread::sleep_ms(1000);
 }
