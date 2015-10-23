@@ -77,10 +77,14 @@ impl<'a> SpVoice<'a> {
         let mut hr;
         let mut voice: *mut winapi::ISpVoice = ptr::null_mut();
         let sp_voice = "SAPI.SpVoice".to_wide_null();
+        let mut clsid_spvoice = winapi::CLSID {
+            Data1: 0,
+            Data2: 0,
+            Data3: 0,
+            Data4: [0; 8],
+        };
 
         unsafe {
-            let mut clsid_spvoice: winapi::CLSID = mem::uninitialized();
-
             hr = ole32::CLSIDFromProgID(&sp_voice[0], &mut clsid_spvoice);
             if failed(hr) {
                 panic!("failed for SpVoice at CLSIDFromProgID");
@@ -256,45 +260,59 @@ fn main() {
         user32::RegisterHotKey(ptr::null_mut(), 1, 7, winapi::VK_ESCAPE as u32); // ctrl-alt-shift-esk
         user32::RegisterHotKey(ptr::null_mut(), 2, 7, 191); // ctrl-alt-shift-?
         user32::RegisterHotKey(ptr::null_mut(), 3, 2, winapi::VK_OEM_PERIOD as u32); // ctrl-.
-        let mut msg = mem::uninitialized();
-        while user32::GetMessageW(&mut msg, ptr::null_mut(), 0, 0) > 0 {
-            println!("msg");
-            match msg.message {
-                winapi::WM_HOTKEY => {
-                    match msg.wParam {
-                        0 => {
-                            voice.resume();
-                            match get_text() {
-                                Ok(x) => voice.speak(x),
-                                Err(x) => {
-                                    voice.speak_wait("oops... error.");
-                                    println!("{:?}", x);
-                                }
+    }
+    let mut msg = winapi::MSG {
+        hwnd: ptr::null_mut(),
+        message: 0,
+        wParam: 0,
+        lParam: 0,
+        time: 0,
+        pt: winapi::POINT {
+            x: 0,
+            y: 0,
+        },
+    };
+    while unsafe {user32::GetMessageW(&mut msg, ptr::null_mut(), 0, 0)} > 0 {
+        println!("{:?}", msg);
+        match msg.message {
+            winapi::WM_HOTKEY => {
+                match msg.wParam {
+                    0 => {
+                        voice.resume();
+                        match get_text() {
+                            Ok(x) => voice.speak(x),
+                            Err(x) => {
+                                voice.speak_wait("oops. error.");
+                                println!("{:?}", x);
                             }
-                        }
-                        1 => {
-                            break;
-                        }
-                        2 => {
-                            println!("dwRunningState {}", voice.get_status().dwRunningState)
-                        }
-                        3 => {
-                            match voice.get_status().dwRunningState {
-                                2 => voice.pause(),
-                                _ => voice.resume(),
-                            }
-                        }
-                        _ => {
-                            println!("unknown hot {}", msg.wParam);
                         }
                     }
+                    1 => {
+                        break;
+                    }
+                    2 => {
+                        println!("dwRunningState {}", voice.get_status().dwRunningState)
+                    }
+                    3 => {
+                        match voice.get_status().dwRunningState {
+                            2 => voice.pause(),
+                            _ => voice.resume(),
+                        }
+                    }
+                    _ => {
+                        println!("unknown hot {}", msg.wParam);
+                    }
                 }
-                _ => {
+            }
+            _ => {
+                unsafe {
                     user32::TranslateMessage(&msg);
                     user32::DispatchMessageW(&msg);
                 }
             }
         }
+    }
+    unsafe {
         user32::UnregisterHotKey(ptr::null_mut(), 0);
         user32::UnregisterHotKey(ptr::null_mut(), 1);
         user32::UnregisterHotKey(ptr::null_mut(), 2);
