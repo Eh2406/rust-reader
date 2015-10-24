@@ -242,13 +242,13 @@ fn get_text() -> Result<String, clipboard_win::WindowsError> {
     }
     let new_clip = get_clipboard_string();
     if let Ok(clip) = old_clip {
-        set_clipboard(&clip);
+        let _ = set_clipboard(&clip);
     }
     new_clip
 }
 
 fn main() {
-    let com = Com::new();
+    let _com = Com::new();
     let mut voice = SpVoice::new();
     voice.set_volume(99);
     println!("volume :{:?}", voice.get_volume());
@@ -273,7 +273,6 @@ fn main() {
         },
     };
     while unsafe {user32::GetMessageW(&mut msg, ptr::null_mut(), 0, 0)} > 0 {
-        println!("{:?}", msg);
         match msg.message {
             winapi::WM_HOTKEY => {
                 match msg.wParam {
@@ -305,6 +304,7 @@ fn main() {
                 }
             }
             _ => {
+                println!("{:?}", msg);
                 unsafe {
                     user32::TranslateMessage(&msg);
                     user32::DispatchMessageW(&msg);
