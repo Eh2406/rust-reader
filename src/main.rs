@@ -43,11 +43,11 @@ struct Com {
 
 impl Com {
     fn new() -> Com {
-        println!("new for Con");
+        println!("new for Com");
         // https://msdn.microsoft.com/en-us/library/windows/desktop/ms678543(v=vs.85).aspx
         let hr = unsafe {ole32::CoInitialize(ptr::null_mut())};
         if failed(hr) {
-            panic!("failed for Con");
+            panic!("failed for Com");
         }
         Com {hr: hr}
     }
@@ -61,7 +61,7 @@ impl Drop for Com {
                 ole32::CoUninitialize();
             }
         }
-        println!("drop for Con");
+        println!("drop for Com");
     }
 }
 
@@ -252,7 +252,7 @@ fn main() {
     let mut voice = SpVoice::new();
     voice.set_volume(99);
     println!("volume :{:?}", voice.get_volume());
-    voice.set_rate(6);
+    voice.set_rate(5);
     println!("rate :{:?}", voice.get_rate());
     voice.speak_wait("Ready!");
     unsafe {
