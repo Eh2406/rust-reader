@@ -252,7 +252,7 @@ fn main() {
     let mut voice = SpVoice::new();
     voice.set_volume(99);
     println!("volume :{:?}", voice.get_volume());
-    voice.set_rate(5);
+    voice.set_rate(6);
     println!("rate :{:?}", voice.get_rate());
     voice.speak_wait("Ready!");
     unsafe {
