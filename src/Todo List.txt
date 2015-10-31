@@ -1,0 +1,5 @@
+Seoporate Files (Sapi, Hotkeys, Clipboard?)
+continues loop
+clean up hotkeys code
+serialization and options
+fix pause
