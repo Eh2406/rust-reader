@@ -3,3 +3,4 @@ continues loop
 clean up hotkeys code
 serialization and options
 fix pause
+install skype
