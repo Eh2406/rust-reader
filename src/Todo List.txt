@@ -1,5 +1,7 @@
-Seoporate Files (Sapi, Hotkeys, Clipboard?)
+Separate Files (Sapi, Hotkeys, Clipboard?)
 continues loop
 clean up hotkeys code
 serialization and options
 fix pause
+add Shell_NotifyIcon ie tray for the commands like exit
+then figure out haw best to remove shell window
