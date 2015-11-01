@@ -4,3 +4,4 @@ serialization and options
 fix pause
 add Shell_NotifyIcon ie tray for the commands like exit
 then figure out haw best to remove shell window
+add set voice and get voices
