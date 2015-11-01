@@ -1,6 +1,5 @@
-Separate Files (Sapi, Hotkeys, Clipboard?)
 continues loop
-clean up hotkeys code
+clean up hotkeys code and move to separate file
 serialization and options
 fix pause
 add Shell_NotifyIcon ie tray for the commands like exit
