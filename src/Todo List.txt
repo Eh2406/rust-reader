@@ -1,5 +1,5 @@
 continues loop
-clean up hotkeys code and move to separate file
+clean up hotkeys code
 serialization and options
 fix pause
 add Shell_NotifyIcon ie tray for the commands like exit

@@ -11,6 +11,9 @@ use sapi::*;
 mod clipboard;
 use clipboard::*;
 
+mod hot_key;
+use hot_key::*;
+
 fn main() {
     let _com = Com::new();
     let mut voice = SpVoice::new();
@@ -19,12 +22,12 @@ fn main() {
     voice.set_rate(6);
     println!("rate :{:?}", voice.get_rate());
     voice.speak_wait("Ready!");
-    unsafe {
-        user32::RegisterHotKey(ptr::null_mut(), 0, 2, 191); // ctrl-? key
-        user32::RegisterHotKey(ptr::null_mut(), 1, 7, winapi::VK_ESCAPE as u32); // ctrl-alt-shift-esk
-        user32::RegisterHotKey(ptr::null_mut(), 2, 7, 191); // ctrl-alt-shift-?
-        user32::RegisterHotKey(ptr::null_mut(), 3, 2, winapi::VK_OEM_PERIOD as u32); // ctrl-.
-    }
+    let _hk = [ // TODO why do we nead to spesify the id.
+        HotKey::new(2, 191, 0), // ctrl-? key
+        HotKey::new(7, winapi::VK_ESCAPE as u32, 1), // ctrl-alt-shift-esk
+        HotKey::new(7, 191, 2), // ctrl-alt-shift-?
+        HotKey::new(2, winapi::VK_OEM_PERIOD as u32, 3), // ctrl-.
+    ];
     let mut msg = winapi::MSG {
         hwnd: ptr::null_mut(),
         message: 0,
@@ -75,12 +78,6 @@ fn main() {
                 }
             }
         }
-    }
-    unsafe {
-        user32::UnregisterHotKey(ptr::null_mut(), 0);
-        user32::UnregisterHotKey(ptr::null_mut(), 1);
-        user32::UnregisterHotKey(ptr::null_mut(), 2);
-        user32::UnregisterHotKey(ptr::null_mut(), 3);
     }
     voice.resume();
     voice.speak_wait("bye!");
