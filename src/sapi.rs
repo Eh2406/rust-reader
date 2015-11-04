@@ -39,18 +39,18 @@ pub struct Com {
 impl Com {
     pub fn new() -> Com {
         println!("new for Com");
-        // https://msdn.microsoft.com/en-us/library/windows/desktop/ms678543(v=vs.85).aspx
-        let hr = unsafe {ole32::CoInitialize(ptr::null_mut())};
+        // https://msdn.microsoft.com/en-us/library/windows/desktop/ms678543.aspx
+        let hr = unsafe { ole32::CoInitialize(ptr::null_mut()) };
         if failed(hr) {
             panic!("failed for Com");
         }
-        Com {hr: hr}
+        Com { hr: hr }
     }
 }
 
 impl Drop for Com {
     fn drop(&mut self) {
-        // https://msdn.microsoft.com/en-us/library/windows/desktop/ms688715(v=vs.85).aspx
+        // https://msdn.microsoft.com/en-us/library/windows/desktop/ms688715.aspx
         if self.hr != winapi::RPC_E_CHANGED_MODE {
             unsafe {
                 ole32::CoUninitialize();
@@ -61,7 +61,7 @@ impl Drop for Com {
 }
 
 pub struct SpVoice<'a> {
-    // https://msdn.microsoft.com/en-us/library/ms723602(VS.85).aspx
+    // https://msdn.microsoft.com/en-us/library/ms723602.aspx
     voice: &'a mut winapi::ISpVoice,
 }
 
@@ -95,49 +95,47 @@ impl<'a> SpVoice<'a> {
             if failed(hr) {
                 panic!("failed for SpVoice at CoCreateInstance");
             }
-            SpVoice {
-                voice: &mut *voice,
-            }
+            SpVoice { voice: &mut *voice }
         }
     }
 
-    pub fn speak<T: ToWide + Display> (&mut self, string: T) {
+    pub fn speak<T: ToWide + Display>(&mut self, string: T) {
         unsafe {
             println!("speaking: {:}", string);
             self.voice.Speak(string.to_wide_null().as_ptr(), 19, ptr::null_mut());
         }
     }
 
-    pub fn wait (&mut self) {
+    pub fn wait(&mut self) {
         unsafe {
             self.voice.WaitUntilDone(winapi::INFINITE);
         }
     }
 
-    pub fn speak_wait<T: ToWide + Display> (&mut self, string: T) {
+    pub fn speak_wait<T: ToWide + Display>(&mut self, string: T) {
         self.speak(string);
         self.wait();
     }
 
-    pub fn pause (&mut self) {
+    pub fn pause(&mut self) {
         unsafe {
             self.voice.Pause();
         }
     }
 
-    pub fn resume (&mut self) {
+    pub fn resume(&mut self) {
         unsafe {
             self.voice.Resume();
         }
     }
 
-    pub fn set_rate (&mut self, rate: i32) {
+    pub fn set_rate(&mut self, rate: i32) {
         unsafe {
             self.voice.SetRate(rate);
         }
     }
 
-    pub fn get_rate (&mut self) -> i32 {
+    pub fn get_rate(&mut self) -> i32 {
         let mut rate = 0;
         unsafe {
             self.voice.GetRate(&mut rate);
@@ -145,13 +143,13 @@ impl<'a> SpVoice<'a> {
         rate
     }
 
-    pub fn set_volume (&mut self, volume: u16) {
+    pub fn set_volume(&mut self, volume: u16) {
         unsafe {
             self.voice.SetVolume(volume);
         }
     }
 
-    pub fn get_volume (&mut self) -> u16 {
+    pub fn get_volume(&mut self) -> u16 {
         let mut volume = 0;
         unsafe {
             self.voice.GetVolume(&mut volume);
@@ -159,21 +157,21 @@ impl<'a> SpVoice<'a> {
         volume
     }
 
-    pub fn get_status (&mut self) -> winapi::SPVOICESTATUS {
+    pub fn get_status(&mut self) -> winapi::SPVOICESTATUS {
         let mut status = winapi::SPVOICESTATUS {
-                                        ulCurrentStream: 0,
-                                        ulLastStreamQueued: 0,
-                                        hrLastResult: 0,
-                                        dwRunningState: 0,
-                                        ulInputWordPos: 0,
-                                        ulInputWordLen: 0,
-                                        ulInputSentPos: 0,
-                                        ulInputSentLen: 0,
-                                        lBookmarkId: 0,
-                                        PhonemeId: 0,
-                                        VisemeId: winapi::SP_VISEME_0,
-                                        dwReserved1: 0,
-                                        dwReserved2: 0,
+            ulCurrentStream: 0,
+            ulLastStreamQueued: 0,
+            hrLastResult: 0,
+            dwRunningState: 0,
+            ulInputWordPos: 0,
+            ulInputWordLen: 0,
+            ulInputSentPos: 0,
+            ulInputSentLen: 0,
+            lBookmarkId: 0,
+            PhonemeId: 0,
+            VisemeId: winapi::SP_VISEME_0,
+            dwReserved1: 0,
+            dwReserved2: 0,
         };
         unsafe {
             self.voice.GetStatus(&mut status, 0u16 as *mut *mut u16);

@@ -11,7 +11,7 @@ use std::thread;
 pub fn send_key_event(vk: u16, flags: u32) {
     let mut input = winapi::INPUT {
         type_: winapi::INPUT_KEYBOARD,
-        u: [0u32; 6]
+        u: [0u32; 6],
     };
     unsafe {
         *input.ki_mut() = winapi::KEYBDINPUT {
@@ -19,7 +19,8 @@ pub fn send_key_event(vk: u16, flags: u32) {
             wScan: 0,
             dwFlags: flags,
             time: 0,
-            dwExtraInfo: 0,};
+            dwExtraInfo: 0,
+        };
         let mut b = &mut input;
         user32::SendInput(1, b, mem::size_of::<winapi::INPUT>() as i32);
     }
@@ -47,7 +48,9 @@ pub fn what_on_clipboard_seq_num(clip_num: u32, n: u32) -> bool {
 pub fn get_text() -> Result<String, clipboard_win::WindowsError> {
     println!("geting text");
     let old_clip = get_clipboard_string();
-    let old_clip_num = get_clipboard_seq_num().unwrap_or_else(|| panic!("Lacks sufficient rights to access clipboard(WINSTA_ACCESSCLIPBOARD)"));
+    let old_clip_num = get_clipboard_seq_num().unwrap_or_else(|| {
+        panic!("Lacks sufficient rights to access clipboard(WINSTA_ACCESSCLIPBOARD)")
+    });
     send_ctrl_c();
     if !what_on_clipboard_seq_num(old_clip_num, 15) {
         return Err(clipboard_win::WindowsError::new(0));

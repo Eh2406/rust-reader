@@ -9,11 +9,11 @@ pub struct HotKey {
 impl HotKey {
     pub fn new(modifiers: u32, vk: u32, id: i32) -> HotKey {
         println!("new for HotKey");
-        // https://msdn.microsoft.com/en-us/library/windows/desktop/ms646309(v=vs.85).aspx
+        // https://msdn.microsoft.com/en-us/library/windows/desktop/ms646309.aspx
         unsafe {
             user32::RegisterHotKey(ptr::null_mut(), id, modifiers, vk);
         }
-        HotKey {id: id}
+        HotKey { id: id }
     }
 }
 

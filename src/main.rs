@@ -22,24 +22,20 @@ fn main() {
     voice.set_rate(6);
     println!("rate :{:?}", voice.get_rate());
     voice.speak_wait("Ready!");
-    let _hk = [ // TODO why do we nead to spesify the id.
-        HotKey::new(2, 191, 0), // ctrl-? key
-        HotKey::new(7, winapi::VK_ESCAPE as u32, 1), // ctrl-alt-shift-esk
-        HotKey::new(7, 191, 2), // ctrl-alt-shift-?
-        HotKey::new(2, winapi::VK_OEM_PERIOD as u32, 3), // ctrl-.
-    ];
+    let _hk = [// TODO why do we nead to spesify the id.
+               HotKey::new(2, 191, 0), // ctrl-? key
+               HotKey::new(7, winapi::VK_ESCAPE as u32, 1), // ctrl-alt-shift-esk
+               HotKey::new(7, 191, 2), // ctrl-alt-shift-?
+               HotKey::new(2, winapi::VK_OEM_PERIOD as u32, 3) /* ctrl-. */];
     let mut msg = winapi::MSG {
         hwnd: ptr::null_mut(),
         message: 0,
         wParam: 0,
         lParam: 0,
         time: 0,
-        pt: winapi::POINT {
-            x: 0,
-            y: 0,
-        },
+        pt: winapi::POINT { x: 0, y: 0 },
     };
-    while unsafe {user32::GetMessageW(&mut msg, ptr::null_mut(), 0, 0)} > 0 {
+    while unsafe { user32::GetMessageW(&mut msg, ptr::null_mut(), 0, 0) } > 0 {
         match msg.message {
             winapi::WM_HOTKEY => {
                 match msg.wParam {
