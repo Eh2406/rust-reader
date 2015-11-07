@@ -9,3 +9,4 @@ then figure out how best to remove shell window
 add set voice and get voices
 only run one at a time https://support.microsoft.com/en-us/kb/243953
 fix error only works when launched from administrator window (for the first time my firewall caught it trying to talk to another program also before this I got error about not having permission to access clipboard)
+fix error leading to error(0) and changing clipboard to selected text. If it does not read it should leave clipboard alone.
