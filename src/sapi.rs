@@ -2,6 +2,7 @@ use winapi;
 use ole32;
 
 use std::ptr;
+use std::mem;
 use std::ffi::OsStr;
 use std::os::windows::ffi::OsStrExt;
 use std::fmt::Display;
@@ -72,12 +73,7 @@ impl<'a> SpVoice<'a> {
         let mut hr;
         let mut voice: *mut winapi::ISpVoice = ptr::null_mut();
         let sp_voice = "SAPI.SpVoice".to_wide_null();
-        let mut clsid_spvoice = winapi::CLSID {
-            Data1: 0,
-            Data2: 0,
-            Data3: 0,
-            Data4: [0; 8],
-        };
+        let mut clsid_spvoice: winapi::CLSID = unsafe { mem::zeroed() };
 
         unsafe {
             hr = ole32::CLSIDFromProgID(&sp_voice[0], &mut clsid_spvoice);
@@ -158,21 +154,7 @@ impl<'a> SpVoice<'a> {
     }
 
     pub fn get_status(&mut self) -> winapi::SPVOICESTATUS {
-        let mut status = winapi::SPVOICESTATUS {
-            ulCurrentStream: 0,
-            ulLastStreamQueued: 0,
-            hrLastResult: 0,
-            dwRunningState: 0,
-            ulInputWordPos: 0,
-            ulInputWordLen: 0,
-            ulInputSentPos: 0,
-            ulInputSentLen: 0,
-            lBookmarkId: 0,
-            PhonemeId: 0,
-            VisemeId: winapi::SP_VISEME_0,
-            dwReserved1: 0,
-            dwReserved2: 0,
-        };
+        let mut status: winapi::SPVOICESTATUS = unsafe { mem::zeroed() };
         unsafe {
             self.voice.GetStatus(&mut status, 0u16 as *mut *mut u16);
         }

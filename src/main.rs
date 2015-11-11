@@ -4,6 +4,7 @@ extern crate user32;
 extern crate clipboard_win;
 
 use std::ptr;
+use std::mem;
 
 mod sapi;
 use sapi::*;
@@ -26,17 +27,10 @@ fn main() {
                HotKey::new(2, 191, 0), // ctrl-? key
                HotKey::new(7, winapi::VK_ESCAPE as u32, 1), // ctrl-alt-shift-esk
                HotKey::new(7, 191, 2), // ctrl-alt-shift-?
-               HotKey::new(2, winapi::VK_OEM_PERIOD as u32, 3), /* ctrl-. */
-               HotKey::new(3, winapi::VK_OEM_MINUS as u32, 4), /* ctrl-alt-- */
-               HotKey::new(3, winapi::VK_OEM_PLUS as u32, 5), /* ctrl-alt-= */];
-    let mut msg = winapi::MSG {
-        hwnd: ptr::null_mut(),
-        message: 0,
-        wParam: 0,
-        lParam: 0,
-        time: 0,
-        pt: winapi::POINT { x: 0, y: 0 },
-    };
+               HotKey::new(2, winapi::VK_OEM_PERIOD as u32, 3), // ctrl-.
+               HotKey::new(3, winapi::VK_OEM_MINUS as u32, 4), // ctrl-alt--
+               HotKey::new(3, winapi::VK_OEM_PLUS as u32, 5) /* ctrl-alt-= */];
+    let mut msg: winapi::MSG = unsafe { mem::zeroed() };
     while unsafe { user32::GetMessageW(&mut msg, ptr::null_mut(), 0, 0) } > 0 {
         match msg.message {
             winapi::WM_HOTKEY => {
@@ -64,14 +58,14 @@ fn main() {
                         }
                     }
                     4 => {
-                        let r = voice.get_rate();
-                        voice.set_rate(r - 1);
-                        println!("rate :{:?}", voice.get_rate());
+                        let r = voice.get_rate() - 1;
+                        voice.set_rate(r);
+                        println!("rate :{:?}", r);
                     }
                     5 => {
-                        let r = voice.get_rate();
-                        voice.set_rate(r + 1);
-                        println!("rate :{:?}", voice.get_rate());
+                        let r = voice.get_rate() + 1;
+                        voice.set_rate(r);
+                        println!("rate :{:?}", r);
                     }
                     _ => {
                         println!("unknown hot {}", msg.wParam);

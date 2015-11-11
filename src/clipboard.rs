@@ -9,10 +9,7 @@ use std::thread;
 
 
 pub fn send_key_event(vk: u16, flags: u32) {
-    let mut input = winapi::INPUT {
-        type_: winapi::INPUT_KEYBOARD,
-        u: [0u32; 6],
-    };
+    let mut input: winapi::INPUT = unsafe { mem::zeroed() };
     unsafe {
         *input.ki_mut() = winapi::KEYBDINPUT {
             wVk: vk,
