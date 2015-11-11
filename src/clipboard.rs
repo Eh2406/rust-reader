@@ -7,9 +7,32 @@ use clipboard_win::wrapper::get_clipboard_seq_num;
 use std::mem;
 use std::thread;
 
+pub trait NewINPUT {
+    fn new() -> winapi::INPUT;
+}
+
+#[cfg(target_arch = "x86")]
+impl NewINPUT for winapi::INPUT {
+    fn new() -> winapi::INPUT {
+        winapi::INPUT {
+            type_: winapi::INPUT_KEYBOARD,
+            u: [0u32; 6],
+        }
+    }
+}
+
+#[cfg(target_arch = "x86_64")]
+impl NewINPUT for winapi::INPUT {
+    fn new() -> winapi::INPUT {
+        winapi::INPUT {
+            type_: winapi::INPUT_KEYBOARD,
+            u: [0u64; 4],
+        }
+    }
+}
 
 pub fn send_key_event(vk: u16, flags: u32) {
-    let mut input: winapi::INPUT = unsafe { mem::zeroed() };
+    let mut input = winapi::INPUT::new();
     unsafe {
         *input.ki_mut() = winapi::KEYBDINPUT {
             wVk: vk,
