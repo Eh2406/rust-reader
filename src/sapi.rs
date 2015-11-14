@@ -153,6 +153,20 @@ impl<'a> SpVoice<'a> {
         volume
     }
 
+    pub fn set_alert_boundary(&mut self, boundary: winapi::SPEVENTENUM) {
+        unsafe {
+            self.voice.SetAlertBoundary(boundary);
+        }
+    }
+
+    pub fn get_alert_boundary(&mut self) -> winapi::SPEVENTENUM {
+        let mut boundary = winapi::SPEVENTENUM(0);
+        unsafe {
+            self.voice.GetAlertBoundary(&mut boundary);
+        }
+        boundary
+    }
+
     pub fn get_status(&mut self) -> winapi::SPVOICESTATUS {
         let mut status: winapi::SPVOICESTATUS = unsafe { mem::zeroed() };
         unsafe {

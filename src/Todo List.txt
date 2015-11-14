@@ -1,9 +1,7 @@
 continues loop
 clean up hotkeys code
 serialization and options
-fix pause. can use:
-  1) SetAlertBoundary witch affects the responsiveness of pause. but is in flux in winapi-rs
-  2) keep track of what we are reading ourselves.
+fix pause, keep track of what we are reading ourselves.
 add Shell_NotifyIcon ie tray for the commands like exit
 then figure out how best to remove shell window
 add set voice and get voices

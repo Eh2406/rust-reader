@@ -22,6 +22,8 @@ fn main() {
     println!("volume :{:?}", voice.get_volume());
     voice.set_rate(6);
     println!("rate :{:?}", voice.get_rate());
+    voice.set_alert_boundary(winapi::SPEI_PHONEME);
+    println!("alert_boundary :{:?}", voice.get_alert_boundary());
     voice.speak_wait("Ready!");
     let _hk = [// TODO why do we nead to spesify the id.
                HotKey::new(2, 191, 0), // ctrl-? key
