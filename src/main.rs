@@ -2,6 +2,11 @@ extern crate winapi;
 extern crate ole32;
 extern crate user32;
 extern crate clipboard_win;
+extern crate rustc_serialize; //To write rust objects to json
+
+use rustc_serialize::json;
+use std::io::prelude::*;
+use std::fs::File;
 
 use std::ptr;
 use std::mem;
@@ -14,6 +19,11 @@ use clipboard::*;
 
 mod hot_key;
 use hot_key::*;
+
+#[derive(RustcEncodable, RustcDecodable, Debug)]
+struct Option {
+    value: i32,
+}
 
 fn main() {
     let _com = Com::new();
