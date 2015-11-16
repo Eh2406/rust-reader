@@ -21,16 +21,24 @@ mod hot_key;
 use hot_key::*;
 
 #[derive(RustcEncodable, RustcDecodable, Debug)]
-struct Option {
-    value: i32,
+struct Options {
+    rate: i32,
+}
+
+impl Options {
+    pub fn new() -> Options {
+        Options { rate: 6 }
+    }
 }
 
 fn main() {
     let _com = Com::new();
     let mut voice = SpVoice::new();
+    // TODO read file into Options on error use new
+    let mut options = Options::new();
     voice.set_volume(99);
     println!("volume :{:?}", voice.get_volume());
-    voice.set_rate(6);
+    voice.set_rate(options.rate);
     println!("rate :{:?}", voice.get_rate());
     voice.set_alert_boundary(winapi::SPEI_PHONEME);
     println!("alert_boundary :{:?}", voice.get_alert_boundary());
@@ -70,14 +78,14 @@ fn main() {
                         }
                     }
                     4 => {
-                        let r = voice.get_rate() - 1;
-                        voice.set_rate(r);
-                        println!("rate :{:?}", r);
+                        options.rate = voice.get_rate() - 1;
+                        voice.set_rate(options.rate);
+                        println!("rate :{:?}", options.rate);
                     }
                     5 => {
-                        let r = voice.get_rate() + 1;
-                        voice.set_rate(r);
-                        println!("rate :{:?}", r);
+                        options.rate = voice.get_rate() + 1;
+                        voice.set_rate(options.rate);
+                        println!("rate :{:?}", options.rate);
                     }
                     _ => {
                         println!("unknown hot {}", msg.wParam);
@@ -93,6 +101,7 @@ fn main() {
             }
         }
     }
+    // TODO save Options to file
     voice.resume();
     voice.speak_wait("bye!");
 }
