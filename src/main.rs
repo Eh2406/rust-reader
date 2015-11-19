@@ -34,8 +34,22 @@ impl Options {
 fn main() {
     let _com = Com::new();
     let mut voice = SpVoice::new();
-    // TODO read file into Options on error use new
-    let mut options = Options::new();
+    let mut path = std::env::current_exe().unwrap();
+    path.set_extension("json");
+    let file = File::open(&path);
+    let mut options = match file {
+        Ok(mut f) => {
+            let mut s = String::new();
+            match f.read_to_string(&mut s) {
+                Ok(_) => match json::decode(&s) {
+                    Ok(o) => o,
+                    Err(_) => Options::new(),
+                },
+                Err(_) => Options::new(),
+            }
+        }
+        Err(_) => Options::new(),
+    };
     voice.set_volume(99);
     println!("volume :{:?}", voice.get_volume());
     voice.set_rate(options.rate);
@@ -101,7 +115,16 @@ fn main() {
             }
         }
     }
-    // TODO save Options to file
+    let file = File::create(path);
+    match file {
+        Ok(mut f) => match json::encode(&options) {
+            Ok(s) => {
+                f.write_all(s.as_bytes()).unwrap_or(());
+            }
+            Err(_) => {}
+        },
+        Err(_) => {}
+    }
     voice.resume();
     voice.speak_wait("bye!");
 }
