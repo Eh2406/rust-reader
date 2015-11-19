@@ -44,12 +44,12 @@ fn main() {
     println!("alert_boundary :{:?}", voice.get_alert_boundary());
     voice.speak_wait("Ready!");
     let _hk = [// TODO why do we nead to spesify the id.
-               HotKey::new(2, 191, 0), // ctrl-? key
-               HotKey::new(7, winapi::VK_ESCAPE as u32, 1), // ctrl-alt-shift-esk
-               HotKey::new(7, 191, 2), // ctrl-alt-shift-?
-               HotKey::new(2, winapi::VK_OEM_PERIOD as u32, 3), // ctrl-.
-               HotKey::new(3, winapi::VK_OEM_MINUS as u32, 4), // ctrl-alt--
-               HotKey::new(3, winapi::VK_OEM_PLUS as u32, 5) /* ctrl-alt-= */];
+               HotKey::new(2, 191, 0).unwrap(), // ctrl-? key
+               HotKey::new(7, winapi::VK_ESCAPE as u32, 1).unwrap(), // ctrl-alt-shift-esk
+               HotKey::new(7, 191, 2).unwrap(), // ctrl-alt-shift-?
+               HotKey::new(2, winapi::VK_OEM_PERIOD as u32, 3).unwrap(), // ctrl-.
+               HotKey::new(3, winapi::VK_OEM_MINUS as u32, 4).unwrap(), // ctrl-alt--
+               HotKey::new(3, winapi::VK_OEM_PLUS as u32, 5).unwrap() /* ctrl-alt-= */];
     let mut msg: winapi::MSG = unsafe { mem::zeroed() };
     while unsafe { user32::GetMessageW(&mut msg, ptr::null_mut(), 0, 0) } > 0 {
         match msg.message {

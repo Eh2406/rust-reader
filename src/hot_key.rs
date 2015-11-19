@@ -7,13 +7,15 @@ pub struct HotKey {
 }
 
 impl HotKey {
-    pub fn new(modifiers: u32, vk: u32, id: i32) -> HotKey {
+    pub fn new(modifiers: u32, vk: u32, id: i32) -> Option<HotKey> {
         println!("new for HotKey");
         // https://msdn.microsoft.com/en-us/library/windows/desktop/ms646309.aspx
-        unsafe {
-            user32::RegisterHotKey(ptr::null_mut(), id, modifiers, vk);
+        let hr = unsafe { user32::RegisterHotKey(ptr::null_mut(), id, modifiers, vk) };
+        if hr == 0 {
+            None
+        } else {
+            Some(HotKey { id: id })
         }
-        HotKey { id: id }
     }
 }
 
