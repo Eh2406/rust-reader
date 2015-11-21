@@ -36,20 +36,14 @@ fn main() {
     let mut voice = SpVoice::new();
     let mut path = std::env::current_exe().unwrap();
     path.set_extension("json");
-    let file = File::open(&path);
-    let mut options = match file {
-        Ok(mut f) => {
-            let mut s = String::new();
-            match f.read_to_string(&mut s) {
-                Ok(_) => match json::decode(&s) {
-                    Ok(o) => o,
-                    Err(_) => Options::new(),
-                },
-                Err(_) => Options::new(),
-            }
-        }
-        Err(_) => Options::new(),
-    };
+    let mut options = File::open(&path)
+                          .map(|mut f| {
+                              let mut s = String::new();
+                              f.read_to_string(&mut s)
+                               .map(|_| json::decode(&s).unwrap_or(Options::new()))
+                               .unwrap_or(Options::new())
+                          })
+                          .unwrap_or(Options::new());
     voice.set_volume(99);
     println!("volume :{:?}", voice.get_volume());
     voice.set_rate(options.rate);
@@ -115,16 +109,11 @@ fn main() {
             }
         }
     }
-    let file = File::create(path);
-    match file {
-        Ok(mut f) => match json::encode(&options) {
-            Ok(s) => {
-                f.write_all(s.as_bytes()).unwrap_or(());
-            }
-            Err(_) => {}
-        },
-        Err(_) => {}
-    }
+    json::encode(&options)
+        .map(|s| {
+            File::create(path).map(|mut f| f.write_all(s.as_bytes()).unwrap_or(())).unwrap_or(())
+        })
+        .unwrap_or(());
     voice.resume();
     voice.speak_wait("bye!");
 }
