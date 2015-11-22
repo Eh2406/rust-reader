@@ -21,32 +21,50 @@ mod hot_key;
 use hot_key::*;
 
 #[derive(RustcEncodable, RustcDecodable, Debug)]
-struct Options {
+struct Settings {
     rate: i32,
 }
 
-impl Options {
-    pub fn new() -> Options {
-        Options { rate: 6 }
+impl Settings {
+    pub fn new() -> Settings {
+        Settings { rate: 6 }
+    }
+    pub fn path() -> std::path::PathBuf {
+        let mut path = std::env::current_exe().unwrap();
+        path.set_extension("json");
+        path
+    }
+    pub fn from_file() -> Settings {
+        File::open(Settings::path())
+            .map(|mut f| {
+                let mut s = String::new();
+                f.read_to_string(&mut s)
+                 .map(|_| json::decode(&s).unwrap_or(Settings::new()))
+                 .unwrap_or(Settings::new())
+            })
+            .unwrap_or(Settings::new())
+    }
+}
+
+impl Drop for Settings {
+    fn drop(&mut self) {
+        json::encode(self)
+            .map(|s| {
+                File::create(Settings::path())
+                    .map(|mut f| f.write_all(s.as_bytes()).unwrap_or(()))
+                    .unwrap_or(())
+            })
+            .unwrap_or(());
     }
 }
 
 fn main() {
     let _com = Com::new();
     let mut voice = SpVoice::new();
-    let mut path = std::env::current_exe().unwrap();
-    path.set_extension("json");
-    let mut options = File::open(&path)
-                          .map(|mut f| {
-                              let mut s = String::new();
-                              f.read_to_string(&mut s)
-                               .map(|_| json::decode(&s).unwrap_or(Options::new()))
-                               .unwrap_or(Options::new())
-                          })
-                          .unwrap_or(Options::new());
+    let mut settings = Settings::from_file();
     voice.set_volume(99);
     println!("volume :{:?}", voice.get_volume());
-    voice.set_rate(options.rate);
+    voice.set_rate(settings.rate);
     println!("rate :{:?}", voice.get_rate());
     voice.set_alert_boundary(winapi::SPEI_PHONEME);
     println!("alert_boundary :{:?}", voice.get_alert_boundary());
@@ -86,14 +104,14 @@ fn main() {
                         }
                     }
                     4 => {
-                        options.rate = voice.get_rate() - 1;
-                        voice.set_rate(options.rate);
-                        println!("rate :{:?}", options.rate);
+                        settings.rate = voice.get_rate() - 1;
+                        voice.set_rate(settings.rate);
+                        println!("rate :{:?}", settings.rate);
                     }
                     5 => {
-                        options.rate = voice.get_rate() + 1;
-                        voice.set_rate(options.rate);
-                        println!("rate :{:?}", options.rate);
+                        settings.rate = voice.get_rate() + 1;
+                        voice.set_rate(settings.rate);
+                        println!("rate :{:?}", settings.rate);
                     }
                     _ => {
                         println!("unknown hot {}", msg.wParam);
@@ -109,11 +127,6 @@ fn main() {
             }
         }
     }
-    json::encode(&options)
-        .map(|s| {
-            File::create(path).map(|mut f| f.write_all(s.as_bytes()).unwrap_or(())).unwrap_or(())
-        })
-        .unwrap_or(());
     voice.resume();
     voice.speak_wait("bye!");
 }
