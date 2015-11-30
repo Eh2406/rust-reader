@@ -3,6 +3,7 @@ extern crate ole32;
 extern crate user32;
 extern crate clipboard_win;
 extern crate rustc_serialize; //To write rust objects to json
+extern crate regex; // to clean text
 
 use std::ptr;
 use std::mem;
@@ -18,6 +19,16 @@ use hot_key::*;
 
 mod settings;
 use settings::*;
+
+use regex::Regex;
+
+fn clean_text(raw: &str) -> String {
+    let out = Regex::new(r"\s+").unwrap().replace_all(raw, " ");
+    let out = Regex::new(r"[_]{4,}").unwrap().replace_all(&out, "___");
+    let out = Regex::new(r"[-]{4,}").unwrap().replace_all(&out, "---");
+    let out = Regex::new(r"[~]{4,}").unwrap().replace_all(&out, "~~~");
+    out
+}
 
 fn main() {
     let _com = Com::new();
@@ -45,7 +56,7 @@ fn main() {
                     0 => {
                         voice.resume();
                         match get_text() {
-                            Ok(x) => voice.speak(x),
+                            Ok(x) => voice.speak(clean_text(&x)),
                             Err(x) => {
                                 voice.speak_wait("oops. error.");
                                 println!("{:?}", x);
@@ -55,9 +66,7 @@ fn main() {
                     1 => {
                         break;
                     }
-                    2 => {
-                        println!("dwRunningState {}", voice.get_status().dwRunningState)
-                    }
+                    2 => println!("dwRunningState {}", voice.get_status().dwRunningState),
                     3 => {
                         match voice.get_status().dwRunningState {
                             2 => voice.pause(),
