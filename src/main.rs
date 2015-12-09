@@ -27,6 +27,7 @@ fn clean_text(raw: &str) -> String {
     let out = Regex::new(r"[_]{4,}").unwrap().replace_all(&out, "___");
     let out = Regex::new(r"[-]{4,}").unwrap().replace_all(&out, "---");
     let out = Regex::new(r"[~]{4,}").unwrap().replace_all(&out, "~~~");
+    let out = Regex::new(r"[=]{4,}").unwrap().replace_all(&out, "===");
     out
 }
 
