@@ -22,16 +22,50 @@ use settings::*;
 mod clean_text;
 use clean_text::*;
 
-fn main() {
-    let _com = Com::new();
-    let mut voice = SpVoice::new();
-    let mut settings = Settings::from_file();
+fn print_voice(voice: &mut SpVoice, settings: &mut Settings) {
     voice.set_volume(99);
     println!("volume :{:?}", voice.get_volume());
     voice.set_rate(settings.rate);
     println!("rate :{:?}", voice.get_rate());
     voice.set_alert_boundary(winapi::SPEI_PHONEME);
     println!("alert_boundary :{:?}", voice.get_alert_boundary());
+}
+
+fn read(voice: &mut SpVoice) {
+    voice.resume();
+    match get_text() {
+        Ok(x) => voice.speak(clean_text(&x)),
+        Err(x) => {
+            voice.speak_wait("oops. error.");
+            println!("{:?}", x);
+        }
+    }
+}
+
+fn play_pause(voice: &mut SpVoice) {
+    match voice.get_status().dwRunningState {
+        2 => voice.pause(),
+        _ => voice.resume(),
+    }
+}
+
+fn rate_down(voice: &mut SpVoice, settings: &mut Settings) {
+    settings.rate = voice.get_rate() - 1;
+    voice.set_rate(settings.rate);
+    println!("rate :{:?}", settings.rate);
+}
+
+fn rate_up(voice: &mut SpVoice, settings: &mut Settings) {
+    settings.rate = voice.get_rate() + 1;
+    voice.set_rate(settings.rate);
+    println!("rate :{:?}", settings.rate);
+}
+
+fn main() {
+    let _com = Com::new();
+    let mut voice = SpVoice::new();
+    let mut settings = Settings::from_file();
+    print_voice(&mut voice, &mut settings);
     voice.speak_wait("Ready!");
     let _hk = [// TODO why do we nead to spesify the id.
                HotKey::new(2, 191, 0).unwrap(), // ctrl-? key
@@ -45,39 +79,13 @@ fn main() {
         match msg.message {
             winapi::WM_HOTKEY => {
                 match msg.wParam {
-                    0 => {
-                        voice.resume();
-                        match get_text() {
-                            Ok(x) => voice.speak(clean_text(&x)),
-                            Err(x) => {
-                                voice.speak_wait("oops. error.");
-                                println!("{:?}", x);
-                            }
-                        }
-                    }
-                    1 => {
-                        break;
-                    }
+                    0 => read(&mut voice),
+                    1 => break,
                     2 => println!("dwRunningState {}", voice.get_status().dwRunningState),
-                    3 => {
-                        match voice.get_status().dwRunningState {
-                            2 => voice.pause(),
-                            _ => voice.resume(),
-                        }
-                    }
-                    4 => {
-                        settings.rate = voice.get_rate() - 1;
-                        voice.set_rate(settings.rate);
-                        println!("rate :{:?}", settings.rate);
-                    }
-                    5 => {
-                        settings.rate = voice.get_rate() + 1;
-                        voice.set_rate(settings.rate);
-                        println!("rate :{:?}", settings.rate);
-                    }
-                    _ => {
-                        println!("unknown hot {}", msg.wParam);
-                    }
+                    3 => play_pause(&mut voice),
+                    4 => rate_down(&mut voice, &mut settings),
+                    5 => rate_up(&mut voice, &mut settings),
+                    _ => println!("unknown hot {}", msg.wParam),
                 }
             }
             _ => {
