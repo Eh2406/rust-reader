@@ -66,19 +66,25 @@ fn main() {
     let mut voice = SpVoice::new();
     let mut settings = Settings::from_file();
     print_voice(&mut voice, &mut settings);
+    let _hk: Vec<_> = ([(2, 191), // ctrl-? key
+                        (7, winapi::VK_ESCAPE as u32), // ctrl-alt-shift-esk
+                        (7, 191), // ctrl-alt-shift-?
+                        (2, winapi::VK_OEM_PERIOD as u32), // ctrl-.
+                        (3, winapi::VK_OEM_MINUS as u32), // ctrl-alt--
+                        (3, winapi::VK_OEM_PLUS as u32) /* ctrl-alt-= */])
+                          .into_iter()
+                          .enumerate() // generate HotKey id
+                          .map(|(id, &(modifiers, vk))| {
+                              HotKey::new(modifiers, vk, id as i32).unwrap() // make HotKey
+                          })
+                          .collect();
+
     voice.speak_wait("Ready!");
-    let _hk = [// TODO why do we nead to spesify the id.
-               HotKey::new(2, 191, 0).unwrap(), // ctrl-? key
-               HotKey::new(7, winapi::VK_ESCAPE as u32, 1).unwrap(), // ctrl-alt-shift-esk
-               HotKey::new(7, 191, 2).unwrap(), // ctrl-alt-shift-?
-               HotKey::new(2, winapi::VK_OEM_PERIOD as u32, 3).unwrap(), // ctrl-.
-               HotKey::new(3, winapi::VK_OEM_MINUS as u32, 4).unwrap(), // ctrl-alt--
-               HotKey::new(3, winapi::VK_OEM_PLUS as u32, 5).unwrap() /* ctrl-alt-= */];
     let mut msg: winapi::MSG = unsafe { mem::zeroed() };
     while unsafe { user32::GetMessageW(&mut msg, ptr::null_mut(), 0, 0) } > 0 {
         match msg.message {
             winapi::WM_HOTKEY => {
-                match msg.wParam {
+                match msg.wParam { // match on generated HotKey id
                     0 => read(&mut voice),
                     1 => break,
                     2 => println!("dwRunningState {}", voice.get_status().dwRunningState),
@@ -88,6 +94,8 @@ fn main() {
                     _ => println!("unknown hot {}", msg.wParam),
                 }
             }
+            winapi::WM_QUERYENDSESSION => break,
+            winapi::WM_ENDSESSION => break,
             _ => {
                 println!("{:?}", msg);
                 unsafe {
