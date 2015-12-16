@@ -65,6 +65,14 @@ fn close() {
     unsafe { user32::PostQuitMessage(0) }
 }
 
+fn get_message() -> Option<winapi::MSG> {
+    let mut msg: winapi::MSG = unsafe { mem::zeroed() };
+    if unsafe { user32::GetMessageW(&mut msg, ptr::null_mut(), 0, 0) } <= 0 {
+        return None;
+    }
+    Some(msg)
+}
+
 fn main() {
     let _com = Com::new();
     let mut voice = SpVoice::new();
@@ -84,8 +92,7 @@ fn main() {
                           .collect();
 
     voice.speak_wait("Ready!");
-    let mut msg: winapi::MSG = unsafe { mem::zeroed() };
-    while unsafe { user32::GetMessageW(&mut msg, ptr::null_mut(), 0, 0) } > 0 {
+    while let Some(msg) = get_message() {
         match msg.message {
             winapi::WM_HOTKEY => {
                 match msg.wParam { // match on generated HotKey id
