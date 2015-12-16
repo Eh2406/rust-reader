@@ -61,6 +61,10 @@ fn rate_up(voice: &mut SpVoice, settings: &mut Settings) {
     println!("rate :{:?}", settings.rate);
 }
 
+fn close() {
+    unsafe { user32::PostQuitMessage(0) }
+}
+
 fn main() {
     let _com = Com::new();
     let mut voice = SpVoice::new();
@@ -86,7 +90,7 @@ fn main() {
             winapi::WM_HOTKEY => {
                 match msg.wParam { // match on generated HotKey id
                     0 => read(&mut voice),
-                    1 => break,
+                    1 => close(),
                     2 => println!("dwRunningState {}", voice.get_status().dwRunningState),
                     3 => play_pause(&mut voice),
                     4 => rate_down(&mut voice, &mut settings),
@@ -94,8 +98,8 @@ fn main() {
                     _ => println!("unknown hot {}", msg.wParam),
                 }
             }
-            winapi::WM_QUERYENDSESSION => break,
-            winapi::WM_ENDSESSION => break,
+            winapi::WM_QUERYENDSESSION => close(),
+            winapi::WM_ENDSESSION => close(),
             _ => {
                 println!("{:?}", msg);
                 unsafe {

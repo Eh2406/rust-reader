@@ -1,24 +1,26 @@
-pub fn clean_text(raw: &str) -> String {
-    let mut out = String::new();
-    let mut last_ch = '=';
-    let mut count = 0;
-    for ch in raw.chars() {
-        if ch.is_whitespace() {
-            if !last_ch.is_whitespace() {
-                count = 1;
-                last_ch = ' ';
-                out.push(' ');
-            }
-        } else if ch != last_ch {
-            count = 1;
-            last_ch = ch;
-            out.push(ch);
-        } else if count < 3 {
-            count += 1;
-            out.push(ch);
-        }
+fn only_spaces(ch: char) -> char {
+    if ch.is_whitespace() {
+        ' '
+    } else {
+        ch
     }
-    out
+}
+
+pub fn clean_text(raw: &str) -> String {
+    raw.chars()
+       .map(only_spaces)
+       .fold((String::new(), '=', 0), |(mut out, last_ch, count), ch| {
+           if ch != last_ch {
+               out.push(ch);
+               (out, ch, 1)
+           } else if last_ch != ' ' && count < 3 {
+               out.push(ch);
+               (out, ch, count + 1)
+           } else {
+               (out, last_ch, count + 1)
+           }
+       })
+       .0
 }
 
 #[test]
