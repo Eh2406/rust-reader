@@ -9,18 +9,19 @@ fn only_spaces(ch: char) -> char {
 pub fn clean_text(raw: &str) -> String {
     raw.chars()
        .map(only_spaces)
-       .fold((String::new(), '=', 0), |(mut out, last_ch, count), ch| {
-           if ch != last_ch {
-               out.push(ch);
-               (out, ch, 1)
-           } else if last_ch != ' ' && count < 3 {
-               out.push(ch);
-               (out, ch, count + 1)
+       .scan(('\x00', 0), |st, ch| {
+           if st.0 != ch {
+               st.1 = 0
            } else {
-               (out, last_ch, count + 1)
-           }
+               st.1 += 1
+           };
+           st.0 = ch;
+           Some(*st)
        })
-       .0
+       .filter(|&(ch, count)| !(count >= 1 && ch.is_whitespace()))
+       .filter(|&(_, count)| !(count >= 3))
+       .map(|(ch, _)| ch)
+       .collect()
 }
 
 #[test]
