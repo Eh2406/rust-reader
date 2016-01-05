@@ -1,4 +1,5 @@
 use rustc_serialize::json;
+use winapi;
 use std::io::prelude::*;
 use std::fs::File;
 use std::path::PathBuf;
@@ -7,11 +8,20 @@ use std::env::current_exe;
 #[derive(RustcEncodable, RustcDecodable, Debug)]
 pub struct Settings {
     pub rate: i32,
+    pub hotkeys: [(u32, u32); 6],
 }
 
 impl Settings {
     pub fn new() -> Settings {
-        Settings { rate: 6 }
+        Settings {
+            rate: 6,
+            hotkeys: [(2, 191), // ctrl-? key
+                      (7, winapi::VK_ESCAPE as u32), // ctrl-alt-shift-esk
+                      (7, 191), // ctrl-alt-shift-?
+                      (2, winapi::VK_OEM_PERIOD as u32), // ctrl-.
+                      (3, winapi::VK_OEM_MINUS as u32), // ctrl-alt--
+                      (3, winapi::VK_OEM_PLUS as u32) /* ctrl-alt-= */],
+        }
     }
     pub fn path() -> PathBuf {
         let mut path = current_exe().unwrap();

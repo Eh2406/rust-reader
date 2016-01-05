@@ -78,18 +78,13 @@ fn main() {
     let mut voice = SpVoice::new();
     let mut settings = Settings::from_file();
     print_voice(&mut voice, &mut settings);
-    let _hk: Vec<_> = [(2, 191), // ctrl-? key
-                       (7, winapi::VK_ESCAPE as u32), // ctrl-alt-shift-esk
-                       (7, 191), // ctrl-alt-shift-?
-                       (2, winapi::VK_OEM_PERIOD as u32), // ctrl-.
-                       (3, winapi::VK_OEM_MINUS as u32), // ctrl-alt--
-                       (3, winapi::VK_OEM_PLUS as u32) /* ctrl-alt-= */]
-                          .into_iter()
-                          .enumerate() // generate HotKey id
-                          .map(|(id, &(modifiers, vk))| {
-                              HotKey::new(modifiers, vk, id as i32).unwrap() // make HotKey
-                          })
-                          .collect();
+    let _hk: Vec<_> = settings.hotkeys
+                              .into_iter()
+                              .enumerate() // generate HotKey id
+                              .map(|(id, &(modifiers, vk))| {
+                                  HotKey::new(modifiers, vk, id as i32).unwrap() // make HotKey
+                              })
+                              .collect();
 
     voice.speak_wait("Ready!");
     while let Some(msg) = get_message() {
