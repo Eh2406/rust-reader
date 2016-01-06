@@ -52,12 +52,14 @@ fn play_pause(voice: &mut SpVoice) {
 fn rate_down(voice: &mut SpVoice, settings: &mut Settings) {
     settings.rate = voice.get_rate() - 1;
     voice.set_rate(settings.rate);
+    settings.to_file();
     println!("rate :{:?}", settings.rate);
 }
 
 fn rate_up(voice: &mut SpVoice, settings: &mut Settings) {
     settings.rate = voice.get_rate() + 1;
     voice.set_rate(settings.rate);
+    settings.to_file();
     println!("rate :{:?}", settings.rate);
 }
 

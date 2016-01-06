@@ -1,5 +1,5 @@
 use rustc_serialize::json;
-use winapi;
+use winapi::{VK_OEM_2, VK_ESCAPE, VK_OEM_PERIOD, VK_OEM_MINUS, VK_OEM_PLUS};
 use std::io::prelude::*;
 use std::fs::File;
 use std::path::PathBuf;
@@ -15,12 +15,12 @@ impl Settings {
     pub fn new() -> Settings {
         Settings {
             rate: 6,
-            hotkeys: [(2, 191), // ctrl-? key
-                      (7, winapi::VK_ESCAPE as u32), // ctrl-alt-shift-esk
-                      (7, 191), // ctrl-alt-shift-?
-                      (2, winapi::VK_OEM_PERIOD as u32), // ctrl-.
-                      (3, winapi::VK_OEM_MINUS as u32), // ctrl-alt--
-                      (3, winapi::VK_OEM_PLUS as u32) /* ctrl-alt-= */],
+            hotkeys: [(2, VK_OEM_2 as u32), // ctrl-? key
+                      (7, VK_ESCAPE as u32), // ctrl-alt-shift-esk
+                      (7, VK_OEM_2 as u32), // ctrl-alt-shift-?
+                      (2, VK_OEM_PERIOD as u32), // ctrl-.
+                      (3, VK_OEM_MINUS as u32), // ctrl-alt--
+                      (3, VK_OEM_PLUS as u32) /* ctrl-alt-= */],
         }
     }
     pub fn path() -> PathBuf {
@@ -38,10 +38,7 @@ impl Settings {
             })
             .unwrap_or(Settings::new())
     }
-}
-
-impl Drop for Settings {
-    fn drop(&mut self) {
+    pub fn to_file(&self) {
         json::encode(self)
             .map(|s| {
                 File::create(Settings::path())
@@ -49,5 +46,11 @@ impl Drop for Settings {
                     .unwrap_or(())
             })
             .unwrap_or(());
+    }
+}
+
+impl Drop for Settings {
+    fn drop(&mut self) {
+        self.to_file()
     }
 }
