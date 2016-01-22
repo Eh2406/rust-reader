@@ -6,6 +6,7 @@ use clipboard_win::{get_clipboard_string, set_clipboard};
 use clipboard_win::wrapper::get_clipboard_seq_num;
 use std::mem;
 use std::thread;
+use std::time::Duration;
 
 pub trait NewINPUT {
     fn new() -> winapi::INPUT;
@@ -60,7 +61,7 @@ pub fn what_on_clipboard_seq_num(clip_num: u32, n: u32) -> bool {
         if get_clipboard_seq_num().unwrap_or(clip_num) != clip_num {
             return true;
         }
-        thread::sleep_ms(10 * i);
+        thread::sleep(Duration::new(0, 10 * i));
     }
     get_clipboard_seq_num().unwrap_or(clip_num) != clip_num
 }
@@ -71,7 +72,7 @@ pub fn get_text() -> Result<String, clipboard_win::WindowsError> {
     let old_clip_num = get_clipboard_seq_num().expect("Lacks sufficient rights to access \
                                                        clipboard(WINSTA_ACCESSCLIPBOARD)");
     send_ctrl_c();
-    if !what_on_clipboard_seq_num(old_clip_num, 15) {
+    if !what_on_clipboard_seq_num(old_clip_num, 20) {
         return Err(clipboard_win::WindowsError::new(0));
     }
     let new_clip = get_clipboard_string();

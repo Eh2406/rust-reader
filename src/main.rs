@@ -88,6 +88,15 @@ fn main() {
                               })
                               .collect();
 
+    if clipboard_win::wrapper::get_clipboard_seq_num().is_none() {
+        // this will crash on our reding so lets get it over with.
+        // this may fix the problem
+        clipboard_win::set_clipboard("").unwrap();
+        // let us see if it did
+        clipboard_win::wrapper::get_clipboard_seq_num()
+            .expect("Lacks sufficient rights to access clipboard(WINSTA_ACCESSCLIPBOARD)");
+    }
+
     voice.speak_wait("Ready!");
     while let Some(msg) = get_message() {
         match msg.message {
