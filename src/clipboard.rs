@@ -61,21 +61,32 @@ pub fn what_on_clipboard_seq_num(clip_num: u32, n: u32) -> bool {
         if get_clipboard_seq_num().unwrap_or(clip_num) != clip_num {
             return true;
         }
-        thread::sleep(Duration::new(0, 10 * i));
+        thread::sleep(Duration::new(0, 50 * i));
     }
     get_clipboard_seq_num().unwrap_or(clip_num) != clip_num
 }
 
+pub fn what_on_get_clipboard_string(n: u32) -> Result<String, clipboard_win::WindowsError> {
+    for i in 1..(n + 1) {
+        println!("what_on_get_clipboard_string({})", i);
+        match get_clipboard_string() {
+            Ok(x) => return Ok(x),
+            Err(_) => thread::sleep(Duration::new(0, 50 * i))
+        }
+    }
+    get_clipboard_string()
+}
+
 pub fn get_text() -> Result<String, clipboard_win::WindowsError> {
     println!("geting text");
-    let old_clip = get_clipboard_string();
+    let old_clip = what_on_get_clipboard_string(5);
     let old_clip_num = get_clipboard_seq_num().expect("Lacks sufficient rights to access \
                                                        clipboard(WINSTA_ACCESSCLIPBOARD)");
     send_ctrl_c();
-    if !what_on_clipboard_seq_num(old_clip_num, 20) {
+    if !what_on_clipboard_seq_num(old_clip_num, 5) {
         return Err(clipboard_win::WindowsError::new(0));
     }
-    let new_clip = get_clipboard_string();
+    let new_clip = what_on_get_clipboard_string(5);
     if let Ok(clip) = old_clip {
         let _ = set_clipboard(&clip);
     }
