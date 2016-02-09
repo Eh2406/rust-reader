@@ -68,10 +68,9 @@ pub fn what_on_clipboard_seq_num(clip_num: u32, n: u32) -> bool {
 
 pub fn what_on_get_clipboard_string(n: u32) -> Result<String, clipboard_win::WindowsError> {
     for i in 1..(n + 1) {
-        println!("what_on_get_clipboard_string({})", i);
         match get_clipboard_string() {
             Ok(x) => return Ok(x),
-            Err(_) => thread::sleep(Duration::new(0, 50 * i))
+            Err(_) => thread::sleep(Duration::new(0, 50 * i)),
         }
     }
     get_clipboard_string()
