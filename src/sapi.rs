@@ -174,6 +174,17 @@ impl<'a> SpVoice<'a> {
         }
         status
     }
+    pub fn set_notify_window_message(&mut self, hwnd: winapi::HWND) {
+        unsafe {
+            println!("SetNotifyWindowMessage: {:?}",
+                     self.voice.SetNotifyWindowMessage(hwnd, winapi::WM_APP + 15, 0, 0));
+        }
+    }
+    pub fn set_interest(&mut self, event: u64, queued: u64) {
+        unsafe {
+            println!("SetInterest: {:?}", self.voice.SetInterest(event, queued));
+        }
+    }
 }
 
 impl<'a> Drop for SpVoice<'a> {
