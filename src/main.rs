@@ -22,6 +22,8 @@ use settings::*;
 mod clean_text;
 use clean_text::*;
 
+const SAPI_EVENT_ID: u32 = winapi::WM_APP + 15;
+
 fn print_voice(voice: &mut SpVoice, settings: &mut Settings) {
     voice.set_volume(99);
     println!("volume :{:?}", voice.get_volume());
@@ -97,36 +99,7 @@ fn main() {
             .expect("Lacks sufficient rights to access clipboard(WINSTA_ACCESSCLIPBOARD)");
     }
 
-    let sapi_event_window = unsafe {
-        let window_class_name = "SAPI_event_window_class_name".to_wide_null();
-        user32::RegisterClassW(&winapi::WNDCLASSW {
-            style: 0,
-            lpfnWndProc: Some(user32::DefWindowProcW),
-            cbClsExtra: 0,
-            cbWndExtra: 0,
-            hInstance: 0 as winapi::HINSTANCE,
-            hIcon: user32::LoadIconW(0 as winapi::HINSTANCE, winapi::winuser::IDI_APPLICATION),
-            hCursor: user32::LoadCursorW(0 as winapi::HINSTANCE, winapi::winuser::IDI_APPLICATION),
-            hbrBackground: 16 as winapi::HBRUSH,
-            lpszMenuName: 0 as winapi::LPCWSTR,
-            lpszClassName: window_class_name.as_ptr(),
-        });
-        user32::CreateWindowExW(0,
-                                window_class_name.as_ptr(),
-                                &0u16,
-                                winapi::WS_OVERLAPPEDWINDOW,
-                                0,
-                                0,
-                                400,
-                                400,
-                                winapi::HWND_MESSAGE,
-                                0 as winapi::HMENU,
-                                0 as winapi::HINSTANCE,
-                                std::ptr::null_mut())
-    };
-    println!("CreateWindow: {:?}", sapi_event_window);
-
-    voice.set_notify_window_message(sapi_event_window);
+    voice.set_notify_window_message(SAPI_EVENT_ID);
     voice.set_interest(winapi::SPFEI(5) | winapi::SPFEI(1) | winapi::SPFEI(2), 0);
 
     voice.speak_wait("Ready!");

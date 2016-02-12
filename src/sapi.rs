@@ -1,5 +1,6 @@
 use winapi;
 use ole32;
+use user32;
 
 use std::ptr;
 use std::mem;
@@ -64,6 +65,7 @@ impl Drop for Com {
 pub struct SpVoice<'a> {
     // https://msdn.microsoft.com/en-us/library/ms723602.aspx
     voice: &'a mut winapi::ISpVoice,
+    window: winapi::HWND,
 }
 
 #[allow(dead_code)]
@@ -71,6 +73,7 @@ impl<'a> SpVoice<'a> {
     pub fn new() -> SpVoice<'a> {
         println!("new for SpVoice");
         let mut hr;
+        let sapi_event_window;
         let mut voice: *mut winapi::ISpVoice = ptr::null_mut();
         let sp_voice = "SAPI.SpVoice".to_wide_null();
         let mut clsid_spvoice: winapi::CLSID = unsafe { mem::zeroed() };
@@ -91,8 +94,41 @@ impl<'a> SpVoice<'a> {
             if failed(hr) {
                 panic!("failed for SpVoice at CoCreateInstance");
             }
-            SpVoice { voice: &mut *voice }
+            let window_class_name = "SAPI_event_window_class_name".to_wide_null();
+            user32::RegisterClassW(&winapi::WNDCLASSW {
+                style: 0,
+                lpfnWndProc: Some(user32::DefWindowProcW),
+                cbClsExtra: 0,
+                cbWndExtra: 0,
+                hInstance: 0 as winapi::HINSTANCE,
+                hIcon: user32::LoadIconW(0 as winapi::HINSTANCE, winapi::winuser::IDI_APPLICATION),
+                hCursor: user32::LoadCursorW(0 as winapi::HINSTANCE,
+                                             winapi::winuser::IDI_APPLICATION),
+                hbrBackground: 16 as winapi::HBRUSH,
+                lpszMenuName: 0 as winapi::LPCWSTR,
+                lpszClassName: window_class_name.as_ptr(),
+            });
+            sapi_event_window = user32::CreateWindowExW(0,
+                                                        window_class_name.as_ptr(),
+                                                        &0u16,
+                                                        winapi::WS_OVERLAPPEDWINDOW,
+                                                        0,
+                                                        0,
+                                                        400,
+                                                        400,
+                                                        winapi::HWND_MESSAGE,
+                                                        0 as winapi::HMENU,
+                                                        0 as winapi::HINSTANCE,
+                                                        ptr::null_mut());
+            SpVoice {
+                voice: &mut *voice,
+                window: sapi_event_window,
+            }
         }
+    }
+
+    pub fn get_window_handle(&mut self) -> winapi::HWND {
+        self.window
     }
 
     pub fn speak<T: ToWide + Display>(&mut self, string: T) {
@@ -174,12 +210,14 @@ impl<'a> SpVoice<'a> {
         }
         status
     }
-    pub fn set_notify_window_message(&mut self, hwnd: winapi::HWND) {
+
+    pub fn set_notify_window_message(&mut self, msg: u32) {
         unsafe {
             println!("SetNotifyWindowMessage: {:?}",
-                     self.voice.SetNotifyWindowMessage(hwnd, winapi::WM_APP + 15, 0, 0));
+                     self.voice.SetNotifyWindowMessage(self.window, msg, 0, 0));
         }
     }
+
     pub fn set_interest(&mut self, event: u64, queued: u64) {
         unsafe {
             println!("SetInterest: {:?}", self.voice.SetInterest(event, queued));
