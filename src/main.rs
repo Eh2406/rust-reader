@@ -75,17 +75,6 @@ fn get_message() -> Option<winapi::MSG> {
     Some(msg)
 }
 
-use std::os::windows::ffi::OsStrExt;
-pub unsafe extern "system" fn window_proc(h_wnd: winapi::HWND,
-                                          msg: winapi::UINT,
-                                          w_param: winapi::WPARAM,
-                                          l_param: winapi::LPARAM)
-                                          -> winapi::LRESULT {
-    if msg == winapi::winuser::WM_DESTROY {
-        user32::PostQuitMessage(0);
-    }
-    return user32::DefWindowProcW(h_wnd, msg, w_param, l_param);
-}
 fn main() {
     let _com = Com::new();
     let mut voice = SpVoice::new();
@@ -108,16 +97,11 @@ fn main() {
             .expect("Lacks sufficient rights to access clipboard(WINSTA_ACCESSCLIPBOARD)");
     }
 
-    unsafe {
-        let v: Vec<u16> = std::ffi::OsStr::new("my_window")
-                              .encode_wide()
-                              .chain(Some(0).into_iter())
-                              .collect();
-        let class_name = v.as_ptr();
-
-        let wnd = winapi::WNDCLASSW {
+    let sapi_event_window = unsafe {
+        let window_class_name = "SAPI_event_window_class_name".to_wide_null();
+        user32::RegisterClassW(&winapi::WNDCLASSW {
             style: 0,
-            lpfnWndProc: Some(window_proc),
+            lpfnWndProc: Some(user32::DefWindowProcW),
             cbClsExtra: 0,
             cbWndExtra: 0,
             hInstance: 0 as winapi::HINSTANCE,
@@ -125,22 +109,17 @@ fn main() {
             hCursor: user32::LoadCursorW(0 as winapi::HINSTANCE, winapi::winuser::IDI_APPLICATION),
             hbrBackground: 16 as winapi::HBRUSH,
             lpszMenuName: 0 as winapi::LPCWSTR,
-            lpszClassName: class_name,
-        };
-
-        // We register our class -
-        user32::RegisterClassW(&wnd);
-    }
-    let sapi_event_window = unsafe {
-        user32::CreateWindowExA(0,
-                                "my_window".as_ptr() as *mut _,
-                                "SAPI event window".as_ptr() as *mut _,
-                                winapi::WS_OVERLAPPEDWINDOW | winapi::WS_VISIBLE,
+            lpszClassName: window_class_name.as_ptr(),
+        });
+        user32::CreateWindowExW(0,
+                                window_class_name.as_ptr(),
+                                &0u16,
+                                winapi::WS_OVERLAPPEDWINDOW,
                                 0,
                                 0,
                                 400,
                                 400,
-                                user32::GetDesktopWindow(),
+                                winapi::HWND_MESSAGE,
                                 0 as winapi::HMENU,
                                 0 as winapi::HINSTANCE,
                                 std::ptr::null_mut())
@@ -148,7 +127,7 @@ fn main() {
     println!("CreateWindow: {:?}", sapi_event_window);
 
     voice.set_notify_window_message(sapi_event_window);
-    voice.set_interest(winapi::SPFEI(5), 0);
+    voice.set_interest(winapi::SPFEI(5) | winapi::SPFEI(1) | winapi::SPFEI(2), 0);
 
     voice.speak_wait("Ready!");
     while let Some(msg) = get_message() {
