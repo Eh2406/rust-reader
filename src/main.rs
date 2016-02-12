@@ -22,8 +22,6 @@ use settings::*;
 mod clean_text;
 use clean_text::*;
 
-const SAPI_EVENT_ID: u32 = winapi::WM_APP + 15;
-
 fn print_voice(voice: &mut SpVoice, settings: &mut Settings) {
     voice.set_volume(99);
     println!("volume :{:?}", voice.get_volume());
@@ -99,7 +97,7 @@ fn main() {
             .expect("Lacks sufficient rights to access clipboard(WINSTA_ACCESSCLIPBOARD)");
     }
 
-    voice.set_notify_window_message(SAPI_EVENT_ID);
+    voice.set_notify_window_message();
     voice.set_interest(winapi::SPFEI(5) | winapi::SPFEI(1) | winapi::SPFEI(2), 0);
 
     voice.speak_wait("Ready!");
@@ -114,6 +112,14 @@ fn main() {
                     4 => rate_down(&mut voice, &mut settings),
                     5 => rate_up(&mut voice, &mut settings),
                     _ => println!("unknown hot {}", msg.wParam),
+                }
+            }
+            sapi::WM_SAPI_EVENT => {
+                let status = voice.get_status();
+                println!("Running:{} Word:{}", status.dwRunningState, status.ulInputWordPos);
+                unsafe { // Dont know why, but we nead it.
+                    user32::TranslateMessage(&msg);
+                    user32::DispatchMessageW(&msg);
                 }
             }
             winapi::WM_QUERYENDSESSION => close(),

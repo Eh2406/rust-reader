@@ -8,6 +8,8 @@ use std::ffi::OsStr;
 use std::os::windows::ffi::OsStrExt;
 use std::fmt::Display;
 
+pub const WM_SAPI_EVENT: u32 = winapi::WM_APP; // the events are WM_APP no matter what we ask for
+
 #[inline]
 #[allow(dead_code)]
 pub fn failed(hr: winapi::HRESULT) -> bool {
@@ -211,16 +213,16 @@ impl<'a> SpVoice<'a> {
         status
     }
 
-    pub fn set_notify_window_message(&mut self, msg: u32) {
+    pub fn set_notify_window_message(&mut self) {
+        // the events are WM_APP no matter what we ask for
         unsafe {
-            println!("SetNotifyWindowMessage: {:?}",
-                     self.voice.SetNotifyWindowMessage(self.window, msg, 0, 0));
+            self.voice.SetNotifyWindowMessage(self.window, WM_SAPI_EVENT, 0, 0);
         }
     }
 
     pub fn set_interest(&mut self, event: u64, queued: u64) {
         unsafe {
-            println!("SetInterest: {:?}", self.voice.SetInterest(event, queued));
+            self.voice.SetInterest(event, queued);
         }
     }
 }
