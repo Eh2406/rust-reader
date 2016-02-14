@@ -6,7 +6,6 @@ use std::ptr;
 use std::mem;
 use std::ffi::OsStr;
 use std::os::windows::ffi::OsStrExt;
-use std::fmt::Display;
 
 pub const WM_SAPI_EVENT: u32 = winapi::WM_APP; // the events are WM_APP no matter what we ask for
 
@@ -68,6 +67,7 @@ pub struct SpVoice<'a> {
     // https://msdn.microsoft.com/en-us/library/ms723602.aspx
     voice: &'a mut winapi::ISpVoice,
     window: winapi::HWND,
+    last_read: String,
 }
 
 #[allow(dead_code)]
@@ -125,6 +125,7 @@ impl<'a> SpVoice<'a> {
             SpVoice {
                 voice: &mut *voice,
                 window: sapi_event_window,
+                last_read: String::new(),
             }
         }
     }
@@ -133,10 +134,16 @@ impl<'a> SpVoice<'a> {
         self.window
     }
 
-    pub fn speak<T: ToWide + Display>(&mut self, string: T) {
+    pub fn get_last_read(&mut self) -> &str {
+        &self.last_read
+    }
+
+    pub fn speak(&mut self, string: &str) {
+        self.last_read = string.to_string();
+        println!("speaking: {:}", self.last_read);
+        let wide = self.last_read.to_wide_null();
         unsafe {
-            println!("speaking: {:}", string);
-            self.voice.Speak(string.to_wide_null().as_ptr(), 19, ptr::null_mut());
+            self.voice.Speak(wide.as_ptr(), 19, ptr::null_mut());
         }
     }
 
@@ -146,7 +153,7 @@ impl<'a> SpVoice<'a> {
         }
     }
 
-    pub fn speak_wait<T: ToWide + Display>(&mut self, string: T) {
+    pub fn speak_wait(&mut self, string: &str) {
         self.speak(string);
         self.wait();
     }

@@ -34,7 +34,7 @@ fn print_voice(voice: &mut SpVoice, settings: &mut Settings) {
 fn read(voice: &mut SpVoice) {
     voice.resume();
     match get_text() {
-        Ok(x) => voice.speak(clean_text(&x)),
+        Ok(x) => voice.speak(&clean_text(&x)),
         Err(x) => {
             voice.speak_wait("oops. error.");
             println!("{:?}", x);
@@ -116,8 +116,15 @@ fn main() {
             }
             sapi::WM_SAPI_EVENT => {
                 let status = voice.get_status();
-                println!("Running:{} Word:{}", status.dwRunningState, status.ulInputWordPos);
-                unsafe { // Dont know why, but we nead it.
+                println!("Running:{} Word:{}",
+                    status.dwRunningState,
+                    voice.get_last_read()[
+                        status.ulInputWordPos as usize ..
+                        (status.ulInputWordPos+status.ulInputWordLen) as usize
+                        ].to_string()
+                );
+                unsafe {
+                    // Dont know why, but we nead it.
                     user32::TranslateMessage(&msg);
                     user32::DispatchMessageW(&msg);
                 }
