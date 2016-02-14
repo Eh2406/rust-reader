@@ -5,6 +5,7 @@ use user32;
 use std::ptr;
 use std::mem;
 use std::ffi::OsStr;
+use std::ops;
 use std::os::windows::ffi::OsStrExt;
 
 pub const WM_SAPI_EVENT: u32 = winapi::WM_APP; // the events are WM_APP no matter what we ask for
@@ -138,8 +139,8 @@ impl<'a> SpVoice<'a> {
         &self.last_read
     }
 
-    pub fn speak(&mut self, string: &str) {
-        self.last_read = string.to_string();
+    pub fn speak(&mut self, string: String) {
+        self.last_read = string;
         println!("speaking: {:}", self.last_read);
         let wide = self.last_read.to_wide_null();
         unsafe {
@@ -153,7 +154,7 @@ impl<'a> SpVoice<'a> {
         }
     }
 
-    pub fn speak_wait(&mut self, string: &str) {
+    pub fn speak_wait(&mut self, string: String) {
         self.speak(string);
         self.wait();
     }
@@ -240,5 +241,19 @@ impl<'a> Drop for SpVoice<'a> {
             self.voice.Release();
         }
         println!("drop for SpVoice");
+    }
+}
+
+pub trait StatusUtil {
+    fn word_range(&self) -> ops::Range<usize>;
+    fn sent_range(&self) -> ops::Range<usize>;
+}
+
+impl StatusUtil for winapi::SPVOICESTATUS {
+    fn word_range(&self) -> ops::Range<usize> {
+        self.ulInputWordPos as usize..(self.ulInputWordPos + self.ulInputWordLen) as usize
+    }
+    fn sent_range(&self) -> ops::Range<usize> {
+        self.ulInputSentPos as usize..(self.ulInputSentPos + self.ulInputSentLen) as usize
     }
 }

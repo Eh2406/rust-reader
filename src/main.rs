@@ -34,9 +34,9 @@ fn print_voice(voice: &mut SpVoice, settings: &mut Settings) {
 fn read(voice: &mut SpVoice) {
     voice.resume();
     match get_text() {
-        Ok(x) => voice.speak(&clean_text(&x)),
+        Ok(x) => voice.speak(clean_text(&x)),
         Err(x) => {
-            voice.speak_wait("oops. error.");
+            voice.speak_wait("oops. error.".to_string());
             println!("{:?}", x);
         }
     }
@@ -100,7 +100,7 @@ fn main() {
     voice.set_notify_window_message();
     voice.set_interest(winapi::SPFEI(5) | winapi::SPFEI(1) | winapi::SPFEI(2), 0);
 
-    voice.speak_wait("Ready!");
+    voice.speak_wait("Ready!".to_string());
     while let Some(msg) = get_message() {
         match msg.message {
             winapi::WM_HOTKEY => {
@@ -117,12 +117,8 @@ fn main() {
             sapi::WM_SAPI_EVENT => {
                 let status = voice.get_status();
                 println!("Running:{} Word:{}",
-                    status.dwRunningState,
-                    voice.get_last_read()[
-                        status.ulInputWordPos as usize ..
-                        (status.ulInputWordPos+status.ulInputWordLen) as usize
-                        ].to_string()
-                );
+                         status.dwRunningState,
+                         voice.get_last_read()[status.word_range()].to_string());
                 unsafe {
                     // Dont know why, but we nead it.
                     user32::TranslateMessage(&msg);
@@ -141,5 +137,5 @@ fn main() {
         }
     }
     voice.resume();
-    voice.speak_wait("bye!");
+    voice.speak_wait("bye!".to_string());
 }
