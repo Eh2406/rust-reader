@@ -118,7 +118,7 @@ fn main() {
                 let status = voice.get_status();
                 println!("Running:{} Word:{}",
                          status.dwRunningState,
-                         voice.get_last_read()[status.word_range()].to_string());
+                         &(voice.get_last_read().chars().skip(status.ulInputWordPos as usize).take(status.ulInputWordLen as usize).collect::<String>()));
                 unsafe {
                     // Dont know why, but we nead it.
                     user32::TranslateMessage(&msg);
