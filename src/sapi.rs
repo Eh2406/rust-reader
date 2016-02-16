@@ -139,6 +139,16 @@ impl<'a> SpVoice<'a> {
         &self.last_read
     }
 
+    pub fn get_status_word(&mut self) -> String {
+        // O(WordPos) but not a problem in test of long readings
+        let status = self.get_status();
+        self.last_read
+            .chars()
+            .skip(status.ulInputWordPos as usize)
+            .take(status.ulInputWordLen as usize)
+            .collect()
+    }
+
     pub fn speak(&mut self, string: String) {
         self.last_read = string;
         println!("speaking: {:}", self.last_read);

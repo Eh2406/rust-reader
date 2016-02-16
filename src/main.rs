@@ -1,6 +1,7 @@
 extern crate winapi;
 extern crate ole32;
 extern crate user32;
+extern crate kernel32;
 extern crate clipboard_win;
 extern crate rustc_serialize; //To write rust objects to json
 
@@ -75,6 +76,11 @@ fn get_message() -> Option<winapi::MSG> {
     Some(msg)
 }
 
+fn set_console_title(title: &str) -> i32 {
+    let window_title = title.to_wide_null();
+    unsafe { kernel32::SetConsoleTitleW(window_title.as_ptr()) }
+}
+
 fn main() {
     let _com = Com::new();
     let mut voice = SpVoice::new();
@@ -115,10 +121,7 @@ fn main() {
                 }
             }
             sapi::WM_SAPI_EVENT => {
-                let status = voice.get_status();
-                println!("Running:{} Word:{}",
-                         status.dwRunningState,
-                         &(voice.get_last_read().chars().skip(status.ulInputWordPos as usize).take(status.ulInputWordLen as usize).collect::<String>()));
+                set_console_title(&format!("rust_reader saying: {}", voice.get_status_word()));
                 unsafe {
                     // Dont know why, but we nead it.
                     user32::TranslateMessage(&msg);
@@ -127,8 +130,13 @@ fn main() {
             }
             winapi::WM_QUERYENDSESSION => close(),
             winapi::WM_ENDSESSION => close(),
-            _ => {
-                println!("{:?}", msg);
+            message => {
+                if message >= 0xC000 {
+                    // RegisterWindowMessage not relovent to us
+                    // https://msdn.microsoft.com/en-us/library/windows/desktop/ms644930.aspx
+                } else {
+                    println!("{:?}", msg);
+                }
                 unsafe {
                     user32::TranslateMessage(&msg);
                     user32::DispatchMessageW(&msg);
