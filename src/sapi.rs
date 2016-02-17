@@ -68,7 +68,7 @@ pub struct SpVoice<'a> {
     // https://msdn.microsoft.com/en-us/library/ms723602.aspx
     voice: &'a mut winapi::ISpVoice,
     window: winapi::HWND,
-    last_read: String,
+    last_read: Vec<u16>,
 }
 
 #[allow(dead_code)]
@@ -126,7 +126,7 @@ impl<'a> SpVoice<'a> {
             SpVoice {
                 voice: &mut *voice,
                 window: sapi_event_window,
-                last_read: String::new(),
+                last_read: Vec::new(),
             }
         }
     }
@@ -135,26 +135,19 @@ impl<'a> SpVoice<'a> {
         self.window
     }
 
-    pub fn get_last_read(&mut self) -> &str {
-        &self.last_read
-    }
-
     pub fn get_status_word(&mut self) -> String {
-        // O(WordPos) but not a problem in test of long readings
         let status = self.get_status();
-        self.last_read
-            .chars()
-            .skip(status.ulInputWordPos as usize)
-            .take(status.ulInputWordLen as usize)
-            .collect()
+        String::from_utf16_lossy(
+            &self.last_read[
+                status.ulInputWordPos as usize .. status.ulInputWordLen as usize + status.ulInputWordPos as usize
+                ])
     }
 
-    pub fn speak(&mut self, string: String) {
-        self.last_read = string;
-        println!("speaking: {:}", self.last_read);
-        let wide = self.last_read.to_wide_null();
+    pub fn speak(&mut self, string: &str) {
+        println!("speaking: {:}", string);
+        self.last_read = string.to_wide_null();
         unsafe {
-            self.voice.Speak(wide.as_ptr(), 19, ptr::null_mut());
+            self.voice.Speak(self.last_read.as_ptr(), 19, ptr::null_mut());
         }
     }
 
@@ -164,7 +157,7 @@ impl<'a> SpVoice<'a> {
         }
     }
 
-    pub fn speak_wait(&mut self, string: String) {
+    pub fn speak_wait(&mut self, string: &str) {
         self.speak(string);
         self.wait();
     }
