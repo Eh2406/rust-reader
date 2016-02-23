@@ -120,23 +120,8 @@ fn main() {
                     _ => println!("unknown hot {}", msg.wParam),
                 }
             }
-            sapi::WM_SAPI_EVENT => {
-                set_console_title(&format!("rust_reader saying: {}", voice.get_status_word()));
-                unsafe {
-                    // Dont know why, but we nead it.
-                    user32::TranslateMessage(&msg);
-                    user32::DispatchMessageW(&msg);
-                }
-            }
-            winapi::WM_QUERYENDSESSION => close(),
-            winapi::WM_ENDSESSION => close(),
-            message => {
-                if message >= 0xC000 {
-                    // RegisterWindowMessage not relovent to us
-                    // https://msdn.microsoft.com/en-us/library/windows/desktop/ms644930.aspx
-                } else {
-                    println!("{:?}", msg);
-                }
+            _ => {
+                // println!("{:?}", msg);
                 unsafe {
                     user32::TranslateMessage(&msg);
                     user32::DispatchMessageW(&msg);
