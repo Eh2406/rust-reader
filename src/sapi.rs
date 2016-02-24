@@ -9,7 +9,7 @@ use std::ffi::OsStr;
 use std::ops;
 use std::os::windows::ffi::OsStrExt;
 
-pub const WM_SAPI_EVENT: u32 = winapi::WM_APP; // the events are WM_APP no matter what we ask for
+pub const WM_SAPI_EVENT: u32 = winapi::WM_APP + 15;
 
 #[inline]
 #[allow(dead_code)]
@@ -65,6 +65,24 @@ impl Drop for Com {
     }
 }
 
+fn get_window_wrapper<'a, T>(h_wnd: winapi::HWND) -> Option<&'a mut T> {
+    let ptr: winapi::LONG_PTR = unsafe { user32::GetWindowLongPtrW(h_wnd, winapi::GWLP_USERDATA) };
+    if ptr > 0 {
+        Some(unsafe { &mut *(ptr as *mut T) })
+    } else {
+        None
+    }
+}
+
+fn set_window_wrapper(h_wnd: winapi::HWND, l_param: winapi::LPARAM) {
+    let data = unsafe { &mut *(l_param as *mut winapi::CREATESTRUCTW) };
+    unsafe {
+        user32::SetWindowLongPtrW(h_wnd,
+                                  winapi::GWLP_USERDATA,
+                                  data.lpCreateParams as winapi::LONG_PTR);
+    }
+}
+
 pub unsafe extern "system" fn window_proc(h_wnd: winapi::HWND,
                                           msg: winapi::UINT,
                                           w_param: winapi::WPARAM,
@@ -72,18 +90,13 @@ pub unsafe extern "system" fn window_proc(h_wnd: winapi::HWND,
                                           -> winapi::LRESULT {
     match msg {
         winapi::WM_DESTROY => user32::PostQuitMessage(0),
-        winapi::WM_NCCREATE => {
-            let data = &mut *(l_param as *mut winapi::CREATESTRUCTW);
-            user32::SetWindowLongPtrW(h_wnd,
-                                      winapi::GWLP_USERDATA,
-                                      data.lpCreateParams as winapi::LONG_PTR);
-        }
+        winapi::WM_NCCREATE => set_window_wrapper(h_wnd, l_param),
         WM_SAPI_EVENT => {
-            let ptr_voice: winapi::LONG_PTR = user32::GetWindowLongPtrW(h_wnd, winapi::GWLP_USERDATA);
-            if ptr_voice > 0 {
-                let voice = &mut *(ptr_voice as *mut SpVoice);
-                let window_title = format!("rust_reader saying: {}", voice.get_status_word()).to_wide_null();
+            if let Some(voice) = get_window_wrapper::<SpVoice>(h_wnd) {
+                let window_title = format!("rust_reader saying: {}", voice.get_status_word())
+                                       .to_wide_null();
                 kernel32::SetConsoleTitleW(window_title.as_ptr());
+
             }
         }
         winapi::WM_QUERYENDSESSION => user32::PostQuitMessage(0),
