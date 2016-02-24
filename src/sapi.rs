@@ -96,7 +96,11 @@ pub unsafe extern "system" fn window_proc(h_wnd: winapi::HWND,
                 let window_title = format!("rust_reader saying: {}", voice.get_status_word())
                                        .to_wide_null();
                 kernel32::SetConsoleTitleW(window_title.as_ptr());
-
+                let status = voice.get_status();
+                user32::SendMessageW(voice.edit,
+                                         177, //EM_SETSEL
+                                         status.ulInputWordPos as winapi::WPARAM,
+                                         (status.ulInputWordPos + status.ulInputWordLen) as winapi::LPARAM);
             }
         }
         winapi::WM_QUERYENDSESSION => user32::PostQuitMessage(0),
@@ -113,6 +117,7 @@ pub struct SpVoice<'a> {
     // https://msdn.microsoft.com/en-us/library/ms723602.aspx
     voice: &'a mut winapi::ISpVoice,
     window: winapi::HWND,
+    edit: winapi::HWND,
     last_read: Vec<u16>,
 }
 
@@ -141,6 +146,13 @@ impl<'a> SpVoice<'a> {
             if failed(hr) {
                 panic!("failed for SpVoice at CoCreateInstance");
             }
+            let mut out = Box::new(SpVoice {
+                voice: &mut *voice,
+                window: ptr::null_mut(),
+                edit: ptr::null_mut(),
+                last_read: Vec::new(),
+            });
+
             let window_class_name = "SAPI_event_window_class_name".to_wide_null();
             user32::RegisterClassW(&winapi::WNDCLASSW {
                 style: 0,
@@ -155,15 +167,10 @@ impl<'a> SpVoice<'a> {
                 lpszMenuName: 0 as winapi::LPCWSTR,
                 lpszClassName: window_class_name.as_ptr(),
             });
-            let mut out = Box::new(SpVoice {
-                voice: &mut *voice,
-                window: ptr::null_mut(),
-                last_read: Vec::new(),
-            });
             out.window = user32::CreateWindowExW(0,
                                                  window_class_name.as_ptr(),
                                                  &0u16,
-                                                 winapi::WS_OVERLAPPEDWINDOW,
+                                                 winapi::WS_OVERLAPPEDWINDOW | winapi::WS_VISIBLE,
                                                  0,
                                                  0,
                                                  400,
@@ -172,6 +179,29 @@ impl<'a> SpVoice<'a> {
                                                  0 as winapi::HMENU,
                                                  0 as winapi::HINSTANCE,
                                                  &mut *out as *mut _ as winapi::LPVOID);
+
+            // https://msdn.microsoft.com/en-us/library/windows/desktop/hh298433.aspx
+            let window_class_name = "EDIT".to_wide_null();
+            out.edit = user32::CreateWindowExW(0,
+                                               window_class_name.as_ptr(),
+                                               &0u16,
+                                               winapi::WS_CHILD | winapi::WS_VISIBLE |
+                                               winapi::WS_VSCROLL |
+                                               0 |
+                                               4 |
+                                               64 |
+                                               256,
+                                               // | ES_LEFT | ES_MULTILINE | ES_AUTOVSCROLL | ES_NOHIDESEL
+                                               // http://www.math.uiuc.edu/~gfrancis/illimath/windows/aszgard_mini/bin/MinGW/include/winuser.h
+                                               10,
+                                               10,
+                                               367,
+                                               340,
+                                               out.window,
+                                               100 as winapi::HMENU, // winapi::ID_EDITCHILD
+                                               0 as winapi::HINSTANCE,
+                                               ptr::null_mut());
+
             out
         }
     }
@@ -194,6 +224,10 @@ impl<'a> SpVoice<'a> {
         println!("speaking: {:}", string);
         self.last_read = string.to_wide_null();
         unsafe {
+            user32::SendMessageW(self.edit,
+                                 winapi::WM_SETTEXT,
+                                 0,
+                                 self.last_read.as_ptr() as winapi::LPARAM);
             self.voice.Speak(self.last_read.as_ptr(), 19, ptr::null_mut());
         }
     }
