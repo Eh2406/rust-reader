@@ -64,10 +64,6 @@ fn rate_up(voice: &mut SpVoice, settings: &mut Settings) {
     println!("rate :{:?}", settings.rate);
 }
 
-fn close() {
-    unsafe { user32::PostQuitMessage(0) }
-}
-
 fn get_message() -> Option<winapi::MSG> {
     let mut msg: winapi::MSG = unsafe { mem::zeroed() };
     if unsafe { user32::GetMessageW(&mut msg, ptr::null_mut(), 0, 0) } <= 0 {

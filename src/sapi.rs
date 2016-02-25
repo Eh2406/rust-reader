@@ -63,7 +63,7 @@ impl Drop for Com {
     }
 }
 
-fn get_window_wrapper<'a, T>(h_wnd: winapi::HWND) -> Option<&'a mut T> {
+pub fn get_window_wrapper<'a, T>(h_wnd: winapi::HWND) -> Option<&'a mut T> {
     let ptr: winapi::LONG_PTR = unsafe { user32::GetWindowLongPtrW(h_wnd, winapi::GWLP_USERDATA) };
     if ptr > 0 {
         Some(unsafe { &mut *(ptr as *mut T) })
@@ -72,7 +72,7 @@ fn get_window_wrapper<'a, T>(h_wnd: winapi::HWND) -> Option<&'a mut T> {
     }
 }
 
-fn set_window_wrapper(h_wnd: winapi::HWND, l_param: winapi::LPARAM) {
+pub fn set_window_wrapper(h_wnd: winapi::HWND, l_param: winapi::LPARAM) {
     let data = unsafe { &mut *(l_param as *mut winapi::CREATESTRUCTW) };
     unsafe {
         user32::SetWindowLongPtrW(h_wnd,
@@ -81,15 +81,19 @@ fn set_window_wrapper(h_wnd: winapi::HWND, l_param: winapi::LPARAM) {
     }
 }
 
-fn set_console_title(title: &Vec<u16>) -> i32 {
+pub fn set_console_title(title: &Vec<u16>) -> i32 {
     unsafe { kernel32::SetConsoleTitleW(title.as_ptr()) }
 }
 
-fn set_window_text(h_wnd: winapi::HWND, wide: &Vec<u16>) -> winapi::BOOL {
+pub fn set_window_text(h_wnd: winapi::HWND, wide: &Vec<u16>) -> winapi::BOOL {
     unsafe { user32::SetWindowTextW(h_wnd, wide.as_ptr()) }
 }
 
-fn set_edit_selection(h_wnd: winapi::HWND, celec: ops::Range<usize>) -> winapi::LRESULT {
+pub fn close() {
+    unsafe { user32::PostQuitMessage(0) }
+}
+
+pub fn set_edit_selection(h_wnd: winapi::HWND, celec: ops::Range<usize>) -> winapi::LRESULT {
     // EM_SETSEL
     unsafe {
         user32::SendMessageW(h_wnd,
@@ -99,13 +103,21 @@ fn set_edit_selection(h_wnd: winapi::HWND, celec: ops::Range<usize>) -> winapi::
     }
 }
 
+pub fn get_client_rect(h_wnd: winapi::HWND) -> winapi::RECT {
+    let mut rec: winapi::RECT = unsafe { mem::zeroed() };
+    unsafe { user32::GetClientRect(h_wnd, &mut rec) };
+    rec
+}
+
 pub unsafe extern "system" fn window_proc(h_wnd: winapi::HWND,
                                           msg: winapi::UINT,
                                           w_param: winapi::WPARAM,
                                           l_param: winapi::LPARAM)
                                           -> winapi::LRESULT {
     match msg {
-        winapi::WM_DESTROY => user32::PostQuitMessage(0),
+        winapi::WM_DESTROY => close(),
+        winapi::WM_QUERYENDSESSION => close(),
+        winapi::WM_ENDSESSION => close(),
         winapi::WM_NCCREATE => set_window_wrapper(h_wnd, l_param),
         WM_SAPI_EVENT => {
             if let Some(voice) = get_window_wrapper::<SpVoice>(h_wnd) {
@@ -120,8 +132,19 @@ pub unsafe extern "system" fn window_proc(h_wnd: winapi::HWND,
                                      0 as winapi::LPARAM);
             }
         }
-        winapi::WM_QUERYENDSESSION => user32::PostQuitMessage(0),
-        winapi::WM_ENDSESSION => user32::PostQuitMessage(0),
+        winapi::WM_SIZE => {
+            if let Some(voice) = get_window_wrapper::<SpVoice>(h_wnd) {
+                let rect = get_client_rect(voice.window);
+                if w_param == 0 && rect.right > 0 && rect.bottom > 0 {
+                    user32::MoveWindow(voice.edit,
+                                       10,
+                                       10,
+                                       rect.right - 10 - 13,
+                                       rect.bottom - 10 - 10,
+                                       winapi::TRUE);
+                }
+            }
+        }
         _ => {
             // println!("sinproc: msg:{:?} w_param:{:?} l_param:{:?}", msg, w_param, l_param)
         }
@@ -199,11 +222,12 @@ impl<'a> SpVoice<'a> {
 
             // https://msdn.microsoft.com/en-us/library/windows/desktop/hh298433.aspx
             let window_class_name = "EDIT".to_wide_null();
-            out.edit = user32::CreateWindowExW(0,
+            out.edit = user32::CreateWindowExW(winapi::WS_EX_CLIENTEDGE,
                                                window_class_name.as_ptr(),
                                                &0u16,
                                                winapi::WS_CHILD | winapi::WS_VISIBLE |
                                                winapi::WS_VSCROLL |
+                                               winapi::WS_BORDER |
                                                0 |
                                                4 |
                                                64 |
