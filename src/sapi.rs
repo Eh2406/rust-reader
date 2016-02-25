@@ -83,6 +83,14 @@ fn set_window_wrapper(h_wnd: winapi::HWND, l_param: winapi::LPARAM) {
     }
 }
 
+fn set_console_title(title: &Vec<u16>) -> i32 {
+    unsafe { kernel32::SetConsoleTitleW(title.as_ptr()) }
+}
+
+fn set_window_text(h_wnd: winapi::HWND, wide: &Vec<u16>) -> winapi::BOOL {
+    unsafe { user32::SetWindowTextW(h_wnd, wide.as_ptr()) }
+}
+
 pub unsafe extern "system" fn window_proc(h_wnd: winapi::HWND,
                                           msg: winapi::UINT,
                                           w_param: winapi::WPARAM,
@@ -95,12 +103,17 @@ pub unsafe extern "system" fn window_proc(h_wnd: winapi::HWND,
             if let Some(voice) = get_window_wrapper::<SpVoice>(h_wnd) {
                 let window_title = format!("rust_reader saying: {}", voice.get_status_word())
                                        .to_wide_null();
-                kernel32::SetConsoleTitleW(window_title.as_ptr());
+                set_console_title(&window_title);
+                set_window_text(voice.window, &window_title);
                 let status = voice.get_status();
                 user32::SendMessageW(voice.edit,
                                          177, //EM_SETSEL
                                          status.ulInputWordPos as winapi::WPARAM,
                                          (status.ulInputWordPos + status.ulInputWordLen) as winapi::LPARAM);
+                user32::SendMessageW(voice.edit,
+                                     183, // EM_SCROLLCARET
+                                     0 as winapi::WPARAM,
+                                     0 as winapi::LPARAM);
             }
         }
         winapi::WM_QUERYENDSESSION => user32::PostQuitMessage(0),
@@ -190,8 +203,9 @@ impl<'a> SpVoice<'a> {
                                                0 |
                                                4 |
                                                64 |
-                                               256,
-                                               // | ES_LEFT | ES_MULTILINE | ES_AUTOVSCROLL | ES_NOHIDESEL
+                                               256 |
+                                               64,
+                                               // | ES_LEFT | ES_MULTILINE | ES_AUTOVSCROLL | ES_NOHIDESEL | ES_AUTOVSCROLL
                                                // http://www.math.uiuc.edu/~gfrancis/illimath/windows/aszgard_mini/bin/MinGW/include/winuser.h
                                                10,
                                                10,
@@ -221,13 +235,9 @@ impl<'a> SpVoice<'a> {
     }
 
     pub fn speak(&mut self, string: &str) {
-        println!("speaking: {:}", string);
         self.last_read = string.to_wide_null();
+        set_window_text(self.edit, &self.last_read);
         unsafe {
-            user32::SendMessageW(self.edit,
-                                 winapi::WM_SETTEXT,
-                                 0,
-                                 self.last_read.as_ptr() as winapi::LPARAM);
             self.voice.Speak(self.last_read.as_ptr(), 19, ptr::null_mut());
         }
     }
@@ -306,7 +316,6 @@ impl<'a> SpVoice<'a> {
     }
 
     pub fn set_notify_window_message(&mut self) {
-        // the events are WM_APP no matter what we ask for
         unsafe {
             self.voice.SetNotifyWindowMessage(self.window, WM_SAPI_EVENT, 0, 0);
         }

@@ -1,0 +1,10 @@
+{
+  "name": "Cargo: build (no console)",
+  "cmd": "cargo",
+  "args": ["rustc", "--release", "--", "-C", "link-args=-mwindows" ],
+  "sh": false,
+  "errorMatch": [
+    "(?<file>.+.rs):(?<line>\\d+):(?<col>\\d+):(?: \\d+:\\d+ )?",
+    "thread \\'[^\\\\\\']+\\' panicked at \\'[^\\\\\\']+\\', (?<file>[^\\/][^\\:]+):(?<line>\\d+)"
+  ]
+}

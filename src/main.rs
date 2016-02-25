@@ -76,11 +76,6 @@ fn get_message() -> Option<winapi::MSG> {
     Some(msg)
 }
 
-fn set_console_title(title: &str) -> i32 {
-    let window_title = title.to_wide_null();
-    unsafe { kernel32::SetConsoleTitleW(window_title.as_ptr()) }
-}
-
 fn main() {
     let _com = Com::new();
     let mut voice = SpVoice::new();
