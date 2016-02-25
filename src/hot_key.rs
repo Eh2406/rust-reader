@@ -21,9 +21,7 @@ impl HotKey {
 
 impl Drop for HotKey {
     fn drop(&mut self) {
-        unsafe {
-            user32::UnregisterHotKey(ptr::null_mut(), self.id);
-        }
+        unsafe { user32::UnregisterHotKey(ptr::null_mut(), self.id) };
         println!("drop for HotKey");
     }
 }

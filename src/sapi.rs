@@ -57,9 +57,7 @@ impl Drop for Com {
     fn drop(&mut self) {
         // https://msdn.microsoft.com/en-us/library/windows/desktop/ms688715.aspx
         if self.hr != winapi::RPC_E_CHANGED_MODE {
-            unsafe {
-                ole32::CoUninitialize();
-            }
+            unsafe { ole32::CoUninitialize() };
         }
         println!("drop for Com");
     }
@@ -91,6 +89,16 @@ fn set_window_text(h_wnd: winapi::HWND, wide: &Vec<u16>) -> winapi::BOOL {
     unsafe { user32::SetWindowTextW(h_wnd, wide.as_ptr()) }
 }
 
+fn set_edit_selection(h_wnd: winapi::HWND, celec: ops::Range<usize>) -> winapi::LRESULT {
+    // EM_SETSEL
+    unsafe {
+        user32::SendMessageW(h_wnd,
+                             177,
+                             celec.start as winapi::WPARAM,
+                             celec.end as winapi::LPARAM)
+    }
+}
+
 pub unsafe extern "system" fn window_proc(h_wnd: winapi::HWND,
                                           msg: winapi::UINT,
                                           w_param: winapi::WPARAM,
@@ -105,11 +113,7 @@ pub unsafe extern "system" fn window_proc(h_wnd: winapi::HWND,
                                        .to_wide_null();
                 set_console_title(&window_title);
                 set_window_text(voice.window, &window_title);
-                let status = voice.get_status();
-                user32::SendMessageW(voice.edit,
-                                         177, //EM_SETSEL
-                                         status.ulInputWordPos as winapi::WPARAM,
-                                         (status.ulInputWordPos + status.ulInputWordLen) as winapi::LPARAM);
+                set_edit_selection(voice.edit, voice.get_status().word_range());
                 user32::SendMessageW(voice.edit,
                                      183, // EM_SCROLLCARET
                                      0 as winapi::WPARAM,
@@ -237,15 +241,11 @@ impl<'a> SpVoice<'a> {
     pub fn speak(&mut self, string: &str) {
         self.last_read = string.to_wide_null();
         set_window_text(self.edit, &self.last_read);
-        unsafe {
-            self.voice.Speak(self.last_read.as_ptr(), 19, ptr::null_mut());
-        }
+        unsafe { self.voice.Speak(self.last_read.as_ptr(), 19, ptr::null_mut()) };
     }
 
     pub fn wait(&mut self) {
-        unsafe {
-            self.voice.WaitUntilDone(winapi::INFINITE);
-        }
+        unsafe { self.voice.WaitUntilDone(winapi::INFINITE) };
     }
 
     pub fn speak_wait(&mut self, string: &str) {
@@ -254,85 +254,61 @@ impl<'a> SpVoice<'a> {
     }
 
     pub fn pause(&mut self) {
-        unsafe {
-            self.voice.Pause();
-        }
+        unsafe { self.voice.Pause() };
     }
 
     pub fn resume(&mut self) {
-        unsafe {
-            self.voice.Resume();
-        }
+        unsafe { self.voice.Resume() };
     }
 
     pub fn set_rate(&mut self, rate: i32) {
-        unsafe {
-            self.voice.SetRate(rate);
-        }
+        unsafe { self.voice.SetRate(rate) };
     }
 
     pub fn get_rate(&mut self) -> i32 {
         let mut rate = 0;
-        unsafe {
-            self.voice.GetRate(&mut rate);
-        }
+        unsafe { self.voice.GetRate(&mut rate) };
         rate
     }
 
     pub fn set_volume(&mut self, volume: u16) {
-        unsafe {
-            self.voice.SetVolume(volume);
-        }
+        unsafe { self.voice.SetVolume(volume) };
     }
 
     pub fn get_volume(&mut self) -> u16 {
         let mut volume = 0;
-        unsafe {
-            self.voice.GetVolume(&mut volume);
-        }
+        unsafe { self.voice.GetVolume(&mut volume) };
         volume
     }
 
     pub fn set_alert_boundary(&mut self, boundary: winapi::SPEVENTENUM) {
-        unsafe {
-            self.voice.SetAlertBoundary(boundary);
-        }
+        unsafe { self.voice.SetAlertBoundary(boundary) };
     }
 
     pub fn get_alert_boundary(&mut self) -> winapi::SPEVENTENUM {
         let mut boundary = winapi::SPEVENTENUM(0);
-        unsafe {
-            self.voice.GetAlertBoundary(&mut boundary);
-        }
+        unsafe { self.voice.GetAlertBoundary(&mut boundary) };
         boundary
     }
 
     pub fn get_status(&mut self) -> winapi::SPVOICESTATUS {
         let mut status: winapi::SPVOICESTATUS = unsafe { mem::zeroed() };
-        unsafe {
-            self.voice.GetStatus(&mut status, 0u16 as *mut *mut u16);
-        }
+        unsafe { self.voice.GetStatus(&mut status, 0u16 as *mut *mut u16) };
         status
     }
 
     pub fn set_notify_window_message(&mut self) {
-        unsafe {
-            self.voice.SetNotifyWindowMessage(self.window, WM_SAPI_EVENT, 0, 0);
-        }
+        unsafe { self.voice.SetNotifyWindowMessage(self.window, WM_SAPI_EVENT, 0, 0) };
     }
 
     pub fn set_interest(&mut self, event: u64, queued: u64) {
-        unsafe {
-            self.voice.SetInterest(event, queued);
-        }
+        unsafe { self.voice.SetInterest(event, queued) };
     }
 }
 
 impl<'a> Drop for SpVoice<'a> {
     fn drop(&mut self) {
-        unsafe {
-            self.voice.Release();
-        }
+        unsafe { self.voice.Release() };
         println!("drop for SpVoice");
     }
 }
