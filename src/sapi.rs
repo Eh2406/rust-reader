@@ -3,6 +3,7 @@ use ole32;
 use user32;
 use kernel32;
 
+use std::cmp::{min, max};
 use std::ptr;
 use std::mem;
 use std::ffi::OsStr;
@@ -295,8 +296,10 @@ impl<'a> SpVoice<'a> {
         unsafe { self.voice.Resume() };
     }
 
-    pub fn set_rate(&mut self, rate: i32) {
+    pub fn set_rate(&mut self, rate: i32) -> i32 {
+        let rate = max(min(rate, 10), -10);
         unsafe { self.voice.SetRate(rate) };
+        rate
     }
 
     pub fn get_rate(&mut self) -> i32 {
@@ -305,8 +308,13 @@ impl<'a> SpVoice<'a> {
         rate
     }
 
+    pub fn change_rate(&mut self, delta: i32) -> i32 {
+        let rate = max(min(self.get_rate() + delta, 10), -10);
+        self.set_rate(rate)
+    }
+
     pub fn set_volume(&mut self, volume: u16) {
-        unsafe { self.voice.SetVolume(volume) };
+        unsafe { self.voice.SetVolume(min(volume, 100)) };
     }
 
     pub fn get_volume(&mut self) -> u16 {

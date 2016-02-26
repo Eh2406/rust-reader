@@ -24,7 +24,7 @@ mod clean_text;
 use clean_text::*;
 
 fn print_voice(voice: &mut SpVoice, settings: &mut Settings) {
-    voice.set_volume(99);
+    voice.set_volume(100);
     println!("volume :{:?}", voice.get_volume());
     voice.set_rate(settings.rate);
     println!("rate :{:?}", voice.get_rate());
@@ -51,15 +51,13 @@ fn play_pause(voice: &mut SpVoice) {
 }
 
 fn rate_down(voice: &mut SpVoice, settings: &mut Settings) {
-    settings.rate = voice.get_rate() - 1;
-    voice.set_rate(settings.rate);
+    settings.rate = voice.change_rate(-1);
     settings.to_file();
     println!("rate :{:?}", settings.rate);
 }
 
 fn rate_up(voice: &mut SpVoice, settings: &mut Settings) {
-    settings.rate = voice.get_rate() + 1;
-    voice.set_rate(settings.rate);
+    settings.rate =  voice.change_rate(1);
     settings.to_file();
     println!("rate :{:?}", settings.rate);
 }
