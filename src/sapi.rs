@@ -130,6 +130,7 @@ pub unsafe extern "system" fn window_proc(h_wnd: winapi::HWND,
                                      183, // EM_SCROLLCARET
                                      0 as winapi::WPARAM,
                                      0 as winapi::LPARAM);
+                return 0;
             }
         }
         winapi::WM_SIZE => {
@@ -142,9 +143,18 @@ pub unsafe extern "system" fn window_proc(h_wnd: winapi::HWND,
                                        rect.right - 10 - 13,
                                        rect.bottom - 10 - 10,
                                        winapi::TRUE);
+                    return 0;
                 }
             }
         }
+        /* next winapi bump
+        winapi::WM_GETMINMAXINFO => {
+            let data = unsafe { &mut *(l_param as *mut winapi::MINMAXINFO) };
+            data.ptMinTrackSize.x = 160;
+            data.ptMinTrackSize.y = 90;
+            return 0;
+        }
+        */
         _ => {
             // println!("sinproc: msg:{:?} w_param:{:?} l_param:{:?}", msg, w_param, l_param)
         }
