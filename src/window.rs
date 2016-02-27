@@ -9,8 +9,8 @@ use std::mem;
 
 // waiting for winapi
 pub mod winapi_stub {
-    #![allow(dead_code)]
-    use winapi::{DWORD, HMENU};
+    #![allow(dead_code, non_snake_case)]
+    use winapi::{DWORD, HMENU, POINT};
     pub const ES_AUTOHSCROLL: DWORD = 128;
     pub const ES_AUTOVSCROLL: DWORD = 64;
     pub const ES_CENTER: DWORD = 1;
@@ -65,6 +65,14 @@ pub mod winapi_stub {
     pub const EM_UNDO: DWORD = 199;
 
     pub const ID_EDITCHILD: HMENU = 100 as HMENU;
+
+    pub struct MINMAXINFO {
+        pub ptReserved: POINT,
+        pub ptMaxSize: POINT,
+        pub ptMaxPosition: POINT,
+        pub ptMinTrackSize: POINT,
+        pub ptMaxTrackSize: POINT,
+    }
 }
 
 #[inline]

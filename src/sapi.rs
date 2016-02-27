@@ -252,14 +252,12 @@ impl<'a> Windowed for SpVoice<'a> {
                     return Some(0);
                 }
             }
-            /* next winapi bump
             winapi::WM_GETMINMAXINFO => {
-                let data = unsafe { &mut *(l_param as *mut winapi::MINMAXINFO) };
-                data.ptMinTrackSize.x = 160;
+                let data = unsafe { &mut *(l_param as *mut winapi_stub::MINMAXINFO) };
+                data.ptMinTrackSize.x = 180;
                 data.ptMinTrackSize.y = 90;
-                return 0;
+                return Some(0);
             }
-            */
             _ => {}
         }
         None
