@@ -5,8 +5,8 @@ extern crate kernel32;
 extern crate clipboard_win;
 extern crate rustc_serialize; //To write rust objects to json
 
-use std::ptr;
-use std::mem;
+mod window;
+use window::*;
 
 mod sapi;
 use sapi::*;
@@ -57,17 +57,9 @@ fn rate_down(voice: &mut SpVoice, settings: &mut Settings) {
 }
 
 fn rate_up(voice: &mut SpVoice, settings: &mut Settings) {
-    settings.rate =  voice.change_rate(1);
+    settings.rate = voice.change_rate(1);
     settings.to_file();
     println!("rate :{:?}", settings.rate);
-}
-
-fn get_message() -> Option<winapi::MSG> {
-    let mut msg: winapi::MSG = unsafe { mem::zeroed() };
-    if unsafe { user32::GetMessageW(&mut msg, ptr::null_mut(), 0, 0) } <= 0 {
-        return None;
-    }
-    Some(msg)
 }
 
 fn main() {

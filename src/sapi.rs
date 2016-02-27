@@ -1,42 +1,15 @@
 use winapi;
 use ole32;
 use user32;
-use kernel32;
 
 use std::cmp::{min, max};
 use std::ptr;
 use std::mem;
-use std::ffi::OsStr;
 use std::ops;
-use std::os::windows::ffi::OsStrExt;
+
+use window::*;
 
 pub const WM_SAPI_EVENT: u32 = winapi::WM_APP + 15;
-
-#[inline]
-#[allow(dead_code)]
-pub fn failed(hr: winapi::HRESULT) -> bool {
-    hr < 0
-}
-
-#[inline]
-#[allow(dead_code)]
-pub fn succeeded(hr: winapi::HRESULT) -> bool {
-    !failed(hr)
-}
-
-pub trait ToWide {
-    fn to_wide(&self) -> Vec<u16>;
-    fn to_wide_null(&self) -> Vec<u16>;
-}
-
-impl<T: AsRef<OsStr>> ToWide for T {
-    fn to_wide(&self) -> Vec<u16> {
-        self.as_ref().encode_wide().collect()
-    }
-    fn to_wide_null(&self) -> Vec<u16> {
-        self.as_ref().encode_wide().chain(Some(0)).collect()
-    }
-}
 
 pub struct Com {
     hr: winapi::HRESULT,
@@ -80,34 +53,6 @@ pub fn set_window_wrapper(h_wnd: winapi::HWND, l_param: winapi::LPARAM) {
                                   winapi::GWLP_USERDATA,
                                   data.lpCreateParams as winapi::LONG_PTR);
     }
-}
-
-pub fn set_console_title(title: &Vec<u16>) -> i32 {
-    unsafe { kernel32::SetConsoleTitleW(title.as_ptr()) }
-}
-
-pub fn set_window_text(h_wnd: winapi::HWND, wide: &Vec<u16>) -> winapi::BOOL {
-    unsafe { user32::SetWindowTextW(h_wnd, wide.as_ptr()) }
-}
-
-pub fn close() {
-    unsafe { user32::PostQuitMessage(0) }
-}
-
-pub fn set_edit_selection(h_wnd: winapi::HWND, celec: ops::Range<usize>) -> winapi::LRESULT {
-    // EM_SETSEL
-    unsafe {
-        user32::SendMessageW(h_wnd,
-                             177,
-                             celec.start as winapi::WPARAM,
-                             celec.end as winapi::LPARAM)
-    }
-}
-
-pub fn get_client_rect(h_wnd: winapi::HWND) -> winapi::RECT {
-    let mut rec: winapi::RECT = unsafe { mem::zeroed() };
-    unsafe { user32::GetClientRect(h_wnd, &mut rec) };
-    rec
 }
 
 pub unsafe extern "system" fn window_proc(h_wnd: winapi::HWND,
@@ -239,19 +184,17 @@ impl<'a> SpVoice<'a> {
                                                winapi::WS_CHILD | winapi::WS_VISIBLE |
                                                winapi::WS_VSCROLL |
                                                winapi::WS_BORDER |
-                                               0 |
-                                               4 |
-                                               64 |
-                                               256 |
-                                               64,
-                                               // | ES_LEFT | ES_MULTILINE | ES_AUTOVSCROLL | ES_NOHIDESEL | ES_AUTOVSCROLL
-                                               // http://www.math.uiuc.edu/~gfrancis/illimath/windows/aszgard_mini/bin/MinGW/include/winuser.h
+                                               winapi_stub::ES_LEFT |
+                                               winapi_stub::ES_MULTILINE |
+                                               winapi_stub::ES_AUTOVSCROLL |
+                                               winapi_stub::ES_NOHIDESEL |
+                                               winapi_stub::ES_AUTOVSCROLL,
                                                10,
                                                10,
                                                367,
                                                340,
                                                out.window,
-                                               100 as winapi::HMENU, // winapi::ID_EDITCHILD
+                                               winapi_stub::ID_EDITCHILD,
                                                0 as winapi::HINSTANCE,
                                                ptr::null_mut());
 
