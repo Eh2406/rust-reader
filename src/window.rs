@@ -146,6 +146,31 @@ pub fn get_client_rect(h_wnd: winapi::HWND) -> winapi::RECT {
     rec
 }
 
+pub fn move_window(h_wnd: winapi::HWND, rect: &winapi::RECT) -> winapi::BOOL {
+    unsafe {
+        user32::MoveWindow(h_wnd,
+                           rect.left,
+                           rect.top,
+                           rect.right,
+                           rect.bottom,
+                           winapi::TRUE)
+    }
+}
+
+// rect utilities
+pub trait RectUtil {
+    fn inset(&mut self, i32);
+}
+
+impl RectUtil for winapi::RECT {
+    fn inset(&mut self, delta: i32) {
+        self.left += delta;
+        self.top += delta;
+        self.right -= 2 * delta;
+        self.bottom -= 2 * delta;
+    }
+}
+
 // window's proc related function
 
 pub fn get_window_wrapper<'a, T>(h_wnd: winapi::HWND) -> Option<&'a mut T> {

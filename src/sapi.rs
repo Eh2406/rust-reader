@@ -119,7 +119,7 @@ impl<'a> SpVoice<'a> {
                                                winapi_stub::ES_AUTOVSCROLL,
                                                10,
                                                10,
-                                               367,
+                                               365,
                                                340,
                                                out.window,
                                                winapi_stub::ID_EDITCHILD,
@@ -231,7 +231,7 @@ impl<'a> Windowed for SpVoice<'a> {
             winapi::WM_ENDSESSION => close(),
             WM_SAPI_EVENT => {
                 let window_title = format!("rust_reader saying: {}", self.get_status_word())
-                                          .to_wide_null();
+                                       .to_wide_null();
                 set_console_title(&window_title);
                 set_window_text(self.window, &window_title);
                 set_edit_selection(self.edit, self.get_status().word_range());
@@ -239,16 +239,10 @@ impl<'a> Windowed for SpVoice<'a> {
                 return Some(0);
             }
             winapi::WM_SIZE => {
-                let rect = get_client_rect(self.window);
+                let mut rect = get_client_rect(self.window);
                 if (w_param <= 2) && rect.right > 0 && rect.bottom > 0 {
-                    unsafe {
-                        user32::MoveWindow(self.edit,
-                                              10,
-                                              10,
-                                              rect.right - 10 - 13,
-                                              rect.bottom - 10 - 10,
-                                              winapi::TRUE);
-                     }
+                    rect.inset(10);
+                    move_window(self.edit, &rect);
                     return Some(0);
                 }
             }
