@@ -3,13 +3,13 @@ use ole32;
 use user32;
 
 use std::cmp::{min, max};
-use std::ptr;
+use std::ptr::null_mut;
 use std::mem;
-use std::ops;
+use std::ops::Range;
 
 use window::*;
 
-pub const WM_SAPI_EVENT: u32 = winapi::WM_APP + 15;
+pub const WM_SAPI_EVENT: winapi::UINT = winapi::WM_APP + 15;
 
 pub struct Com {
     hr: winapi::HRESULT,
@@ -19,7 +19,7 @@ impl Com {
     pub fn new() -> Com {
         println!("new for Com");
         // https://msdn.microsoft.com/en-us/library/windows/desktop/ms678543.aspx
-        let hr = unsafe { ole32::CoInitialize(ptr::null_mut()) };
+        let hr = unsafe { ole32::CoInitialize(null_mut()) };
         if failed(hr) {
             panic!("failed for Com");
         }
@@ -122,7 +122,7 @@ impl<'a> SpVoice<'a> {
     pub fn new() -> Box<SpVoice<'a>> {
         println!("new for SpVoice");
         let mut hr;
-        let mut voice: *mut winapi::ISpVoice = ptr::null_mut();
+        let mut voice: *mut winapi::ISpVoice = null_mut();
         let sp_voice = "SAPI.SpVoice".to_wide_null();
         let mut clsid_spvoice: winapi::CLSID = unsafe { mem::zeroed() };
 
@@ -134,7 +134,7 @@ impl<'a> SpVoice<'a> {
 
             hr = ole32::CoCreateInstance(
                 &clsid_spvoice,
-                ptr::null_mut(),
+                null_mut(),
                 winapi::CLSCTX_ALL,
                 &winapi::UuidOfISpVoice,
                 &mut voice as *mut *mut winapi::ISpVoice as *mut *mut winapi::c_void
@@ -144,8 +144,8 @@ impl<'a> SpVoice<'a> {
             }
             let mut out = Box::new(SpVoice {
                 voice: &mut *voice,
-                window: ptr::null_mut(),
-                edit: ptr::null_mut(),
+                window: null_mut(),
+                edit: null_mut(),
                 last_read: Vec::new(),
             });
 
@@ -196,7 +196,7 @@ impl<'a> SpVoice<'a> {
                                                out.window,
                                                winapi_stub::ID_EDITCHILD,
                                                0 as winapi::HINSTANCE,
-                                               ptr::null_mut());
+                                               null_mut());
 
             out
         }
@@ -219,7 +219,7 @@ impl<'a> SpVoice<'a> {
     pub fn speak(&mut self, string: &str) {
         self.last_read = string.to_wide_null();
         set_window_text(self.edit, &self.last_read);
-        unsafe { self.voice.Speak(self.last_read.as_ptr(), 19, ptr::null_mut()) };
+        unsafe { self.voice.Speak(self.last_read.as_ptr(), 19, null_mut()) };
     }
 
     pub fn wait(&mut self) {
@@ -299,15 +299,15 @@ impl<'a> Drop for SpVoice<'a> {
 }
 
 pub trait StatusUtil {
-    fn word_range(&self) -> ops::Range<usize>;
-    fn sent_range(&self) -> ops::Range<usize>;
+    fn word_range(&self) -> Range<usize>;
+    fn sent_range(&self) -> Range<usize>;
 }
 
 impl StatusUtil for winapi::SPVOICESTATUS {
-    fn word_range(&self) -> ops::Range<usize> {
+    fn word_range(&self) -> Range<usize> {
         self.ulInputWordPos as usize..(self.ulInputWordPos + self.ulInputWordLen) as usize
     }
-    fn sent_range(&self) -> ops::Range<usize> {
+    fn sent_range(&self) -> Range<usize> {
         self.ulInputSentPos as usize..(self.ulInputSentPos + self.ulInputSentLen) as usize
     }
 }

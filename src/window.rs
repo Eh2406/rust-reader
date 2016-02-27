@@ -4,68 +4,67 @@ use kernel32;
 
 use std::ffi::OsStr;
 use std::os::windows::ffi::OsStrExt;
-use std::ops;
+use std::ops::Range;
 use std::mem;
-use std::ptr;
 
 // waiting for winapi
 pub mod winapi_stub {
     #![allow(dead_code)]
-    use winapi;
-    pub const ES_AUTOHSCROLL: winapi::DWORD = 128;
-    pub const ES_AUTOVSCROLL: winapi::DWORD = 64;
-    pub const ES_CENTER: winapi::DWORD = 1;
-    pub const ES_LEFT: winapi::DWORD = 0;
-    pub const ES_LOWERCASE: winapi::DWORD = 16;
-    pub const ES_MULTILINE: winapi::DWORD = 4;
-    pub const ES_NOHIDESEL: winapi::DWORD = 256;
-    pub const ES_NUMBER: winapi::DWORD = 0x2000;
-    pub const ES_OEMCONVERT: winapi::DWORD = 0x400;
-    pub const ES_PASSWORD: winapi::DWORD = 32;
-    pub const ES_READONLY: winapi::DWORD = 0x800;
-    pub const ES_RIGHT: winapi::DWORD = 2;
-    pub const ES_UPPERCASE: winapi::DWORD = 8;
-    pub const ES_WANTRETURN: winapi::DWORD = 4096;
+    use winapi::{DWORD, HMENU};
+    pub const ES_AUTOHSCROLL: DWORD = 128;
+    pub const ES_AUTOVSCROLL: DWORD = 64;
+    pub const ES_CENTER: DWORD = 1;
+    pub const ES_LEFT: DWORD = 0;
+    pub const ES_LOWERCASE: DWORD = 16;
+    pub const ES_MULTILINE: DWORD = 4;
+    pub const ES_NOHIDESEL: DWORD = 256;
+    pub const ES_NUMBER: DWORD = 0x2000;
+    pub const ES_OEMCONVERT: DWORD = 0x400;
+    pub const ES_PASSWORD: DWORD = 32;
+    pub const ES_READONLY: DWORD = 0x800;
+    pub const ES_RIGHT: DWORD = 2;
+    pub const ES_UPPERCASE: DWORD = 8;
+    pub const ES_WANTRETURN: DWORD = 4096;
 
-    pub const EM_CANUNDO: winapi::DWORD = 198;
-    pub const EM_CHARFROMPOS: winapi::DWORD = 215;
-    pub const EM_EMPTYUNDOBUFFER: winapi::DWORD = 205;
-    pub const EM_FMTLINES: winapi::DWORD = 200;
-    pub const EM_GETFIRSTVISIBLELINE: winapi::DWORD = 206;
-    pub const EM_GETHANDLE: winapi::DWORD = 189;
-    pub const EM_GETLIMITTEXT: winapi::DWORD = 213;
-    pub const EM_GETLINE: winapi::DWORD = 196;
-    pub const EM_GETLINECOUNT: winapi::DWORD = 186;
-    pub const EM_GETMARGINS: winapi::DWORD = 212;
-    pub const EM_GETMODIFY: winapi::DWORD = 184;
-    pub const EM_GETPASSWORDCHAR: winapi::DWORD = 210;
-    pub const EM_GETRECT: winapi::DWORD = 178;
-    pub const EM_GETSEL: winapi::DWORD = 176;
-    pub const EM_GETTHUMB: winapi::DWORD = 190;
-    pub const EM_GETWORDBREAKPROC: winapi::DWORD = 209;
-    pub const EM_LIMITTEXT: winapi::DWORD = 197;
-    pub const EM_LINEFROMCHAR: winapi::DWORD = 201;
-    pub const EM_LINEINDEX: winapi::DWORD = 187;
-    pub const EM_LINELENGTH: winapi::DWORD = 193;
-    pub const EM_LINESCROLL: winapi::DWORD = 182;
-    pub const EM_POSFROMCHAR: winapi::DWORD = 214;
-    pub const EM_REPLACESEL: winapi::DWORD = 194;
-    pub const EM_SCROLL: winapi::DWORD = 181;
-    pub const EM_SCROLLCARET: winapi::DWORD = 183;
-    pub const EM_SETHANDLE: winapi::DWORD = 188;
-    pub const EM_SETLIMITTEXT: winapi::DWORD = 197;
-    pub const EM_SETMARGINS: winapi::DWORD = 211;
-    pub const EM_SETMODIFY: winapi::DWORD = 185;
-    pub const EM_SETPASSWORDCHAR: winapi::DWORD = 204;
-    pub const EM_SETREADONLY: winapi::DWORD = 207;
-    pub const EM_SETRECT: winapi::DWORD = 179;
-    pub const EM_SETRECTNP: winapi::DWORD = 180;
-    pub const EM_SETSEL: winapi::DWORD = 177;
-    pub const EM_SETTABSTOPS: winapi::DWORD = 203;
-    pub const EM_SETWORDBREAKPROC: winapi::DWORD = 208;
-    pub const EM_UNDO: winapi::DWORD = 199;
+    pub const EM_CANUNDO: DWORD = 198;
+    pub const EM_CHARFROMPOS: DWORD = 215;
+    pub const EM_EMPTYUNDOBUFFER: DWORD = 205;
+    pub const EM_FMTLINES: DWORD = 200;
+    pub const EM_GETFIRSTVISIBLELINE: DWORD = 206;
+    pub const EM_GETHANDLE: DWORD = 189;
+    pub const EM_GETLIMITTEXT: DWORD = 213;
+    pub const EM_GETLINE: DWORD = 196;
+    pub const EM_GETLINECOUNT: DWORD = 186;
+    pub const EM_GETMARGINS: DWORD = 212;
+    pub const EM_GETMODIFY: DWORD = 184;
+    pub const EM_GETPASSWORDCHAR: DWORD = 210;
+    pub const EM_GETRECT: DWORD = 178;
+    pub const EM_GETSEL: DWORD = 176;
+    pub const EM_GETTHUMB: DWORD = 190;
+    pub const EM_GETWORDBREAKPROC: DWORD = 209;
+    pub const EM_LIMITTEXT: DWORD = 197;
+    pub const EM_LINEFROMCHAR: DWORD = 201;
+    pub const EM_LINEINDEX: DWORD = 187;
+    pub const EM_LINELENGTH: DWORD = 193;
+    pub const EM_LINESCROLL: DWORD = 182;
+    pub const EM_POSFROMCHAR: DWORD = 214;
+    pub const EM_REPLACESEL: DWORD = 194;
+    pub const EM_SCROLL: DWORD = 181;
+    pub const EM_SCROLLCARET: DWORD = 183;
+    pub const EM_SETHANDLE: DWORD = 188;
+    pub const EM_SETLIMITTEXT: DWORD = 197;
+    pub const EM_SETMARGINS: DWORD = 211;
+    pub const EM_SETMODIFY: DWORD = 185;
+    pub const EM_SETPASSWORDCHAR: DWORD = 204;
+    pub const EM_SETREADONLY: DWORD = 207;
+    pub const EM_SETRECT: DWORD = 179;
+    pub const EM_SETRECTNP: DWORD = 180;
+    pub const EM_SETSEL: DWORD = 177;
+    pub const EM_SETTABSTOPS: DWORD = 203;
+    pub const EM_SETWORDBREAKPROC: DWORD = 208;
+    pub const EM_UNDO: DWORD = 199;
 
-    pub const ID_EDITCHILD: winapi::HMENU = 100 as winapi::HMENU;
+    pub const ID_EDITCHILD: HMENU = 100 as HMENU;
 }
 
 #[inline]
@@ -95,8 +94,9 @@ impl<T: AsRef<OsStr>> ToWide for T {
 }
 
 pub fn get_message() -> Option<winapi::MSG> {
+    use std::ptr::null_mut;
     let mut msg: winapi::MSG = unsafe { mem::zeroed() };
-    if unsafe { user32::GetMessageW(&mut msg, ptr::null_mut(), 0, 0) } <= 0 {
+    if unsafe { user32::GetMessageW(&mut msg, null_mut(), 0, 0) } <= 0 {
         return None;
     }
     Some(msg)
@@ -114,7 +114,7 @@ pub fn close() {
     unsafe { user32::PostQuitMessage(0) }
 }
 
-pub fn set_edit_selection(h_wnd: winapi::HWND, celec: ops::Range<usize>) -> winapi::LRESULT {
+pub fn set_edit_selection(h_wnd: winapi::HWND, celec: Range<usize>) -> winapi::LRESULT {
     unsafe {
         user32::SendMessageW(h_wnd,
                              winapi_stub::EM_SETSEL,

@@ -5,7 +5,7 @@ use clipboard_win;
 use clipboard_win::{get_clipboard_string, set_clipboard};
 use clipboard_win::wrapper::get_clipboard_seq_num;
 use std::mem;
-use std::thread;
+use std::thread::sleep;
 use std::time::Duration;
 
 pub trait NewINPUT {
@@ -61,7 +61,7 @@ pub fn what_on_clipboard_seq_num(clip_num: u32, n: u64) -> bool {
         if get_clipboard_seq_num().unwrap_or(clip_num) != clip_num {
             return true;
         }
-        thread::sleep(Duration::from_millis(i));
+        sleep(Duration::from_millis(i));
     }
     get_clipboard_seq_num().unwrap_or(clip_num) != clip_num
 }
@@ -70,7 +70,7 @@ pub fn what_on_get_clipboard_string(n: u64) -> Result<String, clipboard_win::Win
     for i in 1..(n + 1) {
         match get_clipboard_string() {
             Ok(x) => return Ok(x),
-            Err(_) => thread::sleep(Duration::from_millis(i)),
+            Err(_) => sleep(Duration::from_millis(i)),
         }
     }
     get_clipboard_string()
