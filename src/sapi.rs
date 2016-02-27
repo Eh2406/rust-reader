@@ -37,78 +37,6 @@ impl Drop for Com {
     }
 }
 
-pub fn get_window_wrapper<'a, T>(h_wnd: winapi::HWND) -> Option<&'a mut T> {
-    let ptr: winapi::LONG_PTR = unsafe { user32::GetWindowLongPtrW(h_wnd, winapi::GWLP_USERDATA) };
-    if ptr > 0 {
-        Some(unsafe { &mut *(ptr as *mut T) })
-    } else {
-        None
-    }
-}
-
-pub fn set_window_wrapper(h_wnd: winapi::HWND, l_param: winapi::LPARAM) {
-    let data = unsafe { &mut *(l_param as *mut winapi::CREATESTRUCTW) };
-    unsafe {
-        user32::SetWindowLongPtrW(h_wnd,
-                                  winapi::GWLP_USERDATA,
-                                  data.lpCreateParams as winapi::LONG_PTR);
-    }
-}
-
-pub unsafe extern "system" fn window_proc(h_wnd: winapi::HWND,
-                                          msg: winapi::UINT,
-                                          w_param: winapi::WPARAM,
-                                          l_param: winapi::LPARAM)
-                                          -> winapi::LRESULT {
-    match msg {
-        winapi::WM_DESTROY => close(),
-        winapi::WM_QUERYENDSESSION => close(),
-        winapi::WM_ENDSESSION => close(),
-        winapi::WM_NCCREATE => set_window_wrapper(h_wnd, l_param),
-        WM_SAPI_EVENT => {
-            if let Some(voice) = get_window_wrapper::<SpVoice>(h_wnd) {
-                let window_title = format!("rust_reader saying: {}", voice.get_status_word())
-                                       .to_wide_null();
-                set_console_title(&window_title);
-                set_window_text(voice.window, &window_title);
-                set_edit_selection(voice.edit, voice.get_status().word_range());
-                user32::SendMessageW(voice.edit,
-                                     183, // EM_SCROLLCARET
-                                     0 as winapi::WPARAM,
-                                     0 as winapi::LPARAM);
-                return 0;
-            }
-        }
-        winapi::WM_SIZE => {
-            if let Some(voice) = get_window_wrapper::<SpVoice>(h_wnd) {
-                let rect = get_client_rect(voice.window);
-                if (w_param <= 2) && rect.right > 0 && rect.bottom > 0 {
-                    user32::MoveWindow(voice.edit,
-                                       10,
-                                       10,
-                                       rect.right - 10 - 13,
-                                       rect.bottom - 10 - 10,
-                                       winapi::TRUE);
-                    return 0;
-                }
-            }
-        }
-        /* next winapi bump
-        winapi::WM_GETMINMAXINFO => {
-            let data = unsafe { &mut *(l_param as *mut winapi::MINMAXINFO) };
-            data.ptMinTrackSize.x = 160;
-            data.ptMinTrackSize.y = 90;
-            return 0;
-        }
-        */
-        _ => {
-            // println!("sinproc: msg:{:?} w_param:{:?} l_param:{:?}", msg, w_param, l_param)
-        }
-
-    }
-    return user32::DefWindowProcW(h_wnd, msg, w_param, l_param);
-}
-
 pub struct SpVoice<'a> {
     // https://msdn.microsoft.com/en-us/library/ms723602.aspx
     voice: &'a mut winapi::ISpVoice,
@@ -152,7 +80,7 @@ impl<'a> SpVoice<'a> {
             let window_class_name = "SAPI_event_window_class_name".to_wide_null();
             user32::RegisterClassW(&winapi::WNDCLASSW {
                 style: 0,
-                lpfnWndProc: Some(window_proc),
+                lpfnWndProc: Some(window_proc_generic::<SpVoice>),
                 cbClsExtra: 0,
                 cbWndExtra: 0,
                 hInstance: 0 as winapi::HINSTANCE,
@@ -288,6 +216,53 @@ impl<'a> SpVoice<'a> {
 
     pub fn set_interest(&mut self, event: u64, queued: u64) {
         unsafe { self.voice.SetInterest(event, queued) };
+    }
+}
+
+impl<'a> Windowed for SpVoice<'a> {
+    fn window_proc(&mut self,
+                   msg: winapi::UINT,
+                   w_param: winapi::WPARAM,
+                   l_param: winapi::LPARAM)
+                   -> Option<winapi::LRESULT> {
+        match msg {
+            winapi::WM_DESTROY => close(),
+            winapi::WM_QUERYENDSESSION => close(),
+            winapi::WM_ENDSESSION => close(),
+            WM_SAPI_EVENT => {
+                let window_title = format!("rust_reader saying: {}", self.get_status_word())
+                                          .to_wide_null();
+                set_console_title(&window_title);
+                set_window_text(self.window, &window_title);
+                set_edit_selection(self.edit, self.get_status().word_range());
+                set_edit_scroll_caret(self.edit);
+                return Some(0);
+            }
+            winapi::WM_SIZE => {
+                let rect = get_client_rect(self.window);
+                if (w_param <= 2) && rect.right > 0 && rect.bottom > 0 {
+                    unsafe {
+                        user32::MoveWindow(self.edit,
+                                              10,
+                                              10,
+                                              rect.right - 10 - 13,
+                                              rect.bottom - 10 - 10,
+                                              winapi::TRUE);
+                     }
+                    return Some(0);
+                }
+            }
+            /* next winapi bump
+            winapi::WM_GETMINMAXINFO => {
+                let data = unsafe { &mut *(l_param as *mut winapi::MINMAXINFO) };
+                data.ptMinTrackSize.x = 160;
+                data.ptMinTrackSize.y = 90;
+                return 0;
+            }
+            */
+            _ => {}
+        }
+        None
     }
 }
 

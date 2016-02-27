@@ -123,8 +123,65 @@ pub fn set_edit_selection(h_wnd: winapi::HWND, celec: Range<usize>) -> winapi::L
     }
 }
 
+pub fn set_edit_scroll_caret(h_wnd: winapi::HWND) -> winapi::LRESULT {
+    unsafe {
+        user32::SendMessageW(h_wnd,
+                             winapi_stub::EM_SCROLLCARET,
+                             0 as winapi::WPARAM,
+                             0 as winapi::LPARAM)
+    }
+}
+
 pub fn get_client_rect(h_wnd: winapi::HWND) -> winapi::RECT {
     let mut rec: winapi::RECT = unsafe { mem::zeroed() };
     unsafe { user32::GetClientRect(h_wnd, &mut rec) };
     rec
+}
+
+// window's proc related function
+
+pub fn get_window_wrapper<'a, T>(h_wnd: winapi::HWND) -> Option<&'a mut T> {
+    let ptr: winapi::LONG_PTR = unsafe { user32::GetWindowLongPtrW(h_wnd, winapi::GWLP_USERDATA) };
+    if ptr > 0 {
+        Some(unsafe { &mut *(ptr as *mut T) })
+    } else {
+        None
+    }
+}
+
+pub fn set_window_wrapper(h_wnd: winapi::HWND, l_param: winapi::LPARAM) {
+    let data = unsafe { &mut *(l_param as *mut winapi::CREATESTRUCTW) };
+    unsafe {
+        user32::SetWindowLongPtrW(h_wnd,
+                                  winapi::GWLP_USERDATA,
+                                  data.lpCreateParams as winapi::LONG_PTR);
+    }
+}
+
+pub trait Windowed {
+    fn window_proc(&mut self,
+                   msg: winapi::UINT,
+                   w_param: winapi::WPARAM,
+                   l_param: winapi::LPARAM)
+                   -> Option<winapi::LRESULT>;
+}
+
+pub unsafe extern "system" fn window_proc_generic<T: Windowed>(h_wnd: winapi::HWND,
+                                                               msg: winapi::UINT,
+                                                               w_param: winapi::WPARAM,
+                                                               l_param: winapi::LPARAM)
+                                                               -> winapi::LRESULT {
+    match msg {
+        winapi::WM_NCCREATE => set_window_wrapper(h_wnd, l_param),
+        _ => {
+            // println!("sinproc: msg:{:?} w_param:{:?} l_param:{:?}", msg, w_param, l_param)
+            if let Some(this) = get_window_wrapper::<T>(h_wnd) {
+                if let Some(out) = this.window_proc(msg, w_param, l_param) {
+                    return out;
+                }
+            }
+        }
+
+    }
+    return user32::DefWindowProcW(h_wnd, msg, w_param, l_param);
 }
