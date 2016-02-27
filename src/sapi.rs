@@ -137,7 +137,7 @@ pub unsafe extern "system" fn window_proc(h_wnd: winapi::HWND,
         winapi::WM_SIZE => {
             if let Some(voice) = get_window_wrapper::<SpVoice>(h_wnd) {
                 let rect = get_client_rect(voice.window);
-                if w_param == 0 && rect.right > 0 && rect.bottom > 0 {
+                if (w_param <= 2) && rect.right > 0 && rect.bottom > 0 {
                     user32::MoveWindow(voice.edit,
                                        10,
                                        10,
@@ -309,7 +309,7 @@ impl<'a> SpVoice<'a> {
     }
 
     pub fn change_rate(&mut self, delta: i32) -> i32 {
-        let rate = max(min(self.get_rate() + delta, 10), -10);
+        let rate = self.get_rate() + delta;
         self.set_rate(rate)
     }
 
