@@ -204,17 +204,14 @@ pub unsafe extern "system" fn window_proc_generic<T: Windowed>(h_wnd: winapi::HW
                                                                w_param: winapi::WPARAM,
                                                                l_param: winapi::LPARAM)
                                                                -> winapi::LRESULT {
-    match msg {
-        winapi::WM_NCCREATE => set_window_wrapper(h_wnd, l_param),
-        _ => {
-            // println!("sinproc: msg:{:?} w_param:{:?} l_param:{:?}", msg, w_param, l_param)
-            if let Some(this) = get_window_wrapper::<T>(h_wnd) {
-                if let Some(out) = this.window_proc(msg, w_param, l_param) {
-                    return out;
-                }
-            }
+    if msg == winapi::WM_CREATE {
+        set_window_wrapper(h_wnd, l_param);
+    }
+    // println!("sinproc: msg:{:?} w_param:{:?} l_param:{:?}", msg, w_param, l_param);
+    if let Some(this) = get_window_wrapper::<T>(h_wnd) {
+        if let Some(out) = this.window_proc(msg, w_param, l_param) {
+            return out;
         }
-
     }
     return user32::DefWindowProcW(h_wnd, msg, w_param, l_param);
 }

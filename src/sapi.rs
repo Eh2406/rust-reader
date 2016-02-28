@@ -125,7 +125,6 @@ impl<'a> SpVoice<'a> {
                                                winapi_stub::ID_EDITCHILD,
                                                0 as winapi::HINSTANCE,
                                                null_mut());
-
             out
         }
     }
@@ -238,6 +237,7 @@ impl<'a> Windowed for SpVoice<'a> {
                 set_edit_scroll_caret(self.edit);
                 return Some(0);
             }
+            winapi::WM_CREATE => {}
             winapi::WM_SIZE => {
                 let mut rect = get_client_rect(self.window);
                 if (w_param <= 2) && rect.right > 0 && rect.bottom > 0 {
