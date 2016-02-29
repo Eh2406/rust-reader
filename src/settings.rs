@@ -39,12 +39,8 @@ impl Settings {
             .unwrap_or(Settings::new())
     }
     pub fn to_file(&self) {
-        json::encode(self)
-            .map(|s| {
-                File::create(Settings::path())
-                    .map(|mut f| f.write_all(s.as_bytes()).unwrap_or(()))
-                    .unwrap_or(())
-            })
+        File::create(Settings::path())
+            .map(|mut f| write!(f, "{}", json::as_pretty_json(&self)).unwrap_or(()))
             .unwrap_or(());
     }
 }

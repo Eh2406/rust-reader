@@ -49,25 +49,22 @@ pub struct SpVoice<'a> {
 impl<'a> SpVoice<'a> {
     pub fn new() -> Box<SpVoice<'a>> {
         println!("new for SpVoice");
-        let mut hr;
         let mut voice: *mut winapi::ISpVoice = null_mut();
         let sp_voice = "SAPI.SpVoice".to_wide_null();
         let mut clsid_spvoice: winapi::CLSID = unsafe { mem::zeroed() };
 
         unsafe {
-            hr = ole32::CLSIDFromProgID(&sp_voice[0], &mut clsid_spvoice);
-            if failed(hr) {
+            if failed(ole32::CLSIDFromProgID(&sp_voice[0], &mut clsid_spvoice)) {
                 panic!("failed for SpVoice at CLSIDFromProgID");
             }
 
-            hr = ole32::CoCreateInstance(
+            if failed(ole32::CoCreateInstance(
                 &clsid_spvoice,
                 null_mut(),
                 winapi::CLSCTX_ALL,
                 &winapi::UuidOfISpVoice,
                 &mut voice as *mut *mut winapi::ISpVoice as *mut *mut winapi::c_void
-            );
-            if failed(hr) {
+            )) {
                 panic!("failed for SpVoice at CoCreateInstance");
             }
             let mut out = Box::new(SpVoice {
@@ -84,9 +81,8 @@ impl<'a> SpVoice<'a> {
                 cbClsExtra: 0,
                 cbWndExtra: 0,
                 hInstance: 0 as winapi::HINSTANCE,
-                hIcon: user32::LoadIconW(0 as winapi::HINSTANCE, winapi::winuser::IDI_APPLICATION),
-                hCursor: user32::LoadCursorW(0 as winapi::HINSTANCE,
-                                             winapi::winuser::IDI_APPLICATION),
+                hIcon: user32::LoadIconW(0 as winapi::HINSTANCE, winapi::IDI_APPLICATION),
+                hCursor: user32::LoadCursorW(0 as winapi::HINSTANCE, winapi::IDI_APPLICATION),
                 hbrBackground: 16 as winapi::HBRUSH,
                 lpszMenuName: 0 as winapi::LPCWSTR,
                 lpszClassName: window_class_name.as_ptr(),
