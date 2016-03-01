@@ -50,11 +50,11 @@ impl<'a> SpVoice<'a> {
     pub fn new() -> Box<SpVoice<'a>> {
         println!("new for SpVoice");
         let mut voice: *mut winapi::ISpVoice = null_mut();
-        let sp_voice = "SAPI.SpVoice".to_wide_null();
         let mut clsid_spvoice: winapi::CLSID = unsafe { mem::zeroed() };
 
         unsafe {
-            if failed(ole32::CLSIDFromProgID(&sp_voice[0], &mut clsid_spvoice)) {
+            if failed(ole32::CLSIDFromProgID(&"SAPI.SpVoice".to_wide_null()[0],
+                                             &mut clsid_spvoice)) {
                 panic!("failed for SpVoice at CLSIDFromProgID");
             }
 
@@ -101,9 +101,8 @@ impl<'a> SpVoice<'a> {
                                                  &mut *out as *mut _ as winapi::LPVOID);
 
             // https://msdn.microsoft.com/en-us/library/windows/desktop/hh298433.aspx
-            let window_class_name = "EDIT".to_wide_null();
             out.edit = user32::CreateWindowExW(winapi::WS_EX_CLIENTEDGE,
-                                               window_class_name.as_ptr(),
+                                               &"EDIT".to_wide_null()[0],
                                                &0u16,
                                                winapi::WS_CHILD | winapi::WS_VISIBLE |
                                                winapi::WS_VSCROLL |
@@ -139,7 +138,7 @@ impl<'a> SpVoice<'a> {
         String::from_utf16_lossy(&self.last_read[status.sent_range()])
     }
 
-    pub fn speak(&mut self, string: &str) {
+    pub fn speak<T: ToWide>(&mut self, string: T) {
         self.last_read = string.to_wide_null();
         set_window_text(self.edit, &self.last_read);
         unsafe { self.voice.Speak(self.last_read.as_ptr(), 19, null_mut()) };
@@ -149,7 +148,7 @@ impl<'a> SpVoice<'a> {
         unsafe { self.voice.WaitUntilDone(winapi::INFINITE) };
     }
 
-    pub fn speak_wait(&mut self, string: &str) {
+    pub fn speak_wait<T: ToWide>(&mut self, string: T) {
         self.speak(string);
         self.wait();
     }

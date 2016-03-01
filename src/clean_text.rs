@@ -6,8 +6,9 @@ fn only_spaces(ch: char) -> char {
     }
 }
 
-pub fn clean_text(raw: &str) -> String {
-    raw.chars()
+pub fn clean_text<T: AsRef<str>>(raw: T) -> String {
+    raw.as_ref()
+       .chars()
        .map(only_spaces)
        .scan(('\x00', 0), |st, ch| {
            if st.0 != ch {
@@ -27,6 +28,11 @@ pub fn clean_text(raw: &str) -> String {
 #[test]
 fn one_word() {
     assert_eq!(clean_text("Hello"), "Hello");
+}
+
+#[test]
+fn in_string() {
+    assert_eq!(clean_text("Hello".to_string()), "Hello");
 }
 
 #[test]

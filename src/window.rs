@@ -89,15 +89,16 @@ pub fn succeeded(hr: winapi::HRESULT) -> bool {
 
 pub trait ToWide {
     fn to_wide(&self) -> Vec<u16>;
-    fn to_wide_null(&self) -> Vec<u16>;
+    fn to_wide_null(&self) -> Vec<u16> {
+        let mut out = self.to_wide();
+        out.push(0);
+        out
+    }
 }
 
 impl<T: AsRef<OsStr>> ToWide for T {
     fn to_wide(&self) -> Vec<u16> {
         self.as_ref().encode_wide().collect()
-    }
-    fn to_wide_null(&self) -> Vec<u16> {
-        self.as_ref().encode_wide().chain(Some(0)).collect()
     }
 }
 

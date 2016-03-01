@@ -35,7 +35,7 @@ fn print_voice(voice: &mut SpVoice, settings: &mut Settings) {
 fn read(voice: &mut SpVoice) {
     voice.resume();
     match get_text() {
-        Ok(x) => voice.speak(&clean_text(&x)),
+        Ok(x) => voice.speak(clean_text(x)),
         Err(x) => {
             voice.speak_wait("oops. error.");
             println!("{:?}", x);
