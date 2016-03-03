@@ -6,22 +6,22 @@ fn only_spaces(ch: char) -> char {
     }
 }
 
+fn runing_count(st: &mut (char, usize), ch: char) -> Option<bool> {
+    if st.0 != ch && (!st.0.is_whitespace() || !ch.is_whitespace()) {
+        st.1 = 0
+    }
+    st.1 += 1;
+    st.0 = ch;
+    Some(st.1 == 1 || st.1 < 4 && !ch.is_whitespace())
+}
+
 pub fn clean_text<T: AsRef<str>>(raw: T) -> String {
-    raw.as_ref()
-       .chars()
-       .map(only_spaces)
-       .scan(('\x00', 0), |st, ch| {
-           if st.0 != ch {
-               st.1 = 0
-           } else {
-               st.1 += 1
-           };
-           st.0 = ch;
-           Some(*st)
-       })
-       .filter(|&(ch, count)| !(count >= 1 && ch.is_whitespace()))
-       .filter(|&(_, count)| !(count >= 3))
+    let raw = raw.as_ref();
+    raw.chars()
+       .zip(raw.chars().scan(('\x00', 0), runing_count))
+       .filter(|&(_, test)| test)
        .map(|(ch, _)| ch)
+       .map(only_spaces)
        .collect()
 }
 
