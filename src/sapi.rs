@@ -107,11 +107,11 @@ impl<'a> SpVoice<'a> {
                                                winapi::WS_CHILD | winapi::WS_VISIBLE |
                                                winapi::WS_VSCROLL |
                                                winapi::WS_BORDER |
-                                               winapi_stub::ES_LEFT |
-                                               winapi_stub::ES_MULTILINE |
-                                               winapi_stub::ES_AUTOVSCROLL |
-                                               winapi_stub::ES_NOHIDESEL |
-                                               winapi_stub::ES_AUTOVSCROLL,
+                                               winapi::ES_LEFT |
+                                               winapi::ES_MULTILINE |
+                                               winapi::ES_AUTOVSCROLL |
+                                               winapi::ES_NOHIDESEL |
+                                               winapi::ES_AUTOVSCROLL,
                                                10,
                                                10,
                                                365,
@@ -242,7 +242,7 @@ impl<'a> Windowed for SpVoice<'a> {
                 }
             }
             winapi::WM_GETMINMAXINFO => {
-                let data = unsafe { &mut *(l_param as *mut winapi_stub::MINMAXINFO) };
+                let data = unsafe { &mut *(l_param as *mut winapi::MINMAXINFO) };
                 data.ptMinTrackSize.x = 180;
                 data.ptMinTrackSize.y = 90;
                 return Some(0);
