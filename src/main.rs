@@ -5,6 +5,7 @@ extern crate kernel32;
 extern crate clipboard_win;
 extern crate rustc_serialize; //To write rust objects to json
 
+mod wide_string;
 mod window;
 use window::*;
 

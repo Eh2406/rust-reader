@@ -2,10 +2,10 @@ use winapi;
 use user32;
 use kernel32;
 
-use std::ffi::OsStr;
-use std::os::windows::ffi::OsStrExt;
 use std::ops::Range;
 use std::mem;
+
+pub use wide_string::*;
 
 // waiting for winapi
 pub mod winapi_stub {
@@ -25,21 +25,6 @@ pub fn failed(hr: winapi::HRESULT) -> bool {
 #[allow(dead_code)]
 pub fn succeeded(hr: winapi::HRESULT) -> bool {
     !failed(hr)
-}
-
-pub trait ToWide {
-    fn to_wide(&self) -> Vec<u16>;
-    fn to_wide_null(&self) -> Vec<u16> {
-        let mut out = self.to_wide();
-        out.push(0);
-        out
-    }
-}
-
-impl<T: AsRef<OsStr>> ToWide for T {
-    fn to_wide(&self) -> Vec<u16> {
-        self.as_ref().encode_wide().collect()
-    }
 }
 
 pub fn get_message() -> Option<winapi::MSG> {

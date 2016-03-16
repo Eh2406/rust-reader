@@ -130,12 +130,12 @@ impl<'a> SpVoice<'a> {
 
     pub fn get_status_word(&mut self) -> String {
         let status = self.get_status();
-        String::from_utf16_lossy(&self.last_read[status.word_range()])
+        string_from_utf16_u16idx(&self.last_read, status.word_range())
     }
 
     pub fn get_status_sent(&mut self) -> String {
         let status = self.get_status();
-        String::from_utf16_lossy(&self.last_read[status.sent_range()])
+        string_from_utf16_u16idx(&self.last_read, status.sent_range())
     }
 
     pub fn speak<T: ToWide>(&mut self, string: T) {
