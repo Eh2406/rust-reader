@@ -17,6 +17,65 @@ impl<T: AsRef<OsStr>> ToWide for T {
     }
 }
 
+pub trait LenUtf {
+    fn len_utf8(&self) -> usize;
+    fn len_utf16(&self) -> usize;
+}
+
+impl LenUtf for str {
+    fn len_utf8(&self) -> usize {
+        self.len()
+    }
+    fn len_utf16(&self) -> usize {
+        self.chars().map(|x| x.len_utf16()).fold(0, |s, e| s + e)
+    }
+}
+
+pub trait IndicesUtf {
+    fn indices_utf8(&self) -> Vec<usize>;
+    fn indices_utf16(&self) -> Vec<usize>;
+}
+
+impl IndicesUtf for str {
+    fn indices_utf8(&self) -> Vec<usize> {
+        self.chars()
+            .scan(0, |s, c| {
+                *s += c.len_utf8();
+                Some(*s)
+            })
+            .collect()
+    }
+    fn indices_utf16(&self) -> Vec<usize> {
+        self.chars()
+            .scan(0, |s, c| {
+                *s += c.len_utf16();
+                Some(*s)
+            })
+            .collect()
+    }
+}
+
+fn convert_range<T>(v: &[T], r: &Range<T>) -> Range<usize>
+    where T: Ord
+{
+    let s = match v.binary_search(&r.start) {
+        Ok(x) => x,
+        Err(x) => x,
+    };
+    let e = match v[s..].binary_search(&r.end) {
+        Ok(x) => x,
+        Err(x) => x,
+    };
+
+    s..s + e
+}
+
+fn lookup_range<T>(v: &[T], r: &Range<usize>) -> Range<T>
+    where T: Copy
+{
+    v[r.start]..v[r.end]
+}
+
 #[test]
 fn one_larg_char() {
     let s = "\u{1d565}";
@@ -25,8 +84,8 @@ fn one_larg_char() {
     assert_eq!(s.to_wide(), vec![0xD835, 0xDD65]);
     assert_eq!(s.to_wide_null(), vec![0xD835, 0xDD65, 0x0000]);
 
-    assert_eq!(s.chars().map(|x| x.len_utf8()).collect::<Vec<usize>>(), vec![4]);
-    assert_eq!(s.chars().map(|x| x.len_utf16()).collect::<Vec<usize>>(), vec![2]);
+    assert_eq!(s.indices_utf8(), vec![4]);
+    assert_eq!(s.indices_utf16(), vec![2]);
 }
 
 #[test]
@@ -37,8 +96,8 @@ fn two_small_char() {
     assert_eq!(s.to_wide(), vec![0x05D4, 0x05A2]);
     assert_eq!(s.to_wide_null(), vec![0x05D4, 0x05A2, 0x0000]);
 
-    assert_eq!(s.chars().map(|x| x.len_utf8()).collect::<Vec<usize>>(), vec![2, 2]);
-    assert_eq!(s.chars().map(|x| x.len_utf16()).collect::<Vec<usize>>(), vec![1, 1]);
+    assert_eq!(s.indices_utf8(), vec![2, 4]);
+    assert_eq!(s.indices_utf16(), vec![1, 2]);
 }
 
 #[allow(dead_code)]
@@ -54,7 +113,7 @@ pub fn string_from_utf16_u16idx(s: &Vec<u16>, idx: Range<usize>) -> String {
 
 #[allow(dead_code)]
 pub fn string_from_str_u16idx(s: &str, idx: Range<usize>) -> String {
-    string_from_utf16_u16idx(&s.to_wide(), idx)
+    String::from_utf16_lossy(&s.to_wide()[idx])
 }
 
 #[allow(dead_code)]

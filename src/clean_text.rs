@@ -1,3 +1,5 @@
+// TODO: switch to https://unicode-rs.github.io/unicode-segmentation/
+
 fn only_spaces(ch: char) -> char {
     if ch.is_whitespace() {
         ' '
