@@ -55,6 +55,7 @@ impl IndicesUtf for str {
     }
 }
 
+#[allow(dead_code)]
 fn convert_range<T>(v: &[T], r: &Range<T>) -> Range<usize>
     where T: Ord
 {
@@ -70,6 +71,7 @@ fn convert_range<T>(v: &[T], r: &Range<T>) -> Range<usize>
     s..s + e
 }
 
+#[allow(dead_code)]
 fn lookup_range<T>(v: &[T], r: &Range<usize>) -> Range<T>
     where T: Copy
 {
@@ -101,22 +103,51 @@ fn two_small_char() {
 }
 
 #[allow(dead_code)]
-pub fn string_from_str_u8idx(s: &str, idx: Range<usize>) -> String {
-    // trivial
-    s[idx].to_owned()
+pub fn str_from_str_u16idx(s: &str, idx: Range<usize>) -> &str {
+    &s[u8idx_from_u16idx(s, idx)]
 }
 
 #[allow(dead_code)]
-pub fn string_from_utf16_u16idx(s: &Vec<u16>, idx: Range<usize>) -> String {
-    String::from_utf16_lossy(&s[idx])
+pub fn u8idx_from_u16idx(s: &str, idx: Range<usize>) -> Range<usize> {
+    let mut u16idx = 0;
+    let mut out = 0..0;
+    for c in s.chars() {
+        if u16idx <= idx.start {
+            out.start = out.end;
+            println!("{:?}", out.start);
+        }
+        out.end += c.len_utf8();
+        u16idx += c.len_utf16();
+        if idx.end <= u16idx {
+            return out;
+        }
+    }
+    out
 }
 
 #[allow(dead_code)]
-pub fn string_from_str_u16idx(s: &str, idx: Range<usize>) -> String {
-    String::from_utf16_lossy(&s.to_wide()[idx])
+pub fn u16idx_from_u8idx(s: &str, idx: Range<usize>) -> Range<usize> {
+    let start = s[..idx.start].len_utf16();
+    start..start + s[idx].len_utf16()
 }
 
-#[allow(dead_code)]
-pub fn string_from_utf16_u8idx(s: &Vec<u16>, idx: Range<usize>) -> String {
-    String::from_utf16_lossy(&s)[idx].to_owned()
+#[test]
+fn u16idx() {
+    let s = "\u{1d565} \u{5d4}\u{5a2} \u{1d565} \u{5d4}\u{5a2}";
+
+    assert_eq!(0..5, u16idx_from_u8idx(s, 0..9));
+    assert_eq!(2..5, u16idx_from_u8idx(s, 4..9));
+    assert_eq!(2..8, u16idx_from_u8idx(s, 4..14));
+
+    assert_eq!(0..9, u8idx_from_u16idx(s, u16idx_from_u8idx(s, 0..9)));
+    assert_eq!(4..9, u8idx_from_u16idx(s, u16idx_from_u8idx(s, 4..9)));
+    assert_eq!(4..14, u8idx_from_u16idx(s, u16idx_from_u8idx(s, 4..14)));
+
+    assert_eq!(0..5, u16idx_from_u8idx(s, u8idx_from_u16idx(s, 0..5)));
+    assert_eq!(2..5, u16idx_from_u8idx(s, u8idx_from_u16idx(s, 2..5)));
+    assert_eq!(2..8, u16idx_from_u8idx(s, u8idx_from_u16idx(s, 2..8)));
+
+    assert_eq!(&s[0..9], str_from_str_u16idx(s, 0..5));
+    assert_eq!(&s[4..9], str_from_str_u16idx(s, 2..5));
+    assert_eq!(&s[4..14], str_from_str_u16idx(s, 2..8));
 }
