@@ -86,10 +86,9 @@ fn main() {
             .expect("Lacks sufficient rights to access clipboard(WINSTA_ACCESSCLIPBOARD)");
     }
 
-    voice.set_notify_window_message();
     voice.set_interest(winapi::SPFEI(5) | winapi::SPFEI(1) | winapi::SPFEI(2), 0);
 
-    voice.speak_wait("Ready!");
+    voice.speak("Ready!");
 
     while let Some(msg) = get_message() {
         match msg.message {

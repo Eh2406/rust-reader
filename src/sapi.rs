@@ -90,11 +90,11 @@ impl<'a> SpVoice<'a> {
             out.window = user32::CreateWindowExW(0,
                                                  window_class_name.as_ptr(),
                                                  &0u16,
-                                                 winapi::WS_OVERLAPPEDWINDOW | winapi::WS_VISIBLE,
+                                                 winapi::WS_OVERLAPPEDWINDOW,
                                                  0,
                                                  0,
-                                                 400,
-                                                 400,
+                                                 0,
+                                                 0,
                                                  user32::GetDesktopWindow(),
                                                  0 as winapi::HMENU,
                                                  0 as winapi::HINSTANCE,
@@ -112,14 +112,23 @@ impl<'a> SpVoice<'a> {
                                                winapi::ES_AUTOVSCROLL |
                                                winapi::ES_NOHIDESEL |
                                                winapi::ES_AUTOVSCROLL,
-                                               10,
-                                               10,
-                                               365,
-                                               340,
+                                               0,
+                                               0,
+                                               0,
+                                               0,
                                                out.window,
                                                winapi_stub::ID_EDITCHILD,
                                                0 as winapi::HINSTANCE,
                                                null_mut());
+            move_window(out.window,
+                        &winapi::RECT {
+                            left: 0,
+                            top: 0,
+                            right: 400,
+                            bottom: 400,
+                        });
+            user32::ShowWindow(out.window, winapi::SW_SHOWNORMAL);
+            out.set_notify_window_message();
             out
         }
     }
@@ -204,7 +213,7 @@ impl<'a> SpVoice<'a> {
         status
     }
 
-    pub fn set_notify_window_message(&mut self) {
+    fn set_notify_window_message(&mut self) {
         unsafe { self.voice.SetNotifyWindowMessage(self.window, WM_SAPI_EVENT, 0, 0) };
     }
 
