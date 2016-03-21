@@ -1,29 +1,37 @@
-// TODO: switch to https://unicode-rs.github.io/unicode-segmentation/
+use unicode_segmentation::*;
 
-fn only_spaces(ch: char) -> char {
-    if ch.is_whitespace() {
-        ' '
-    } else {
-        ch
+pub trait IsWhitespace {
+    fn is_whitespace(&self) -> bool;
+}
+
+impl IsWhitespace for str {
+    fn is_whitespace(&self) -> bool {
+        self.chars().all(|x| x.is_whitespace())
     }
 }
 
-fn runing_count(st: &mut (char, usize), ch: char) -> Option<bool> {
-    if st.0 != ch && (!st.0.is_whitespace() || !ch.is_whitespace()) {
+fn runing_count<'a>(st: &mut (&'a str, usize), ch: &'a str) -> Option<&'a str> {
+    let c_is_whitespace = ch.is_whitespace();
+    if st.0 != ch && (!st.0.is_whitespace() || !c_is_whitespace) {
         st.1 = 0
     }
     st.1 += 1;
     st.0 = ch;
-    Some(st.1 == 1 || st.1 < 4 && !ch.is_whitespace())
+    if st.1 == 1 || st.1 < 4 && !c_is_whitespace {
+        if c_is_whitespace {
+            Some(" ")
+        } else {
+            Some(ch)
+        }
+    } else {
+        Some("")
+    }
 }
 
 pub fn clean_text<T: AsRef<str>>(raw: T) -> String {
-    let raw = raw.as_ref();
-    raw.chars()
-       .zip(raw.chars().scan(('\x00', 0), runing_count))
-       .filter(|&(_, test)| test)
-       .map(|(ch, _)| ch)
-       .map(only_spaces)
+    raw.as_ref()
+       .graphemes(true)
+       .scan(("", 0), runing_count)
        .collect()
 }
 
@@ -65,4 +73,18 @@ fn two_word_with_dash() {
 #[test]
 fn two_word_with_equals() {
     assert_eq!(clean_text("Hello =========== world!"), "Hello === world!");
+}
+
+#[test]
+fn two_word_with_longchar() {
+    assert_eq!(clean_text("Hello \u{1d565}\u{1d565}\u{1d565}\u{1d565}\u{1d565} world!"),
+               "Hello \u{1d565}\u{1d565}\u{1d565} world!");
+}
+
+
+#[test]
+fn two_word_with_multichar() {
+    assert_eq!(clean_text("Hello \u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\
+                           \u{5a2} world!"),
+               "Hello \u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2} world!");
 }

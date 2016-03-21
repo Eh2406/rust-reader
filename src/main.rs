@@ -3,6 +3,7 @@ extern crate ole32;
 extern crate user32;
 extern crate kernel32;
 extern crate clipboard_win;
+extern crate unicode_segmentation;
 extern crate rustc_serialize; //To write rust objects to json
 
 mod wide_string;
