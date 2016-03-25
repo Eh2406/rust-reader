@@ -114,8 +114,9 @@ impl RectUtil for winapi::RECT {
 
 // window's proc related function
 
+#[cfg(target_arch = "x86_64")]
 pub fn get_window_wrapper<'a, T>(h_wnd: winapi::HWND) -> Option<&'a mut T> {
-    let ptr: winapi::LONG_PTR = unsafe { user32::GetWindowLongPtrW(h_wnd, winapi::GWLP_USERDATA) };
+    let ptr = unsafe { user32::GetWindowLongPtrW(h_wnd, winapi::GWLP_USERDATA) };
     if ptr > 0 {
         Some(unsafe { &mut *(ptr as *mut T) })
     } else {
@@ -123,12 +124,33 @@ pub fn get_window_wrapper<'a, T>(h_wnd: winapi::HWND) -> Option<&'a mut T> {
     }
 }
 
+#[cfg(target_arch = "x86")]
+pub fn get_window_wrapper<'a, T>(h_wnd: winapi::HWND) -> Option<&'a mut T> {
+    let ptr = unsafe { user32::GetWindowLongW(h_wnd, winapi::GWLP_USERDATA) };
+    if ptr > 0 {
+        Some(unsafe { &mut *(ptr as *mut T) })
+    } else {
+        None
+    }
+}
+
+#[cfg(target_arch = "x86_64")]
 pub fn set_window_wrapper(h_wnd: winapi::HWND, l_param: winapi::LPARAM) {
     let data = unsafe { &mut *(l_param as *mut winapi::CREATESTRUCTW) };
     unsafe {
         user32::SetWindowLongPtrW(h_wnd,
                                   winapi::GWLP_USERDATA,
                                   data.lpCreateParams as winapi::LONG_PTR);
+    }
+}
+
+#[cfg(target_arch = "x86")]
+pub fn set_window_wrapper(h_wnd: winapi::HWND, l_param: winapi::LPARAM) {
+    let data = unsafe { &mut *(l_param as *mut winapi::CREATESTRUCTW) };
+    unsafe {
+        user32::SetWindowLongW(h_wnd,
+                               winapi::GWLP_USERDATA,
+                               data.lpCreateParams as winapi::LONG);
     }
 }
 
