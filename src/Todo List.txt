@@ -1,9 +1,8 @@
-continues loop
 clean up hotkeys code
 serialization and options
 fix pause, keep track of what we are reading ourselves.
 add Shell_NotifyIcon ie tray for the commands like exit
-then figure out how best to remove shell window
 add set voice and get voices
-only run one at a time https://support.microsoft.com/en-us/kb/243953
-fix error leading to error(0) and changing clipboard to selected text. If it does not read it should leave clipboard alone.
+multiple window
+mispronounced words
+remaining time estimate
