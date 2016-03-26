@@ -38,29 +38,27 @@ pub trait IndicesUtf {
 
 impl IndicesUtf for str {
     fn indices_utf8(&self) -> Vec<usize> {
-        [0].iter()
-           .cloned()
-           .chain(self.chars()
-                      .scan(0, |s, c| {
-                          *s += c.len_utf8();
-                          Some(*s)
-                      }))
-           .collect()
+        let mut out = vec![0];
+        out.extend(self.chars()
+                       .scan(0, |s, c| {
+                           *s += c.len_utf8();
+                           Some(*s)
+                       }));
+        out
     }
     fn indices_utf16(&self) -> Vec<usize> {
-        [0].iter()
-           .cloned()
-           .chain(self.chars()
-                      .scan(0, |s, c| {
-                          *s += c.len_utf16();
-                          Some(*s)
-                      }))
-           .collect()
+        let mut out = vec![0];
+        out.extend(self.chars()
+                       .scan(0, |s, c| {
+                           *s += c.len_utf16();
+                           Some(*s)
+                       }));
+        out
     }
 }
 
 #[allow(dead_code)]
-fn convert_range<T>(v: &[T], r: &Range<T>) -> Range<usize>
+pub fn convert_range<T>(v: &[T], r: &Range<T>) -> Range<usize>
     where T: Ord
 {
     let s = match v.binary_search(&r.start) {
@@ -76,34 +74,10 @@ fn convert_range<T>(v: &[T], r: &Range<T>) -> Range<usize>
 }
 
 #[allow(dead_code)]
-fn lookup_range<T>(v: &[T], r: &Range<usize>) -> Range<T>
+pub fn lookup_range<T>(v: &[T], r: &Range<usize>) -> Range<T>
     where T: Copy
 {
     v[r.start]..v[r.end]
-}
-
-#[test]
-fn one_larg_char() {
-    let s = "\u{1d565}";
-    assert_eq!(s.as_bytes(), [0xF0u8, 0x9D, 0x95, 0xA5]);
-    assert_eq!(s.chars().collect::<Vec<char>>(), vec!['\u{1d565}']);
-    assert_eq!(s.to_wide(), vec![0xD835, 0xDD65]);
-    assert_eq!(s.to_wide_null(), vec![0xD835, 0xDD65, 0x0000]);
-
-    assert_eq!(s.indices_utf8(), vec![0, 4]);
-    assert_eq!(s.indices_utf16(), vec![0, 2]);
-}
-
-#[test]
-fn two_small_char() {
-    let s = "\u{5d4}\u{5a2}";
-    assert_eq!(s.as_bytes(), [0xD7, 0x94, 0xD6, 0xA2]);
-    assert_eq!(s.chars().collect::<Vec<char>>(), vec!['\u{5d4}', '\u{5a2}']);
-    assert_eq!(s.to_wide(), vec![0x05D4, 0x05A2]);
-    assert_eq!(s.to_wide_null(), vec![0x05D4, 0x05A2, 0x0000]);
-
-    assert_eq!(s.indices_utf8(), vec![0, 2, 4]);
-    assert_eq!(s.indices_utf16(), vec![0, 1, 2]);
 }
 
 #[allow(dead_code)]
@@ -135,37 +109,65 @@ pub fn u16idx_from_u8idx(s: &str, idx: Range<usize>) -> Range<usize> {
     start..start + s[idx].len_utf16()
 }
 
-#[test]
-fn u16idx() {
-    let s = "\u{1d565} \u{5d4}\u{5a2} \u{1d565} \u{5d4}\u{5a2}";
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn one_larg_char() {
+        let s = "\u{1d565}";
+        assert_eq!(s.as_bytes(), [0xF0u8, 0x9D, 0x95, 0xA5]);
+        assert_eq!(s.chars().collect::<Vec<char>>(), vec!['\u{1d565}']);
+        assert_eq!(s.to_wide(), vec![0xD835, 0xDD65]);
+        assert_eq!(s.to_wide_null(), vec![0xD835, 0xDD65, 0x0000]);
 
-    assert_eq!(0..5, u16idx_from_u8idx(s, 0..9));
-    assert_eq!(2..5, u16idx_from_u8idx(s, 4..9));
-    assert_eq!(2..8, u16idx_from_u8idx(s, 4..14));
-    assert_eq!(2..11, u16idx_from_u8idx(s, 4..19));
+        assert_eq!(s.indices_utf8(), vec![0, 4]);
+        assert_eq!(s.indices_utf16(), vec![0, 2]);
+    }
 
-    assert_eq!(0..9, u8idx_from_u16idx(s, u16idx_from_u8idx(s, 0..9)));
-    assert_eq!(4..9, u8idx_from_u16idx(s, u16idx_from_u8idx(s, 4..9)));
-    assert_eq!(4..14, u8idx_from_u16idx(s, u16idx_from_u8idx(s, 4..14)));
+    #[test]
+    fn two_small_char() {
+        let s = "\u{5d4}\u{5a2}";
+        assert_eq!(s.as_bytes(), [0xD7, 0x94, 0xD6, 0xA2]);
+        assert_eq!(s.chars().collect::<Vec<char>>(), vec!['\u{5d4}', '\u{5a2}']);
+        assert_eq!(s.to_wide(), vec![0x05D4, 0x05A2]);
+        assert_eq!(s.to_wide_null(), vec![0x05D4, 0x05A2, 0x0000]);
 
-    assert_eq!(0..5, u16idx_from_u8idx(s, u8idx_from_u16idx(s, 0..5)));
-    assert_eq!(2..5, u16idx_from_u8idx(s, u8idx_from_u16idx(s, 2..5)));
-    assert_eq!(2..8, u16idx_from_u8idx(s, u8idx_from_u16idx(s, 2..8)));
+        assert_eq!(s.indices_utf8(), vec![0, 2, 4]);
+        assert_eq!(s.indices_utf16(), vec![0, 1, 2]);
+    }
 
-    assert_eq!(&s[0..9], str_from_str_u16idx(s, 0..5));
-    assert_eq!(&s[4..9], str_from_str_u16idx(s, 2..5));
-    assert_eq!(&s[4..14], str_from_str_u16idx(s, 2..8));
-    assert_eq!(&s[4..19], str_from_str_u16idx(s, 2..11));
+    #[test]
+    fn u16idx() {
+        let s = "\u{1d565} \u{5d4}\u{5a2} \u{1d565} \u{5d4}\u{5a2}";
 
-    let id8 = s.indices_utf8();
-    let id16 = s.indices_utf16();
-    assert_eq!(0..5, lookup_range(&id16, &convert_range(&id8, &(0..9))));
-    assert_eq!(2..5, lookup_range(&id16, &convert_range(&id8, &(4..9))));
-    assert_eq!(2..8, lookup_range(&id16, &convert_range(&id8, &(4..14))));
-    assert_eq!(2..11, lookup_range(&id16, &convert_range(&id8, &(4..19))));
+        assert_eq!(0..5, u16idx_from_u8idx(s, 0..9));
+        assert_eq!(2..5, u16idx_from_u8idx(s, 4..9));
+        assert_eq!(2..8, u16idx_from_u8idx(s, 4..14));
+        assert_eq!(2..11, u16idx_from_u8idx(s, 4..19));
 
-    assert_eq!(0..9, lookup_range(&id8, &convert_range(&id16, &(0..5))));
-    assert_eq!(4..9, lookup_range(&id8, &convert_range(&id16, &(2..5))));
-    assert_eq!(4..14, lookup_range(&id8, &convert_range(&id16, &(2..8))));
-    assert_eq!(4..19, lookup_range(&id8, &convert_range(&id16, &(2..11))));
+        assert_eq!(0..9, u8idx_from_u16idx(s, u16idx_from_u8idx(s, 0..9)));
+        assert_eq!(4..9, u8idx_from_u16idx(s, u16idx_from_u8idx(s, 4..9)));
+        assert_eq!(4..14, u8idx_from_u16idx(s, u16idx_from_u8idx(s, 4..14)));
+
+        assert_eq!(0..5, u16idx_from_u8idx(s, u8idx_from_u16idx(s, 0..5)));
+        assert_eq!(2..5, u16idx_from_u8idx(s, u8idx_from_u16idx(s, 2..5)));
+        assert_eq!(2..8, u16idx_from_u8idx(s, u8idx_from_u16idx(s, 2..8)));
+
+        assert_eq!(&s[0..9], str_from_str_u16idx(s, 0..5));
+        assert_eq!(&s[4..9], str_from_str_u16idx(s, 2..5));
+        assert_eq!(&s[4..14], str_from_str_u16idx(s, 2..8));
+        assert_eq!(&s[4..19], str_from_str_u16idx(s, 2..11));
+
+        let id8 = s.indices_utf8();
+        let id16 = s.indices_utf16();
+        assert_eq!(0..5, lookup_range(&id16, &convert_range(&id8, &(0..9))));
+        assert_eq!(2..5, lookup_range(&id16, &convert_range(&id8, &(4..9))));
+        assert_eq!(2..8, lookup_range(&id16, &convert_range(&id8, &(4..14))));
+        assert_eq!(2..11, lookup_range(&id16, &convert_range(&id8, &(4..19))));
+
+        assert_eq!(0..9, lookup_range(&id8, &convert_range(&id16, &(0..5))));
+        assert_eq!(4..9, lookup_range(&id8, &convert_range(&id16, &(2..5))));
+        assert_eq!(4..14, lookup_range(&id8, &convert_range(&id16, &(2..8))));
+        assert_eq!(4..19, lookup_range(&id8, &convert_range(&id16, &(2..11))));
+    }
 }
