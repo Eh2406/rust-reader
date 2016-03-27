@@ -1,9 +1,7 @@
-use rustc_serialize::json;
+use preferences::Preferences;
 use winapi::{VK_OEM_2, VK_ESCAPE, VK_OEM_PERIOD, VK_OEM_MINUS, VK_OEM_PLUS};
-use std::io::prelude::*;
-use std::fs::File;
-use std::path::PathBuf;
-use std::env::current_exe;
+
+const SETTINGS_PATH: &'static str = "rust_reader/setings";
 
 #[derive(RustcEncodable, RustcDecodable, Debug)]
 pub struct Settings {
@@ -23,25 +21,17 @@ impl Settings {
                       (3, VK_OEM_PLUS as u32) /* ctrl-alt-= */],
         }
     }
-    pub fn path() -> PathBuf {
-        let mut path = current_exe().unwrap();
-        path.set_extension("json");
-        path
-    }
     pub fn from_file() -> Settings {
-        File::open(Settings::path())
-            .map(|mut f| {
-                let mut s = String::new();
-                f.read_to_string(&mut s)
-                 .map(|_| json::decode(&s).unwrap_or(Settings::new()))
-                 .unwrap_or(Settings::new())
-            })
-            .unwrap_or(Settings::new())
+        let mut new = Settings::new();
+        if new.load(SETTINGS_PATH).is_err() {
+            println!("failed to lode settings.");
+        }
+        new
     }
     pub fn to_file(&self) {
-        File::create(Settings::path())
-            .map(|mut f| write!(f, "{}", json::as_pretty_json(&self)).unwrap_or(()))
-            .unwrap_or(());
+        if self.save(SETTINGS_PATH).is_err() {
+            println!("failed to save settings.");
+        }
     }
 }
 
