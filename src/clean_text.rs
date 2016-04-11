@@ -10,6 +10,16 @@ impl IsWhitespace for str {
     }
 }
 
+pub trait IsNumeric {
+    fn is_numeric(&self) -> bool;
+}
+
+impl IsNumeric for str {
+    fn is_numeric(&self) -> bool {
+        self.chars().all(|x| x.is_numeric())
+    }
+}
+
 fn runing_count<'a>(st: &mut (&'a str, usize), ch: &'a str) -> Option<&'a str> {
     let c_is_whitespace = ch.is_whitespace();
     if st.0 != ch && (!st.0.is_whitespace() || !c_is_whitespace) {
@@ -17,7 +27,7 @@ fn runing_count<'a>(st: &mut (&'a str, usize), ch: &'a str) -> Option<&'a str> {
     }
     st.1 += 1;
     st.0 = ch;
-    if st.1 == 1 || st.1 < 4 && !c_is_whitespace {
+    if st.1 == 1 || st.1 < 4 && !c_is_whitespace || ch.is_numeric() {
         if c_is_whitespace {
             Some(" ")
         } else {
@@ -121,6 +131,11 @@ mod tests {
     #[test]
     fn two_word_with_equals() {
         assert_eq!(clean_text("Hello =========== world!"), "Hello === world!");
+    }
+
+    #[test]
+    fn two_word_with_numbers() {
+        assert_eq!(clean_text("Hello 100000 world!"), "Hello 100000 world!");
     }
 
     #[test]
