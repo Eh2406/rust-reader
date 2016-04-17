@@ -61,16 +61,21 @@ impl IndicesUtf for str {
 pub fn convert_range<T>(v: &[T], r: &Range<T>) -> Range<usize>
     where T: Ord
 {
-    let s = match v.binary_search(&r.start) {
+    let mut s = match v.binary_search(&r.start) {
         Ok(x) => x,
         Err(x) => x,
     };
-    let e = match v[s..].binary_search(&r.end) {
+    while s > 0 && v[s - 1] == r.start {
+        s -= 1;
+    }
+    let mut e = match v[s..].binary_search(&r.end) {
         Ok(x) => x,
         Err(x) => x,
-    };
-
-    s..s + e
+    } + s;
+    while e < v.len() - 1 && v[e + 1] == r.end {
+        e += 1;
+    }
+    s..e
 }
 
 #[allow(dead_code)]
@@ -78,6 +83,14 @@ pub fn lookup_range<T>(v: &[T], r: &Range<usize>) -> Range<T>
     where T: Copy
 {
     v[r.start]..v[r.end]
+}
+
+pub fn invert_idx<I, O>(i: &[I], o: &[O], r: &Range<O>) -> Range<I>
+    where O: Ord,
+          I: Copy
+{
+    assert_eq!(i.len(), o.len());
+    lookup_range(i, &convert_range(o, r))
 }
 
 #[allow(dead_code)]
