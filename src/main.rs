@@ -6,6 +6,7 @@ extern crate clipboard_win;
 extern crate unicode_segmentation;
 extern crate rustc_serialize; //To write rust objects to json
 extern crate preferences; //save objects in appdata folder
+extern crate quickcheck;
 
 mod wide_string;
 mod window;

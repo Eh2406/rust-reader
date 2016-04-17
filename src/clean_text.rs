@@ -209,20 +209,31 @@ mod tests {
         assert_eq!(invert_u8idx(&vec_u8idx, 14..22), 14..30);
     }
 
-    fn test_clean_text_u8idx(text: &str) {
-        println!("{:?}", clean_text_u8idx(text));
+    fn test_clean_text_u8idx<T: AsRef<str>>(text: T) -> bool {
+        let text = text.as_ref();
         for (in_idx, out_idx) in clean_text_u8idx(text) {
-            assert_eq!(clean_text(&text[..in_idx]).len(), out_idx);
+            if clean_text(&text[..in_idx]).len() != out_idx {
+                println!("{:?}", clean_text_u8idx(text));
+                println!("({:?}, {:?}) {:?}", in_idx, out_idx, clean_text(&text[..in_idx]).len());
+                return false;
+            }
         }
+        true
     }
 
     #[test]
     fn tests_clean_text_u8idx() {
-        test_clean_text_u8idx("Hello");
-        test_clean_text_u8idx("Hello\t\n\t\r\t\r\nworld!");
-        test_clean_text_u8idx("Hello _________ world!");
-        test_clean_text_u8idx("Hello \u{1d565}\u{1d565}\u{1d565}\u{1d565}\u{1d565} world!");
-        test_clean_text_u8idx("Hello \u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2}\
-        \u{5d4}\u{5a2} world!");
+        assert!(test_clean_text_u8idx("Hello"));
+        assert!(test_clean_text_u8idx("Hello\t\n\t\r\t\r\nworld!"));
+        assert!(test_clean_text_u8idx("Hello _________ world!"));
+        assert!(test_clean_text_u8idx("Hello 100000 world!"));
+        assert!(test_clean_text_u8idx("Hello \u{1d565}\u{1d565}\u{1d565}\u{1d565}\u{1d565} world!"));
+        assert!(test_clean_text_u8idx("Hello \u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2} world!"));
+    }
+
+    #[test]
+    fn quickcheck_clean_text_u8idx() {
+        use quickcheck::quickcheck;
+        quickcheck(test_clean_text_u8idx as fn(String) -> bool);
     }
 }
