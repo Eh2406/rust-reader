@@ -27,15 +27,6 @@ use settings::*;
 mod clean_text;
 use clean_text::*;
 
-fn print_voice(voice: &mut SpVoice, settings: &mut Settings) {
-    voice.set_volume(100);
-    println!("volume :{:?}", voice.get_volume());
-    voice.set_rate(settings.rate);
-    println!("rate :{:?}", voice.get_rate());
-    voice.set_alert_boundary(winapi::SPEI_PHONEME);
-    println!("alert_boundary :{:?}", voice.get_alert_boundary());
-}
-
 fn read(voice: &mut SpVoice) {
     voice.resume();
     match get_text() {
@@ -70,7 +61,8 @@ fn main() {
     let _com = Com::new();
     let mut voice = SpVoice::new();
     let mut settings = Settings::from_file();
-    print_voice(&mut voice, &mut settings);
+    voice.set_rate(settings.rate);
+    println!("rate :{:?}", voice.get_rate());
     let _hk: Vec<_> = settings.hotkeys
                               .into_iter()
                               .enumerate() // generate HotKey id
@@ -78,17 +70,7 @@ fn main() {
                                   HotKey::new(modifiers, vk, id as i32).unwrap() // make HotKey
                               })
                               .collect();
-
-    if clipboard_win::wrapper::get_clipboard_seq_num().is_none() {
-        // this will crash on our reding so lets get it over with.
-        // this may fix the problem
-        clipboard_win::set_clipboard("").unwrap();
-        // let us see if it did
-        clipboard_win::wrapper::get_clipboard_seq_num()
-            .expect("Lacks sufficient rights to access clipboard(WINSTA_ACCESSCLIPBOARD)");
-    }
-
-    voice.set_interest(winapi::SPFEI(5) | winapi::SPFEI(1) | winapi::SPFEI(2), 0);
+    clipboard_setup();
 
     voice.speak("Ready!");
 

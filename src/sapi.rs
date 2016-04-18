@@ -127,8 +127,11 @@ impl<'a> SpVoice<'a> {
                             right: 400,
                             bottom: 400,
                         });
-            user32::ShowWindow(out.window, winapi::SW_SHOWNORMAL);
+            show_window(out.window, winapi::SW_SHOWNORMAL);
             out.set_notify_window_message();
+            out.set_volume(100);
+            out.set_alert_boundary(winapi::SPEI_PHONEME);
+            out.set_interest(&[5, 1, 2], &[]);
             out
         }
     }
@@ -221,7 +224,9 @@ impl<'a> SpVoice<'a> {
         unsafe { self.voice.SetNotifyWindowMessage(self.window, WM_SAPI_EVENT, 0, 0) };
     }
 
-    pub fn set_interest(&mut self, event: u64, queued: u64) {
+    pub fn set_interest(&mut self, event: &[u64], queued: &[u64]) {
+        let queued = queued.iter().map(|&x| winapi::SPFEI(x)).fold(0u64, |acc, x| acc | x);
+        let event = event.iter().map(|&x| winapi::SPFEI(x)).fold(queued, |acc, x| acc | x);
         unsafe { self.voice.SetInterest(event, queued) };
     }
 }

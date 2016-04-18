@@ -87,8 +87,8 @@ pub fn is_window_visible(h_wnd: winapi::HWND) -> winapi::BOOL {
     unsafe { user32::IsWindowVisible(h_wnd) }
 }
 
-pub fn show_window(hWnd: winapi::HWND, nCmdShow: winapi::c_int) -> winapi::BOOL {
-    unsafe { user32::ShowWindow(hWnd, nCmdShow) }
+pub fn show_window(h_wnd: winapi::HWND, n_cmd_show: winapi::c_int) -> winapi::BOOL {
+    unsafe { user32::ShowWindow(h_wnd, n_cmd_show) }
 }
 
 pub fn toggle_window_visible(h_wnd: winapi::HWND) -> winapi::BOOL {

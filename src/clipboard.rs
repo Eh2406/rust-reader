@@ -8,6 +8,17 @@ use std::mem;
 use std::thread::sleep;
 use std::time::Duration;
 
+pub fn clipboard_setup() {
+    if get_clipboard_seq_num().is_none() {
+        // this will crash on our reading so lets get it over with.
+        // this may fix the problem
+        set_clipboard("").unwrap();
+        // let us see if it did
+        get_clipboard_seq_num()
+            .expect("Lacks sufficient rights to access clipboard(WINSTA_ACCESSCLIPBOARD)");
+    }
+}
+
 pub trait NewINPUT {
     fn new() -> winapi::INPUT;
 }
