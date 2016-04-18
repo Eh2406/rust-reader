@@ -42,6 +42,7 @@ pub struct SpVoice<'a> {
     voice: &'a mut winapi::ISpVoice,
     window: winapi::HWND,
     edit: winapi::HWND,
+    rate: winapi::HWND,
     last_read: Vec<u16>,
 }
 
@@ -71,6 +72,7 @@ impl<'a> SpVoice<'a> {
                 voice: &mut *voice,
                 window: null_mut(),
                 edit: null_mut(),
+                rate: null_mut(),
                 last_read: Vec::new(),
             });
 
@@ -118,6 +120,20 @@ impl<'a> SpVoice<'a> {
                                                0,
                                                out.window,
                                                winapi_stub::ID_EDITCHILD,
+                                               0 as winapi::HINSTANCE,
+                                               null_mut());
+            out.rate = user32::CreateWindowExW(0,
+                                               &"STATIC".to_wide_null()[0],
+                                               &0u16,
+                                               winapi::WS_CHILD | winapi::WS_VISIBLE |
+                                               winapi_stub::SS_CENTER |
+                                               winapi_stub::SS_NOPREFIX,
+                                               0,
+                                               0,
+                                               0,
+                                               0,
+                                               out.window,
+                                               0 as winapi::HMENU,
                                                0 as winapi::HINSTANCE,
                                                null_mut());
             move_window(out.window,
@@ -180,12 +196,14 @@ impl<'a> SpVoice<'a> {
     pub fn set_rate(&mut self, rate: i32) -> i32 {
         let rate = max(min(rate, 10), -10);
         unsafe { self.voice.SetRate(rate) };
+        set_window_text(self.rate, &format!("rate: {}", rate).to_wide_null());
         rate
     }
 
     pub fn get_rate(&mut self) -> i32 {
         let mut rate = 0;
         unsafe { self.voice.GetRate(&mut rate) };
+        set_window_text(self.rate, &format!("rate: {}", rate).to_wide_null());
         rate
     }
 
@@ -255,14 +273,24 @@ impl<'a> Windowed for SpVoice<'a> {
                 let mut rect = get_client_rect(self.window);
                 if (w_param <= 2) && rect.right > 0 && rect.bottom > 0 {
                     rect.inset(10);
-                    move_window(self.edit, &rect);
+                    {
+                        let mut rect = rect.clone();
+                        rect.shift_down(20);
+                        move_window(self.edit, &rect);
+                    }
+                    {
+                        let mut rect = rect.clone();
+                        rect.bottom = 20;
+                        move_window(self.rate, &rect);
+                        self.get_rate(); //force repaint of text
+                    }
                     return Some(0);
                 }
             }
             winapi::WM_GETMINMAXINFO => {
                 let data = unsafe { &mut *(l_param as *mut winapi::MINMAXINFO) };
                 data.ptMinTrackSize.x = 180;
-                data.ptMinTrackSize.y = 90;
+                data.ptMinTrackSize.y = 110;
                 return Some(0);
             }
             _ => {}
