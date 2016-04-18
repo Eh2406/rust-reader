@@ -83,6 +83,22 @@ pub fn move_window(h_wnd: winapi::HWND, rect: &winapi::RECT) -> winapi::BOOL {
     }
 }
 
+pub fn is_window_visible(h_wnd: winapi::HWND) -> winapi::BOOL {
+    unsafe { user32::IsWindowVisible(h_wnd) }
+}
+
+pub fn show_window(hWnd: winapi::HWND, nCmdShow: winapi::c_int) -> winapi::BOOL {
+    unsafe { user32::ShowWindow(hWnd, nCmdShow) }
+}
+
+pub fn toggle_window_visible(h_wnd: winapi::HWND) -> winapi::BOOL {
+    if 1 == is_window_visible(h_wnd) {
+        show_window(h_wnd, winapi::SW_HIDE)
+    } else {
+        show_window(h_wnd, winapi::SW_SHOW)
+    }
+}
+
 // rect utilities
 pub trait RectUtil {
     fn inset(&mut self, i32);

@@ -137,6 +137,10 @@ impl<'a> SpVoice<'a> {
         self.window
     }
 
+    pub fn toggle_window_visible(&self) -> winapi::BOOL {
+        toggle_window_visible(self.window)
+    }
+
     pub fn get_status_word(&mut self) -> String {
         let status = self.get_status();
         String::from_utf16_lossy(&self.last_read[status.word_range()])

@@ -98,7 +98,7 @@ fn main() {
                 match msg.wParam { // match on generated HotKey id
                     0 => read(&mut voice),
                     1 => close(),
-                    2 => println!("dwRunningState {}", voice.get_status().dwRunningState),
+                    2 => {voice.toggle_window_visible();},
                     3 => play_pause(&mut voice),
                     4 => rate_down(&mut voice, &mut settings),
                     5 => rate_up(&mut voice, &mut settings),

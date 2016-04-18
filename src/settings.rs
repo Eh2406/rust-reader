@@ -15,7 +15,7 @@ impl Settings {
             rate: 6,
             hotkeys: [(2, VK_OEM_2 as u32), // ctrl-? key
                       (7, VK_ESCAPE as u32), // ctrl-alt-shift-esk
-                      (7, VK_OEM_2 as u32), // ctrl-alt-shift-?
+                      (3, VK_OEM_2 as u32), // ctrl-alt-?
                       (2, VK_OEM_PERIOD as u32), // ctrl-.
                       (3, VK_OEM_MINUS as u32), // ctrl-alt--
                       (3, VK_OEM_PLUS as u32) /* ctrl-alt-= */],
