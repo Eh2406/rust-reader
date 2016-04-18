@@ -80,14 +80,14 @@ pub fn convert_range<T>(v: &[T], r: &Range<T>) -> Range<usize>
 
 #[allow(dead_code)]
 pub fn lookup_range<T>(v: &[T], r: &Range<usize>) -> Range<T>
-    where T: Copy
+    where T: Clone
 {
-    v[r.start]..v[r.end]
+    v[r.start].clone()..v[r.end].clone()
 }
 
 pub fn invert_idx<I, O>(i: &[I], o: &[O], r: &Range<O>) -> Range<I>
     where O: Ord,
-          I: Copy
+          I: Clone
 {
     assert_eq!(i.len(), o.len());
     lookup_range(i, &convert_range(o, r))
@@ -173,14 +173,14 @@ mod tests {
 
         let id8 = s.indices_utf8();
         let id16 = s.indices_utf16();
-        assert_eq!(0..5, lookup_range(&id16, &convert_range(&id8, &(0..9))));
-        assert_eq!(2..5, lookup_range(&id16, &convert_range(&id8, &(4..9))));
-        assert_eq!(2..8, lookup_range(&id16, &convert_range(&id8, &(4..14))));
-        assert_eq!(2..11, lookup_range(&id16, &convert_range(&id8, &(4..19))));
+        assert_eq!(0..5, invert_idx(&id16, &id8, &(0..9)));
+        assert_eq!(2..5, invert_idx(&id16, &id8, &(4..9)));
+        assert_eq!(2..8, invert_idx(&id16, &id8, &(4..14)));
+        assert_eq!(2..11, invert_idx(&id16, &id8, &(4..19)));
 
-        assert_eq!(0..9, lookup_range(&id8, &convert_range(&id16, &(0..5))));
-        assert_eq!(4..9, lookup_range(&id8, &convert_range(&id16, &(2..5))));
-        assert_eq!(4..14, lookup_range(&id8, &convert_range(&id16, &(2..8))));
-        assert_eq!(4..19, lookup_range(&id8, &convert_range(&id16, &(2..11))));
+        assert_eq!(0..9, invert_idx(&id8, &id16, &(0..5)));
+        assert_eq!(4..9, invert_idx(&id8, &id16, &(2..5)));
+        assert_eq!(4..14, invert_idx(&id8, &id16, &(2..8)));
+        assert_eq!(4..19, invert_idx(&id8, &id16, &(2..11)));
     }
 }
