@@ -21,7 +21,7 @@ impl IsNumeric for str {
     }
 }
 
-fn runing_count<'a>(st: &mut (&'a str, usize), ch: &'a str) -> Option<&'a str> {
+fn runing_count<'a>(st: &mut (&'a str, usize), ch: &'a str) -> Option<(&'a str, &'a str)> {
     let c_is_whitespace = ch.is_whitespace();
     if st.0 != ch && (!st.0.is_whitespace() || !c_is_whitespace) {
         st.1 = 0
@@ -30,12 +30,12 @@ fn runing_count<'a>(st: &mut (&'a str, usize), ch: &'a str) -> Option<&'a str> {
     st.0 = ch;
     if st.1 == 1 || st.1 < 4 && !c_is_whitespace || ch.is_numeric() {
         if c_is_whitespace {
-            Some(" ")
+            Some((ch, " "))
         } else {
-            Some(ch)
+            Some((ch, ch))
         }
     } else {
-        Some("")
+        Some((ch, ""))
     }
 }
 
@@ -43,46 +43,36 @@ pub fn clean_text<T: AsRef<str>>(raw: T) -> String {
     raw.as_ref()
        .graphemes(true)
        .scan(("", 0), runing_count)
+       .map(|(_, x)| x)
        .collect()
 }
 
-pub fn clean_text_u8idx_in<T: AsRef<str>>(raw: T) -> Vec<usize> {
-    clean_text_idx_in(raw, |s| s.len())
-}
-
-pub fn clean_text_u16idx_in<T: AsRef<str>>(raw: T) -> Vec<usize> {
-    clean_text_idx_in(raw, |s| s.len_utf16())
-}
-
-fn clean_text_idx_in<T: AsRef<str>, F: Fn(&str) -> usize>(raw: T, len: F) -> Vec<usize> {
-    let mut out = vec![0];
-    out.extend(raw.as_ref()
-                  .graphemes(true)
-                  .scan(0, |st, ch| {
-                      *st += len(ch);
-                      Some(*st)
-                  }));
-    out
-}
-
-pub fn clean_text_u8idx_out<T: AsRef<str>>(raw: T) -> Vec<usize> {
-    clean_text_idx_out(raw, |s| s.len())
-}
-
-pub fn clean_text_u16idx_out<T: AsRef<str>>(raw: T) -> Vec<usize> {
-    clean_text_idx_out(raw, |s| s.len_utf16())
-}
-
-fn clean_text_idx_out<T: AsRef<str>, F: Fn(&str) -> usize>(raw: T, len: F) -> Vec<usize> {
+fn clean_text_idx<T: AsRef<str>, F: Fn(&(&str, &str)) -> usize>(raw: T, len: F) -> Vec<usize> {
     let mut out = vec![0];
     out.extend(raw.as_ref()
                   .graphemes(true)
                   .scan(("", 0), runing_count)
-                  .scan(0, |st, ch| {
-                      *st += len(ch);
+                  .scan(0, |st, x| {
+                      *st += len(&x);
                       Some(*st)
                   }));
     out
+}
+
+pub fn clean_text_u8idx_in<T: AsRef<str>>(raw: T) -> Vec<usize> {
+    clean_text_idx(raw, |&(s, _)| s.len())
+}
+
+pub fn clean_text_u16idx_in<T: AsRef<str>>(raw: T) -> Vec<usize> {
+    clean_text_idx(raw, |&(s, _)| s.len_utf16())
+}
+
+pub fn clean_text_u8idx_out<T: AsRef<str>>(raw: T) -> Vec<usize> {
+    clean_text_idx(raw, |&(_, s)| s.len())
+}
+
+pub fn clean_text_u16idx_out<T: AsRef<str>>(raw: T) -> Vec<usize> {
+    clean_text_idx(raw, |&(_, s)| s.len_utf16())
 }
 
 #[cfg(test)]
@@ -100,8 +90,9 @@ mod tests {
         let text = "Hello";
         let vec_u8idx_in = clean_text_u8idx_in(&text);
         let vec_u8idx_out = clean_text_u8idx_out(&text);
-        println!("{:?}", vec_u8idx_in);
+        println!("\r\n{:?}", vec_u8idx_in);
         println!("{:?}", vec_u8idx_out);
+        assert_eq!(vec_u8idx_in.len(), vec_u8idx_out.len());
         assert_eq!(invert_idx(&vec_u8idx_in, &vec_u8idx_out, &(0..5)), 0..5);
         assert_eq!(invert_idx(&vec_u8idx_in, &vec_u8idx_out, &(0..4)), 0..4);
         assert_eq!(invert_idx(&vec_u8idx_in, &vec_u8idx_out, &(4..5)), 4..5);
@@ -133,8 +124,9 @@ mod tests {
         let text = "Hello\t\n\t\r\t\r\nworld!";
         let vec_u8idx_in = clean_text_u8idx_in(&text);
         let vec_u8idx_out = clean_text_u8idx_out(&text);
-        println!("{:?}", vec_u8idx_in);
+        println!("\r\n{:?}", vec_u8idx_in);
         println!("{:?}", vec_u8idx_out);
+        assert_eq!(vec_u8idx_in.len(), vec_u8idx_out.len());
         assert_eq!(invert_idx(&vec_u8idx_in, &vec_u8idx_out, &(0..5)), 0..5);
         assert_eq!(invert_idx(&vec_u8idx_in, &vec_u8idx_out, &(3..5)), 3..5);
         assert_eq!(invert_idx(&vec_u8idx_in, &vec_u8idx_out, &(5..6)), 5..12);
@@ -153,8 +145,9 @@ mod tests {
         let text = "Hello _________ world!";
         let vec_u8idx_in = clean_text_u8idx_in(&text);
         let vec_u8idx_out = clean_text_u8idx_out(&text);
-        println!("{:?}", vec_u8idx_in);
+        println!("\r\n{:?}", vec_u8idx_in);
         println!("{:?}", vec_u8idx_out);
+        assert_eq!(vec_u8idx_in.len(), vec_u8idx_out.len());
         assert_eq!(invert_idx(&vec_u8idx_in, &vec_u8idx_out, &(0..5)), 0..5);
         assert_eq!(invert_idx(&vec_u8idx_in, &vec_u8idx_out, &(3..5)), 3..5);
         assert_eq!(invert_idx(&vec_u8idx_in, &vec_u8idx_out, &(7..9)), 7..15);
@@ -217,8 +210,9 @@ mod tests {
         let text = "Hello \u{1d565}\u{1d565}\u{1d565}\u{1d565}\u{1d565} world!";
         let vec_u8idx_in = clean_text_u8idx_in(&text);
         let vec_u8idx_out = clean_text_u8idx_out(&text);
-        println!("{:?}", vec_u8idx_in);
+        println!("\r\n{:?}", vec_u8idx_in);
         println!("{:?}", vec_u8idx_out);
+        assert_eq!(vec_u8idx_in.len(), vec_u8idx_out.len());
         assert_eq!(invert_idx(&vec_u8idx_in, &vec_u8idx_out, &(0..5)), 0..5);
         assert_eq!(invert_idx(&vec_u8idx_in, &vec_u8idx_out, &(3..5)), 3..5);
         assert_eq!(invert_idx(&vec_u8idx_in, &vec_u8idx_out, &(5..6)), 5..6);
@@ -240,8 +234,9 @@ mod tests {
                     world!";
         let vec_u8idx_in = clean_text_u8idx_in(&text);
         let vec_u8idx_out = clean_text_u8idx_out(&text);
-        println!("{:?}", vec_u8idx_in);
+        println!("\r\n{:?}", vec_u8idx_in);
         println!("{:?}", vec_u8idx_out);
+        assert_eq!(vec_u8idx_in.len(), vec_u8idx_out.len());
         assert_eq!(invert_idx(&vec_u8idx_in, &vec_u8idx_out, &(0..5)), 0..5);
         assert_eq!(invert_idx(&vec_u8idx_in, &vec_u8idx_out, &(3..5)), 3..5);
         assert_eq!(invert_idx(&vec_u8idx_in, &vec_u8idx_out, &(6..20)), 6..28);
@@ -256,7 +251,7 @@ mod tests {
         let vec_u8idx_out = clean_text_u8idx_out(&text);
         for (&in_idx, &out_idx) in vec_u8idx_in.iter().zip(vec_u8idx_out.iter()) {
             if clean_text(&text[..in_idx]).len() != out_idx {
-                println!("{:?}", vec_u8idx_in);
+                println!("\r\n{:?}", vec_u8idx_in);
                 println!("{:?}", vec_u8idx_out);
                 println!("({:?}, {:?}) {:?}",
                          in_idx,
