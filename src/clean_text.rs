@@ -163,28 +163,26 @@ mod tests {
 
     #[test]
     fn two_word_with_dash_u8idx() {
-        assert_eq!(clean_text_u8idx_in("Hello \u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2} \
-                                        ----------- \
-                                        \u{1d565}\u{1d565}\u{1d565}\u{1d565}\u{1d565} world!"),
+        let text = "Hello \u{5d4}\u{5a2}\u{5d4}\u{5a2}\
+        \u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2} ----------- \u{1d565}\
+        \u{1d565}\u{1d565}\u{1d565}\u{1d565} world!";
+        assert_eq!(clean_text_u8idx_in(text),
                    vec![0, 1, 2, 3, 4, 5, 6, 10, 14, 18, 22, 26, 27, 28, 29, 30, 31, 32, 33, 34,
                         35, 36, 37, 38, 39, 43, 47, 51, 55, 59, 60, 61, 62, 63, 64, 65, 66]);
-        assert_eq!(clean_text_u8idx_out("Hello \u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2} \
-                                         ----------- \
-                                         \u{1d565}\u{1d565}\u{1d565}\u{1d565}\u{1d565} world!"),
+        assert_eq!(clean_text_u8idx_out(text),
                    vec![0, 1, 2, 3, 4, 5, 6, 10, 14, 18, 18, 18, 19, 20, 21, 22, 22, 22, 22, 22,
                         22, 22, 22, 22, 23, 27, 31, 35, 35, 35, 36, 37, 38, 39, 40, 41, 42]);
     }
 
     #[test]
     fn two_word_with_dash_u16idx() {
-        assert_eq!(clean_text_u16idx_in("Hello \u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2} \
-                                         ----------- \
-                                         \u{1d565}\u{1d565}\u{1d565}\u{1d565}\u{1d565} world!"),
+        let text = "Hello \u{5d4}\u{5a2}\u{5d4}\u{5a2}\
+        \u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2} ----------- \u{1d565}\
+        \u{1d565}\u{1d565}\u{1d565}\u{1d565} world!";
+        assert_eq!(clean_text_u16idx_in(text),
                    vec![0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24,
                         25, 26, 27, 28, 29, 31, 33, 35, 37, 39, 40, 41, 42, 43, 44, 45, 46]);
-        assert_eq!(clean_text_u16idx_out("Hello \u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2} \
-                                          ----------- \
-                                          \u{1d565}\u{1d565}\u{1d565}\u{1d565}\u{1d565} world!"),
+        assert_eq!(clean_text_u16idx_out(text),
                    vec![0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 12, 12, 13, 14, 15, 16, 16, 16, 16, 16,
                         16, 16, 16, 16, 17, 19, 21, 23, 23, 23, 24, 25, 26, 27, 28, 29, 30]);
     }
@@ -271,8 +269,8 @@ mod tests {
         assert!(test_clean_text_u8idx("Hello 100000 world!"));
         assert!(test_clean_text_u8idx("Hello \u{1d565}\u{1d565}\u{1d565}\u{1d565}\u{1d565} \
                                        world!"));
-        assert!(test_clean_text_u8idx("Hello \u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2} \
-                                       world!"));
+        assert!(test_clean_text_u8idx("Hello \u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\
+        \u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2} world!"));
     }
 
     #[test]
