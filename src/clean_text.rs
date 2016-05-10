@@ -1,5 +1,6 @@
 use unicode_segmentation::*;
 use wide_string::*;
+use std::borrow::Cow;
 
 pub trait IsWhitespace {
     fn is_whitespace(&self) -> bool;
@@ -21,45 +22,53 @@ impl IsNumeric for str {
     }
 }
 
-fn runing_count<'a>(st: &mut (&'a str, usize), ch: &'a str) -> Option<(&'a str, &'a str)> {
+fn runing_count<'a>(st: &mut (Cow<'a, str>, usize),
+                    (orig, ch): (&'a str, Cow<'a, str>))
+                    -> Option<(&'a str, Cow<'a, str>)> {
     let c_is_whitespace = ch.is_whitespace();
     if st.0 != ch && (!st.0.is_whitespace() || !c_is_whitespace) {
         st.1 = 0
     }
     st.1 += 1;
-    st.0 = ch;
+    st.0 = ch.clone();
     if st.1 == 1 || st.1 < 4 && !c_is_whitespace || ch.is_numeric() {
         if c_is_whitespace {
-            Some((ch, " "))
+            Some((orig, " ".into()))
         } else {
-            Some((ch, ch))
+            Some((orig, ch))
         }
     } else {
-        Some((ch, ""))
+        Some((orig, "".into()))
     }
 }
 
 pub fn clean_text<T: AsRef<str>>(raw: T) -> String {
-    raw.as_ref()
-        .graphemes(true)
-        .scan(("", 0), runing_count)
-        .map(|(_, x)| x)
-        .collect()
+    let raw = raw.as_ref();
+    let mut out = String::with_capacity(raw.len());
+    for x in raw.graphemes(true)
+        .map(|x| (x, x.into()))
+        .scan(("".into(), 0), runing_count)
+        .map(|(_, x)| x) {
+        out.push_str(&*x)
+    }
+    out.shrink_to_fit();
+    out
 }
 
 fn clean_text_idx<'a, F>(raw: &'a str, len: F) -> Box<Iterator<Item = (usize, usize)> + 'a>
     where F: 'a + Fn(&str) -> usize
 {
     Box::new((0..1)
-                 .map(|x| (x, x))
-                 .chain(raw.graphemes(true)
-                           .scan(("", 0), runing_count)
-                           .map(move |x| (len(x.0), len(x.1)))
-                           .scan((0, 0), move |st, x| {
-                               st.0 += x.0;
-                               st.1 += x.1;
-                               Some(*st)
-                           })))
+        .map(|x| (x, x))
+        .chain(raw.graphemes(true)
+            .map(|x| (x, x.into()))
+            .scan(("".into(), 0), runing_count)
+            .map(move |x| (len(x.0), len(&*x.1)))
+            .scan((0, 0), move |st, x| {
+                st.0 += x.0;
+                st.1 += x.1;
+                Some(*st)
+            })))
 }
 
 #[allow(dead_code)]
