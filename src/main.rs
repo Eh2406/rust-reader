@@ -12,6 +12,8 @@ extern crate rustc_serialize; //To write rust objects to json
 extern crate preferences; //save objects in appdata folder
 extern crate quickcheck;
 extern crate regex;
+#[macro_use]
+extern crate lazy_static;
 
 mod wide_string;
 mod window;

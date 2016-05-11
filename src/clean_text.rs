@@ -23,26 +23,54 @@ impl IsNumeric for str {
     }
 }
 
-fn regex_replacen<'a, R: Replacer>(re: &Regex,
-                                   mut rep: R,
-                                   text: &'a str)
-                                   -> Vec<(&'a str, Cow<'a, str>)> {
-    let mut new = Vec::new();
-    let mut last_match = 0;
-    for cap in re.captures_iter(text) {
-        // unwrap on 0 is OK because captures only reports matches
-        let (s, e) = cap.pos(0).unwrap();
-        new.push((&text[last_match..s], text[last_match..s].into()));
-        new.push((&text[s..e], rep.reg_replace(&cap).to_string().into()));
-        last_match = e;
-    }
-    new.push((&text[last_match..], text[last_match..].into()));
-    new
+type Pare<'a> = (&'a str, Cow<'a, str>);
+
+struct RegexReplace<'r, 'a, R: Replacer> {
+    text: &'a str,
+    last_match: usize,
+    captures_iter: FindCaptures<'r, 'a>,
+    cap: Option<Captures<'a>>,
+    rep: R,
 }
 
-fn runing_count<'a>(st: &mut (Cow<'a, str>, usize),
-                    (orig, ch): (&'a str, Cow<'a, str>))
-                    -> Option<(&'a str, Cow<'a, str>)> {
+impl<'r, 'a, R: Replacer> Iterator for RegexReplace<'r, 'a, R> {
+    type Item = Pare<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        use std::mem::replace;
+        if self.cap.is_none() {
+            self.cap = self.captures_iter.next();
+        }
+        match replace(&mut self.cap, None) {
+            Some(cap) => {
+                // unwrap on 0 is OK because captures only reports matches
+                let (s, e) = cap.pos(0).unwrap();
+                let last_match = self.last_match;
+                if last_match < s {
+                    self.last_match = s;
+                    self.cap = Some(cap);
+                    Some((&self.text[last_match..s], self.text[last_match..s].into()))
+                } else {
+                    assert_eq!(self.last_match, s);
+                    self.last_match = e;
+                    Some((&self.text[s..e], self.rep.reg_replace(&cap).to_string().into()))
+                }
+            }
+            None => {
+                let len = self.text.len();
+                let last_match = self.last_match;
+                if last_match < len {
+                    self.last_match = len;
+                    Some((&self.text[last_match..len], self.text[last_match..len].into()))
+                } else {
+                    None
+                }
+            }
+        }
+    }
+}
+
+fn runing_count<'a>(st: &mut (Cow<'a, str>, usize), (orig, ch): Pare<'a>) -> Option<Pare<'a>> {
     if orig != ch {
         return Some((orig, ch));
     }
@@ -58,15 +86,15 @@ fn runing_count<'a>(st: &mut (Cow<'a, str>, usize),
     }
 }
 
-struct GraphemesPare<'a, I: 'a + Iterator<Item = (&'a str, Cow<'a, str>)>> {
+struct GraphemesPare<'a, I: 'a + Iterator<Item = Pare<'a>>> {
     iter: I,
     graph: Option<Graphemes<'a>>,
 }
 
-impl<'a, I: 'a + Iterator<Item = (&'a str, Cow<'a, str>)>> Iterator for GraphemesPare<'a, I> {
-    type Item = (&'a str, Cow<'a, str>);
+impl<'a, I: 'a + Iterator<Item = Pare<'a>>> Iterator for GraphemesPare<'a, I> {
+    type Item = Pare<'a>;
 
-    fn next(&mut self) -> Option<(&'a str, Cow<'a, str>)> {
+    fn next(&mut self) -> Option<Self::Item> {
         if let Some(ref mut gra) = self.graph {
             if let Some(x) = gra.next() {
                 return Some((x, x.into()));
@@ -83,11 +111,21 @@ impl<'a, I: 'a + Iterator<Item = (&'a str, Cow<'a, str>)>> Iterator for Grapheme
     }
 }
 
+lazy_static! {
+    static ref RE_WS: Regex = Regex::new(r"\s+").unwrap();
+}
+
 pub fn clean_text<T: AsRef<str>>(raw: T) -> String {
     let raw = raw.as_ref();
     let mut out = String::with_capacity(raw.len());
     for x in (GraphemesPare {
-            iter: regex_replacen(&Regex::new(r"\s+").unwrap(), " ", raw).into_iter(),
+            iter: RegexReplace {
+                text: raw,
+                last_match: 0,
+                captures_iter: RE_WS.captures_iter(raw),
+                cap: None,
+                rep: " ",
+            },
             graph: None,
         })
         .scan(("".into(), 0), runing_count)
@@ -104,7 +142,13 @@ fn clean_text_idx<'a, F>(raw: &'a str, len: F) -> Box<Iterator<Item = (usize, us
     Box::new((0..1)
         .map(|x| (x, x))
         .chain((GraphemesPare {
-                iter: regex_replacen(&Regex::new(r"\s+").unwrap(), " ", raw).into_iter(),
+                iter: RegexReplace {
+                    text: raw,
+                    last_match: 0,
+                    captures_iter: RE_WS.captures_iter(raw),
+                    cap: None,
+                    rep: " ",
+                },
                 graph: None,
             })
             .scan(("".into(), 0), runing_count)
