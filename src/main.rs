@@ -11,6 +11,7 @@ extern crate unicode_segmentation;
 extern crate rustc_serialize; //To write rust objects to json
 extern crate preferences; //save objects in appdata folder
 extern crate quickcheck;
+extern crate regex;
 
 mod wide_string;
 mod window;

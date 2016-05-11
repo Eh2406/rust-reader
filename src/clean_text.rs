@@ -1,6 +1,7 @@
 use unicode_segmentation::*;
 use wide_string::*;
 use std::borrow::Cow;
+use regex::*;
 
 pub trait IsWhitespace {
     fn is_whitespace(&self) -> bool;
@@ -22,31 +23,73 @@ impl IsNumeric for str {
     }
 }
 
+fn regex_replacen<'a, R: Replacer>(re: &Regex,
+                                   mut rep: R,
+                                   text: &'a str)
+                                   -> Vec<(&'a str, Cow<'a, str>)> {
+    let mut new = Vec::new();
+    let mut last_match = 0;
+    for cap in re.captures_iter(text) {
+        // unwrap on 0 is OK because captures only reports matches
+        let (s, e) = cap.pos(0).unwrap();
+        new.push((&text[last_match..s], text[last_match..s].into()));
+        new.push((&text[s..e], rep.reg_replace(&cap).to_string().into()));
+        last_match = e;
+    }
+    new.push((&text[last_match..], text[last_match..].into()));
+    new
+}
+
 fn runing_count<'a>(st: &mut (Cow<'a, str>, usize),
                     (orig, ch): (&'a str, Cow<'a, str>))
                     -> Option<(&'a str, Cow<'a, str>)> {
-    let c_is_whitespace = ch.is_whitespace();
-    if st.0 != ch && (!st.0.is_whitespace() || !c_is_whitespace) {
+    if orig != ch {
+        return Some((orig, ch));
+    }
+    if st.0 != ch {
         st.1 = 0
     }
     st.1 += 1;
     st.0 = ch.clone();
-    if st.1 == 1 || st.1 < 4 && !c_is_whitespace || ch.is_numeric() {
-        if c_is_whitespace {
-            Some((orig, " ".into()))
-        } else {
-            Some((orig, ch))
-        }
+    if st.1 < 4 || ch.is_numeric() {
+        Some((orig, ch))
     } else {
         Some((orig, "".into()))
+    }
+}
+
+struct GraphemesPare<'a, I: 'a + Iterator<Item = (&'a str, Cow<'a, str>)>> {
+    iter: I,
+    graph: Option<Graphemes<'a>>,
+}
+
+impl<'a, I: 'a + Iterator<Item = (&'a str, Cow<'a, str>)>> Iterator for GraphemesPare<'a, I> {
+    type Item = (&'a str, Cow<'a, str>);
+
+    fn next(&mut self) -> Option<(&'a str, Cow<'a, str>)> {
+        if let Some(ref mut gra) = self.graph {
+            if let Some(x) = gra.next() {
+                return Some((x, x.into()));
+            }
+        }
+        if let Some((orig, ch)) = self.iter.next() {
+            if orig != ch {
+                return Some((orig, ch));
+            }
+            self.graph = Some(orig.graphemes(true));
+            return self.next();
+        };
+        None
     }
 }
 
 pub fn clean_text<T: AsRef<str>>(raw: T) -> String {
     let raw = raw.as_ref();
     let mut out = String::with_capacity(raw.len());
-    for x in raw.graphemes(true)
-        .map(|x| (x, x.into()))
+    for x in (GraphemesPare {
+            iter: regex_replacen(&Regex::new(r"\s+").unwrap(), " ", raw).into_iter(),
+            graph: None,
+        })
         .scan(("".into(), 0), runing_count)
         .map(|(_, x)| x) {
         out.push_str(&*x)
@@ -60,8 +103,10 @@ fn clean_text_idx<'a, F>(raw: &'a str, len: F) -> Box<Iterator<Item = (usize, us
 {
     Box::new((0..1)
         .map(|x| (x, x))
-        .chain(raw.graphemes(true)
-            .map(|x| (x, x.into()))
+        .chain((GraphemesPare {
+                iter: regex_replacen(&Regex::new(r"\s+").unwrap(), " ", raw).into_iter(),
+                graph: None,
+            })
             .scan(("".into(), 0), runing_count)
             .map(move |x| (len(x.0), len(&*x.1)))
             .scan((0, 0), move |st, x| {
@@ -146,7 +191,7 @@ mod tests {
         assert_eq!(invert_idx(&vec_u8idx_in, &vec_u8idx_out, &(0..5)), 0..5);
         assert_eq!(invert_idx(&vec_u8idx_in, &vec_u8idx_out, &(3..5)), 3..5);
         assert_eq!(invert_idx(&vec_u8idx_in, &vec_u8idx_out, &(5..6)), 5..12);
-        assert_eq!(invert_idx(&vec_u8idx_in, &vec_u8idx_out, &(6..7)), 6..13);
+        assert_eq!(invert_idx(&vec_u8idx_in, &vec_u8idx_out, &(6..7)), 12..13);
         assert_eq!(invert_idx(&vec_u8idx_in, &vec_u8idx_out, &(3..7)), 3..13);
         assert_eq!(invert_idx(&vec_u8idx_in, &vec_u8idx_out, &(3..8)), 3..14);
     }
@@ -184,10 +229,10 @@ mod tests {
         \u{1d565}\u{1d565}\u{1d565}\u{1d565}       ";
         assert_eq!(clean_text_u8idx_in(text),
                    vec![0, 1, 2, 3, 4, 5, 6, 10, 14, 18, 22, 26, 27, 28, 29, 30, 31, 32, 33, 34,
-                        35, 36, 37, 38, 39, 43, 47, 51, 55, 59, 60, 61, 62, 63, 64, 65, 66]);
+                        35, 36, 37, 38, 39, 43, 47, 51, 55, 59, 66]);
         assert_eq!(clean_text_u8idx_out(text),
                    vec![0, 1, 2, 3, 4, 5, 6, 10, 14, 18, 18, 18, 19, 20, 21, 22, 22, 22, 22, 22,
-                        22, 22, 22, 22, 23, 27, 31, 35, 35, 35, 36, 36, 36, 36, 36, 36, 36]);
+                        22, 22, 22, 22, 23, 27, 31, 35, 35, 35, 36]);
     }
 
     #[test]
@@ -197,10 +242,10 @@ mod tests {
         \u{1d565}\u{1d565}\u{1d565}\u{1d565}       ";
         assert_eq!(clean_text_u16idx_in(text),
                    vec![0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24,
-                        25, 26, 27, 28, 29, 31, 33, 35, 37, 39, 40, 41, 42, 43, 44, 45, 46]);
+                        25, 26, 27, 28, 29, 31, 33, 35, 37, 39, 46]);
         assert_eq!(clean_text_u16idx_out(text),
                    vec![0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 12, 12, 13, 14, 15, 16, 16, 16, 16, 16,
-                        16, 16, 16, 16, 17, 19, 21, 23, 23, 23, 24, 24, 24, 24, 24, 24, 24]);
+                        16, 16, 16, 16, 17, 19, 21, 23, 23, 23, 24]);
     }
 
     #[test]
