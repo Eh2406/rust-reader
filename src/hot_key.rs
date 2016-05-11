@@ -3,17 +3,12 @@ use user32;
 use std::ptr::null_mut;
 
 fn convert_modifiers(modifiers: u32) -> String {
-    let mut out = String::new();
-    if (modifiers & 4) > 0 {
-        out.push_str("Sht");
-    }
-    if (modifiers & 2) > 0 {
-        out.push_str("Ctr");
-    }
-    if (modifiers & 1) > 0 {
-        out.push_str("Alt");
-    }
-    out
+    ["Alt", "Ctr", "Sht", "Win"]
+        .iter()
+        .enumerate()
+        .filter(|&(i, _)| (modifiers & (1 << i)) > 0)
+        .map(|(_, &val)| val)
+        .collect()
 }
 
 #[test]
@@ -32,13 +27,13 @@ fn test_modifiers_sht() {
 }
 
 #[test]
-fn test_modifiers_ctralt() {
-    assert_eq!(&convert_modifiers(3), "CtrAlt");
+fn test_modifiers_altctr() {
+    assert_eq!(&convert_modifiers(3), "AltCtr");
 }
 
 #[test]
-fn test_modifiers_ctraltsht() {
-    assert_eq!(&convert_modifiers(7), "ShtCtrAlt");
+fn test_modifiers_altctrsht() {
+    assert_eq!(&convert_modifiers(7), "AltCtrSht");
 }
 
 pub struct HotKey {
