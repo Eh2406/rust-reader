@@ -3,26 +3,6 @@ use wide_string::*;
 use std::borrow::Cow;
 use regex::*;
 
-pub trait IsWhitespace {
-    fn is_whitespace(&self) -> bool;
-}
-
-impl IsWhitespace for str {
-    fn is_whitespace(&self) -> bool {
-        self.chars().all(|x| x.is_whitespace())
-    }
-}
-
-pub trait IsNumeric {
-    fn is_numeric(&self) -> bool;
-}
-
-impl IsNumeric for str {
-    fn is_numeric(&self) -> bool {
-        self.chars().all(|x| x.is_numeric())
-    }
-}
-
 type Pare<'a> = (&'a str, Cow<'a, str>);
 
 struct RegexReplace<'r, 'a, R: Replacer> {
@@ -37,15 +17,14 @@ impl<'r, 'a, R: Replacer> Iterator for RegexReplace<'r, 'a, R> {
     type Item = Pare<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        use std::mem::replace;
         if self.cap.is_none() {
             self.cap = self.captures_iter.next();
         }
-        match replace(&mut self.cap, None) {
+        let last_match = self.last_match;
+        match self.cap.take() {
             Some(cap) => {
                 // unwrap on 0 is OK because captures only reports matches
                 let (s, e) = cap.pos(0).unwrap();
-                let last_match = self.last_match;
                 if last_match < s {
                     self.last_match = s;
                     self.cap = Some(cap);
@@ -58,7 +37,6 @@ impl<'r, 'a, R: Replacer> Iterator for RegexReplace<'r, 'a, R> {
             }
             None => {
                 let len = self.text.len();
-                let last_match = self.last_match;
                 if last_match < len {
                     self.last_match = len;
                     Some((&self.text[last_match..len], self.text[last_match..len].into()))
@@ -79,7 +57,7 @@ fn runing_count<'a>(st: &mut (Cow<'a, str>, usize), (orig, ch): Pare<'a>) -> Opt
     }
     st.1 += 1;
     st.0 = ch.clone();
-    if st.1 < 4 || ch.is_numeric() {
+    if st.1 < 4 || ch.chars().all(|x| x.is_numeric()) {
         Some((orig, ch))
     } else {
         Some((orig, "".into()))
@@ -95,10 +73,8 @@ impl<'a, I: 'a + Iterator<Item = Pare<'a>>> Iterator for GraphemesPare<'a, I> {
     type Item = Pare<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(ref mut gra) = self.graph {
-            if let Some(x) = gra.next() {
-                return Some((x, x.into()));
-            }
+        if let Some(x) = self.graph.as_mut().and_then(|gra| gra.next()) {
+            return Some((x, x.into()));
         }
         if let Some((orig, ch)) = self.iter.next() {
             if orig != ch {
