@@ -61,17 +61,11 @@ impl IndicesUtf for str {
 pub fn convert_range<T>(v: &[T], r: &Range<T>) -> Range<usize>
     where T: Ord
 {
-    let mut s = match v.binary_search(&r.start) {
-        Ok(x) => x,
-        Err(x) => x,
-    };
+    let mut s = v.binary_search(&r.start).unwrap_or_else(|x| x);
     while s > 0 && v[s - 1] == r.start {
         s -= 1;
     }
-    let mut e = match v[s..].binary_search(&r.end) {
-        Ok(x) => x,
-        Err(x) => x,
-    } + s;
+    let mut e = v[s..].binary_search(&r.end).unwrap_or_else(|x| x) + s;
     while e < v.len() - 1 && v[e + 1] == r.end {
         e += 1;
     }

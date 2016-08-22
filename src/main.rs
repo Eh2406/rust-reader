@@ -10,10 +10,11 @@ extern crate clipboard_win;
 extern crate unicode_segmentation;
 extern crate rustc_serialize; //To write rust objects to json
 extern crate preferences; //save objects in appdata folder
-extern crate quickcheck;
 extern crate regex;
 #[macro_use]
 extern crate lazy_static;
+#[cfg(test)]
+extern crate quickcheck;
 
 mod wide_string;
 mod window;
@@ -31,6 +32,7 @@ use hot_key::*;
 mod settings;
 use settings::*;
 
+#[allow(dead_code)]
 mod clean_text;
 use clean_text::*;
 

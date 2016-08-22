@@ -17,9 +17,6 @@ impl<'r, 'a, R: Replacer> Iterator for RegexReplace<'r, 'a, R> {
     type Item = Pare<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.cap.is_none() {
-            self.cap = self.captures_iter.next();
-        }
         let last_match = self.last_match;
         match self.cap.take() {
             Some(cap) => {
@@ -32,10 +29,15 @@ impl<'r, 'a, R: Replacer> Iterator for RegexReplace<'r, 'a, R> {
                 } else {
                     assert_eq!(self.last_match, s);
                     self.last_match = e;
+                    self.cap = self.captures_iter.next();
                     Some((&self.text[s..e], self.rep.reg_replace(&cap).to_string().into()))
                 }
             }
             None => {
+                self.cap = self.captures_iter.next();
+                if self.cap.is_some() {
+                    return self.next();
+                }
                 let len = self.text.len();
                 if last_match < len {
                     self.last_match = len;
