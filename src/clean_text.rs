@@ -9,7 +9,7 @@ struct RegexReplace<'r, 'a, R: Replacer> {
     text: &'a str,
     last_match: usize,
     captures_iter: FindCaptures<'r, 'a>,
-    cap: Option<Captures<'a>>,
+    cap: Option<Pare<'a>>,
     rep: R,
 }
 
@@ -18,30 +18,22 @@ impl<'r, 'a, R: Replacer> Iterator for RegexReplace<'r, 'a, R> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let last_match = self.last_match;
-        match self.cap.take() {
+        if let Some(cap) = self.cap.take() {
+            return Some(cap);
+        }
+        match self.captures_iter.next() {
             Some(cap) => {
                 // unwrap on 0 is OK because captures only reports matches
                 let (s, e) = cap.pos(0).unwrap();
-                if last_match < s {
-                    self.last_match = s;
-                    self.cap = Some(cap);
-                    Some((&self.text[last_match..s], self.text[last_match..s].into()))
-                } else {
-                    assert_eq!(self.last_match, s);
-                    self.last_match = e;
-                    self.cap = self.captures_iter.next();
-                    Some((&self.text[s..e], self.rep.reg_replace(&cap).to_string().into()))
-                }
+                let last_match = self.last_match;
+                self.cap = Some((&self.text[s..e], self.rep.reg_replace(&cap).to_string().into()));
+                self.last_match = e;
+                Some((&self.text[last_match..s], self.text[last_match..s].into()))
             }
             None => {
-                self.cap = self.captures_iter.next();
-                if self.cap.is_some() {
-                    return self.next();
-                }
-                let len = self.text.len();
-                if last_match < len {
-                    self.last_match = len;
-                    Some((&self.text[last_match..len], self.text[last_match..len].into()))
+                if self.last_match < self.text.len() {
+                    self.last_match = self.text.len();
+                    Some((&self.text[last_match..], self.text[last_match..].into()))
                 } else {
                     None
                 }
