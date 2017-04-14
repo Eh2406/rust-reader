@@ -41,36 +41,41 @@ fn runing_count<'a>(st: &mut (&'a str, usize), ch: &'a str) -> Option<(&'a str, 
 
 pub fn clean_text<T: AsRef<str>>(raw: T) -> String {
     raw.as_ref()
-       .graphemes(true)
-       .scan(("", 0), runing_count)
-       .map(|(_, x)| x)
-       .collect()
+        .graphemes(true)
+        .scan(("", 0), runing_count)
+        .map(|(_, x)| x)
+        .collect()
 }
 
+#[allow(dead_code)]
 fn clean_text_idx<T: AsRef<str>, F: Fn(&(&str, &str)) -> usize>(raw: T, len: F) -> Vec<usize> {
     let mut out = vec![0];
     out.extend(raw.as_ref()
-                  .graphemes(true)
-                  .scan(("", 0), runing_count)
-                  .scan(0, |st, x| {
-                      *st += len(&x);
-                      Some(*st)
-                  }));
+                   .graphemes(true)
+                   .scan(("", 0), runing_count)
+                   .scan(0, |st, x| {
+        *st += len(&x);
+        Some(*st)
+    }));
     out
 }
 
+#[allow(dead_code)]
 pub fn clean_text_u8idx_in<T: AsRef<str>>(raw: T) -> Vec<usize> {
     clean_text_idx(raw, |&(s, _)| s.len())
 }
 
+#[allow(dead_code)]
 pub fn clean_text_u16idx_in<T: AsRef<str>>(raw: T) -> Vec<usize> {
     clean_text_idx(raw, |&(s, _)| s.len_utf16())
 }
 
+#[allow(dead_code)]
 pub fn clean_text_u8idx_out<T: AsRef<str>>(raw: T) -> Vec<usize> {
     clean_text_idx(raw, |&(_, s)| s.len())
 }
 
+#[allow(dead_code)]
 pub fn clean_text_u16idx_out<T: AsRef<str>>(raw: T) -> Vec<usize> {
     clean_text_idx(raw, |&(_, s)| s.len_utf16())
 }

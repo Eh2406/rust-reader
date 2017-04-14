@@ -41,18 +41,18 @@ impl IndicesUtf for str {
         let mut out = vec![0];
         out.extend(self.chars()
                        .scan(0, |s, c| {
-                           *s += c.len_utf8();
-                           Some(*s)
-                       }));
+            *s += c.len_utf8();
+            Some(*s)
+        }));
         out
     }
     fn indices_utf16(&self) -> Vec<usize> {
         let mut out = vec![0];
         out.extend(self.chars()
                        .scan(0, |s, c| {
-                           *s += c.len_utf16();
-                           Some(*s)
-                       }));
+            *s += c.len_utf16();
+            Some(*s)
+        }));
         out
     }
 }
@@ -85,6 +85,7 @@ pub fn lookup_range<T>(v: &[T], r: &Range<usize>) -> Range<T>
     v[r.start].clone()..v[r.end].clone()
 }
 
+#[allow(dead_code)]
 pub fn invert_idx<I, O>(i: &[I], o: &[O], r: &Range<O>) -> Range<I>
     where O: Ord,
           I: Clone

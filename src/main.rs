@@ -1,3 +1,7 @@
+// Dont show a cmd if using nightly. This will be stabalized in 1.18.
+// If using a stable befor 1.18 build with `cargo rustc --release -- -C link-args=-mwindows`
+#![cfg_attr(feature="nightly", windows_subsystem = "windows")]
+
 extern crate winapi;
 extern crate ole32;
 extern crate user32;
@@ -80,7 +84,9 @@ fn main() {
                 match msg.wParam { // match on generated HotKey id
                     0 => read(&mut voice),
                     1 => close(),
-                    2 => {voice.toggle_window_visible();},
+                    2 => {
+                        voice.toggle_window_visible();
+                    }
                     3 => play_pause(&mut voice),
                     4 => rate_down(&mut voice, &mut settings),
                     5 => rate_up(&mut voice, &mut settings),
