@@ -110,13 +110,16 @@ fn trivial_pare<'a>(text: &'a str) -> ::std::option::IntoIter<Pare<'a>> {
     Some((text, text.into())).into_iter()
 }
 
-lazy_static! {
-    static ref RE_WS: Regex = Regex::new(r"\s+").unwrap();
-}
-
 fn clean_iter<'a>(raw: &'a str) -> Box<Iterator<Item = Pare<'a>> + 'a> {
-    Box::new(graphemes_pare(regex_replace(trivial_pare(raw), &*RE_WS, " ")).scan(("".into(), 0),
-                                                                                 runing_count))
+
+    lazy_static! {
+    static ref RE_WS: Regex = Regex::new(r"\s+").unwrap();
+    static ref RE_SHA: Regex = Regex::new(r"(?P<s>[0-9a-f]{6})([0-9a-f])*").unwrap();
+    }
+    Box::new(graphemes_pare(regex_replace(regex_replace(trivial_pare(raw), &*RE_WS, " "),
+                                          &*RE_SHA,
+                                          "$s"))
+                     .scan(("".into(), 0), runing_count))
 }
 
 pub fn clean_text<T: AsRef<str>>(raw: T) -> String {
@@ -212,6 +215,12 @@ mod tests {
     #[test]
     fn two_word_with_tabs() {
         assert_eq!(clean_text("Hello\t\n\t\r\t\r\nworld!"), "Hello world!");
+    }
+
+    #[test]
+    fn sha1() {
+        assert_eq!(clean_text("1 parent 1b329f3 commit 4773d2e39d0be947344ddfebc92d16f37e0584aa"),
+                   "1 parent 1b329f commit 4773d2");
     }
 
     #[test]
