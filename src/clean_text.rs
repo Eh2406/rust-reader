@@ -114,11 +114,14 @@ fn clean_iter<'a>(raw: &'a str) -> Box<Iterator<Item = Pare<'a>> + 'a> {
 
     lazy_static! {
     static ref RE_WS: Regex = Regex::new(r"\s+").unwrap();
+    static ref RE_URL: Regex = Regex::new(r"(https?://)?(?P<a>[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6})\b([-a-zA-Z0-9@:%_\+.~#?&//=]{10,})").unwrap();
     static ref RE_SHA: Regex = Regex::new(r"(?P<s>[0-9a-f]{6})([0-9a-f])*").unwrap();
     }
-    Box::new(graphemes_pare(regex_replace(regex_replace(trivial_pare(raw), &*RE_WS, " "),
+    Box::new(graphemes_pare(regex_replace(regex_replace(regex_replace(trivial_pare(raw), &*RE_WS, " "),
+                                          &*RE_URL,
+                                          "link to $a"),
                                           &*RE_SHA,
-                                          "$s"))
+                                          "hash $s"))
                      .scan(("".into(), 0), runing_count))
 }
 
@@ -221,6 +224,14 @@ mod tests {
     fn sha1() {
         assert_eq!(clean_text("1 parent 1b329f3 commit 4773d2e39d0be947344ddfebc92d16f37e0584aa"),
                    "1 parent 1b329f commit 4773d2");
+    }
+
+    #[test]
+    fn url() {
+        assert_eq!(clean_text("https://www.youtube.com/watch?v=JFpanWNgfQY"),
+                   "link to www.youtube.com");
+        assert_eq!(clean_text("www.youtube.com/watch?v=JFpanWNgfQY"),
+                   "link to www.youtube.com");
     }
 
     #[test]
