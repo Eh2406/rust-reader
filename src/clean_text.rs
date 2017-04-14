@@ -42,6 +42,24 @@ impl<'r, 'a, R: Replacer> Iterator for RegexReplace<'r, 'a, R> {
     }
 }
 
+fn regex_replace<'r, 'a, I, R>(raw: I, reg: &'a Regex, r: R) -> Box<Iterator<Item = Pare<'a>> + 'a>
+    where I: 'a + Iterator<Item = Pare<'a>>,
+          R: Replacer + Copy + 'a
+{
+    Box::new(raw.flat_map(move |(orig, ch)| -> Box<Iterator<Item = Pare<'a>> + 'a> {
+        if orig != ch {
+            return Box::new(Some((orig, ch)).into_iter());
+        }
+        Box::new(RegexReplace {
+                     text: orig,
+                     last_match: 0,
+                     captures_iter: reg.captures_iter(orig),
+                     cap: None,
+                     rep: r,
+                 })
+    }))
+}
+
 fn runing_count<'a>(st: &mut (Cow<'a, str>, usize), (orig, ch): Pare<'a>) -> Option<Pare<'a>> {
     if orig != ch {
         return Some((orig, ch));
@@ -81,25 +99,30 @@ impl<'a, I: 'a + Iterator<Item = Pare<'a>>> Iterator for GraphemesPare<'a, I> {
     }
 }
 
+fn graphemes_pare<'a, I: 'a + Iterator<Item = Pare<'a>>>(i: I) -> GraphemesPare<'a, I> {
+    GraphemesPare {
+        iter: i,
+        graph: None,
+    }
+}
+
+fn trivial_pare<'a>(text: &'a str) -> ::std::option::IntoIter<Pare<'a>> {
+    Some((text, text.into())).into_iter()
+}
+
 lazy_static! {
     static ref RE_WS: Regex = Regex::new(r"\s+").unwrap();
+}
+
+fn clean_iter<'a>(raw: &'a str) -> Box<Iterator<Item = Pare<'a>> + 'a> {
+    Box::new(graphemes_pare(regex_replace(trivial_pare(raw), &*RE_WS, " ")).scan(("".into(), 0),
+                                                                                 runing_count))
 }
 
 pub fn clean_text<T: AsRef<str>>(raw: T) -> String {
     let raw = raw.as_ref();
     let mut out = String::with_capacity(raw.len());
-    for x in (GraphemesPare {
-            iter: RegexReplace {
-                text: raw,
-                last_match: 0,
-                captures_iter: RE_WS.captures_iter(raw),
-                cap: None,
-                rep: " ",
-            },
-            graph: None,
-        })
-        .scan(("".into(), 0), runing_count)
-        .map(|(_, x)| x) {
+    for (_, x) in clean_iter(raw) {
         out.push_str(&*x)
     }
     out.shrink_to_fit();
@@ -110,50 +133,47 @@ fn clean_text_idx<'a, F>(raw: &'a str, len: F) -> Box<Iterator<Item = (usize, us
     where F: 'a + Fn(&str) -> usize
 {
     Box::new((0..1)
-        .map(|x| (x, x))
-        .chain((GraphemesPare {
-                iter: RegexReplace {
-                    text: raw,
-                    last_match: 0,
-                    captures_iter: RE_WS.captures_iter(raw),
-                    cap: None,
-                    rep: " ",
-                },
-                graph: None,
-            })
-            .scan(("".into(), 0), runing_count)
-            .map(move |x| (len(x.0), len(&*x.1)))
-            .scan((0, 0), move |st, x| {
-                st.0 += x.0;
-                st.1 += x.1;
-                Some(*st)
-            })))
+                 .map(|x| (x, x))
+                 .chain(clean_iter(raw)
+                            .map(move |x| (len(x.0), len(&*x.1)))
+                            .scan((0, 0), move |st, x| {
+        st.0 += x.0;
+        st.1 += x.1;
+        Some(*st)
+    })))
 }
 
 #[allow(dead_code)]
 pub fn clean_text_u8idx_in<T: AsRef<str>>(raw: T) -> Vec<usize> {
-    clean_text_idx(raw.as_ref(), LenUtf::len_utf8).map(|(s, _)| s).collect()
+    clean_text_idx(raw.as_ref(), LenUtf::len_utf8)
+        .map(|(s, _)| s)
+        .collect()
 }
 
 #[allow(dead_code)]
 pub fn clean_text_u16idx_in<T: AsRef<str>>(raw: T) -> Vec<usize> {
-    clean_text_idx(raw.as_ref(), LenUtf::len_utf16).map(|(s, _)| s).collect()
+    clean_text_idx(raw.as_ref(), LenUtf::len_utf16)
+        .map(|(s, _)| s)
+        .collect()
 }
 
 #[allow(dead_code)]
 pub fn clean_text_u8idx_out<T: AsRef<str>>(raw: T) -> Vec<usize> {
-    clean_text_idx(raw.as_ref(), LenUtf::len_utf8).map(|(_, s)| s).collect()
+    clean_text_idx(raw.as_ref(), LenUtf::len_utf8)
+        .map(|(_, s)| s)
+        .collect()
 }
 
 #[allow(dead_code)]
 pub fn clean_text_u16idx_out<T: AsRef<str>>(raw: T) -> Vec<usize> {
-    clean_text_idx(raw.as_ref(), LenUtf::len_utf16).map(|(_, s)| s).collect()
+    clean_text_idx(raw.as_ref(), LenUtf::len_utf16)
+        .map(|(_, s)| s)
+        .collect()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wide_string::*;
 
     #[test]
     fn one_word() {
