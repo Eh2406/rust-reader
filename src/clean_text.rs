@@ -111,18 +111,18 @@ fn trivial_pare<'a>(text: &'a str) -> Box<Iterator<Item = Pare<'a>> + 'a> {
 }
 
 fn clean_iter<'a>(raw: &'a str) -> Box<Iterator<Item = Pare<'a>> + 'a> {
-
     lazy_static! {
-    static ref RE_WS: Regex = Regex::new(r"\s+").unwrap();
-    static ref RE_URL: Regex = Regex::new(r"^(https?://)?(?P<a>[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6})\b[-a-zA-Z0-9@:%_\+.~#?&//=]{10,}$").unwrap();
-    static ref RE_SHA: Regex = Regex::new(r"^(?P<s>[0-9a-f]{6})([0-9]+[a-f]|[a-f]+[0-9])[0-9a-f]*$").unwrap();
+    static ref RE_LIST: Vec<(Regex, &'static str)> = {
+            [
+                (r"\s+", " "),
+                (r"^(https?://)?(?P<a>[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6})\b[-a-zA-Z0-9@:%_\+.~#?&//=]{10,}$", "link to $a"),
+                (r"^(?P<s>[0-9a-f]{6})([0-9]+[a-f]|[a-f]+[0-9])[0-9a-f]*$", "hash $s")
+            ].into_iter().map(|&(ref reg, rep)| (Regex::new(reg).unwrap(), rep)).collect()
+        };
     }
-    let list = [(&*RE_WS, " "),
-                (&*RE_URL, "link to $a"),
-                (&*RE_SHA, "hash $s")];
 
     let mut out = trivial_pare(raw);
-    for &(reg, rep) in list.iter() {
+    for &(ref reg, rep) in RE_LIST.iter() {
         out = regex_replace(out, reg, rep);
     }
     Box::new(graphemes_pare(out).scan(("".into(), 0), runing_count))
