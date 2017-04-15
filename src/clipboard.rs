@@ -90,8 +90,9 @@ pub fn what_on_get_clipboard_string(n: u64) -> Result<String, clipboard_win::Win
 pub fn get_text() -> Result<String, clipboard_win::WindowsError> {
     println!("geting text");
     let old_clip = what_on_get_clipboard_string(25);
-    let old_clip_num = get_clipboard_seq_num().expect("Lacks sufficient rights to access \
-                                                       clipboard(WINSTA_ACCESSCLIPBOARD)");
+    let old_clip_num =
+        get_clipboard_seq_num().expect(
+            "Lacks sufficient rights to access clipboard(WINSTA_ACCESSCLIPBOARD)");
     send_ctrl_c();
     if !what_on_clipboard_seq_num(old_clip_num, 25) {
         return Err(clipboard_win::WindowsError::new(0));

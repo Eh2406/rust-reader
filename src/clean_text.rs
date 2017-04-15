@@ -5,15 +5,15 @@ use regex::*;
 
 type Pare<'a> = (&'a str, Cow<'a, str>);
 
-struct RegexReplace<'r, 'a, R: Replacer> {
+struct RegexReplace<'r, 'a> {
     text: &'a str,
     last_match: usize,
-    captures_iter: FindCaptures<'r, 'a>,
+    captures_iter: CaptureMatches<'r, 'a>,
     cap: Option<Pare<'a>>,
-    rep: R,
+    rep: &'r str,
 }
 
-impl<'r, 'a, R: Replacer> Iterator for RegexReplace<'r, 'a, R> {
+impl<'r, 'a> Iterator for RegexReplace<'r, 'a> {
     type Item = Pare<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -24,9 +24,12 @@ impl<'r, 'a, R: Replacer> Iterator for RegexReplace<'r, 'a, R> {
         match self.captures_iter.next() {
             Some(cap) => {
                 // unwrap on 0 is OK because captures only reports matches
-                let (s, e) = cap.pos(0).unwrap();
+                let s = cap.get(0).unwrap().start();
+                let e = cap.get(0).unwrap().end();
                 let last_match = self.last_match;
-                self.cap = Some((&self.text[s..e], self.rep.reg_replace(&cap).to_string().into()));
+                let mut replace = String::new();
+                cap.expand(self.rep, &mut replace);
+                self.cap = Some((&self.text[s..e], replace.into()));
                 self.last_match = e;
                 Some((&self.text[last_match..s], self.text[last_match..s].into()))
             }
@@ -42,9 +45,11 @@ impl<'r, 'a, R: Replacer> Iterator for RegexReplace<'r, 'a, R> {
     }
 }
 
-fn regex_replace<'r, 'a, I, R>(raw: I, reg: &'a Regex, r: R) -> Box<Iterator<Item = Pare<'a>> + 'a>
-    where I: 'a + Iterator<Item = Pare<'a>>,
-          R: Replacer + Copy + 'a
+fn regex_replace<'r, 'a, I>(raw: I,
+                            reg: &'a Regex,
+                            r: &'a str)
+                            -> Box<Iterator<Item = Pare<'a>> + 'a>
+    where I: 'a + Iterator<Item = Pare<'a>>
 {
     Box::new(raw.flat_map(move |(orig, ch)| -> Box<Iterator<Item = Pare<'a>> + 'a> {
         if orig != ch {
@@ -115,7 +120,9 @@ fn clean_iter<'a>(raw: &'a str) -> Box<Iterator<Item = Pare<'a>> + 'a> {
     static ref RE_LIST: Vec<(Regex, &'static str)> = {
             [
                 (r"\s+", " "),
-                (r"^(https?://)?(?P<a>[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6})\b[-a-zA-Z0-9@:%_\+.~#?&//=]{10,}$", "link to $a"),
+                (concat!(
+                    r"^(https?://)?(?P<a>[-a-zA-Z0-9@:%._\+~#=]{2,256}",
+                r"\.[a-z]{2,6})\b[-a-zA-Z0-9@:%_\+.~#?&//=]{10,}$"), "link to $a"),
                 (r"^(?P<s>[0-9a-f]{6})([0-9]+[a-f]|[a-f]+[0-9])[0-9a-f]*$", "hash $s")
             ].into_iter().map(|&(ref reg, rep)| (Regex::new(reg).unwrap(), rep)).collect()
         };
