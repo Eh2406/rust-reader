@@ -59,36 +59,37 @@ impl<'a> SpVoice<'a> {
                 panic!("failed for SpVoice at CLSIDFromProgID");
             }
 
-            if failed(ole32::CoCreateInstance(
-                &clsid_spvoice,
-                null_mut(),
-                winapi::CLSCTX_ALL,
-                &winapi::UuidOfISpVoice,
-                &mut voice as *mut *mut winapi::ISpVoice as *mut *mut winapi::c_void
-            )) {
+            if failed(ole32::CoCreateInstance(&clsid_spvoice,
+                                              null_mut(),
+                                              winapi::CLSCTX_ALL,
+                                              &winapi::UuidOfISpVoice,
+                                              &mut voice as *mut *mut winapi::ISpVoice as
+                                              *mut *mut winapi::c_void)) {
                 panic!("failed for SpVoice at CoCreateInstance");
             }
             let mut out = Box::new(SpVoice {
-                voice: &mut *voice,
-                window: null_mut(),
-                edit: null_mut(),
-                rate: null_mut(),
-                last_read: Vec::new(),
-            });
+                                       voice: &mut *voice,
+                                       window: null_mut(),
+                                       edit: null_mut(),
+                                       rate: null_mut(),
+                                       last_read: Vec::new(),
+                                   });
 
             let window_class_name = "SAPI_event_window_class_name".to_wide_null();
             user32::RegisterClassW(&winapi::WNDCLASSW {
-                style: 0,
-                lpfnWndProc: Some(window_proc_generic::<SpVoice>),
-                cbClsExtra: 0,
-                cbWndExtra: 0,
-                hInstance: 0 as winapi::HINSTANCE,
-                hIcon: user32::LoadIconW(0 as winapi::HINSTANCE, winapi::IDI_APPLICATION),
-                hCursor: user32::LoadCursorW(0 as winapi::HINSTANCE, winapi::IDI_APPLICATION),
-                hbrBackground: 16 as winapi::HBRUSH,
-                lpszMenuName: 0 as winapi::LPCWSTR,
-                lpszClassName: window_class_name.as_ptr(),
-            });
+                                        style: 0,
+                                        lpfnWndProc: Some(window_proc_generic::<SpVoice>),
+                                        cbClsExtra: 0,
+                                        cbWndExtra: 0,
+                                        hInstance: 0 as winapi::HINSTANCE,
+                                        hIcon: user32::LoadIconW(0 as winapi::HINSTANCE,
+                                                                 winapi::IDI_APPLICATION),
+                                        hCursor: user32::LoadCursorW(0 as winapi::HINSTANCE,
+                                                                     winapi::IDI_APPLICATION),
+                                        hbrBackground: 16 as winapi::HBRUSH,
+                                        lpszMenuName: 0 as winapi::LPCWSTR,
+                                        lpszClassName: window_class_name.as_ptr(),
+                                    });
             out.window = user32::CreateWindowExW(0,
                                                  window_class_name.as_ptr(),
                                                  &0u16,
@@ -138,11 +139,11 @@ impl<'a> SpVoice<'a> {
                                                null_mut());
             move_window(out.window,
                         &winapi::RECT {
-                            left: 0,
-                            top: 0,
-                            right: 400,
-                            bottom: 400,
-                        });
+                             left: 0,
+                             top: 0,
+                             right: 400,
+                             bottom: 400,
+                         });
             show_window(out.window, winapi::SW_SHOWNORMAL);
             out.set_notify_window_message();
             out.set_volume(100);
@@ -239,12 +240,21 @@ impl<'a> SpVoice<'a> {
     }
 
     fn set_notify_window_message(&mut self) {
-        unsafe { self.voice.SetNotifyWindowMessage(self.window, WM_SAPI_EVENT, 0, 0) };
+        unsafe {
+            self.voice
+                .SetNotifyWindowMessage(self.window, WM_SAPI_EVENT, 0, 0)
+        };
     }
 
     pub fn set_interest(&mut self, event: &[u64], queued: &[u64]) {
-        let queued = queued.iter().map(|&x| winapi::SPFEI(x)).fold(0u64, |acc, x| acc | x);
-        let event = event.iter().map(|&x| winapi::SPFEI(x)).fold(queued, |acc, x| acc | x);
+        let queued = queued
+            .iter()
+            .map(|&x| winapi::SPFEI(x))
+            .fold(0u64, |acc, x| acc | x);
+        let event = event
+            .iter()
+            .map(|&x| winapi::SPFEI(x))
+            .fold(queued, |acc, x| acc | x);
         unsafe { self.voice.SetInterest(event, queued) };
     }
 }
@@ -260,11 +270,15 @@ impl<'a> Windowed for SpVoice<'a> {
             winapi::WM_QUERYENDSESSION => close(),
             winapi::WM_ENDSESSION => close(),
             WM_SAPI_EVENT => {
-                let window_title = format!("rust_reader saying: {}", self.get_status_word())
-                                       .to_wide_null();
+                let word_range = self.get_status().word_range();
+                let window_title = format!("rust_reader {:.1}% saying: {}",
+                                           100.0 * (word_range.start as f64) /
+                                           (self.last_read.len() as f64),
+                                           self.get_status_word())
+                        .to_wide_null();
                 set_console_title(&window_title);
                 set_window_text(self.window, &window_title);
-                set_edit_selection(self.edit, self.get_status().word_range());
+                set_edit_selection(self.edit, word_range);
                 set_edit_scroll_caret(self.edit);
                 return Some(0);
             }
