@@ -114,8 +114,8 @@ fn clean_iter<'a>(raw: &'a str) -> Box<Iterator<Item = Pare<'a>> + 'a> {
 
     lazy_static! {
     static ref RE_WS: Regex = Regex::new(r"\s+").unwrap();
-    static ref RE_URL: Regex = Regex::new(r"(https?://)?(?P<a>[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6})\b([-a-zA-Z0-9@:%_\+.~#?&//=]{10,})").unwrap();
-    static ref RE_SHA: Regex = Regex::new(r"(?P<s>[0-9a-f]{6})([0-9a-f])*").unwrap();
+    static ref RE_URL: Regex = Regex::new(r"^(https?://)?(?P<a>[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6})\b[-a-zA-Z0-9@:%_\+.~#?&//=]{10,}$").unwrap();
+    static ref RE_SHA: Regex = Regex::new(r"^(?P<s>[0-9a-f]{6})([0-9]+[a-f]|[a-f]+[0-9])[0-9a-f]*$").unwrap();
     }
     let list = [(&*RE_WS, " "),
                 (&*RE_URL, "link to $a"),
@@ -226,7 +226,7 @@ mod tests {
     #[test]
     fn sha1() {
         assert_eq!(clean_text("1 parent 1b329f3 commit 4773d2e39d0be947344ddfebc92d16f37e0584aa"),
-                   "1 parent 1b329f commit 4773d2");
+                   "1 parent 1b329f3 commit hash 4773d2");
     }
 
     #[test]
