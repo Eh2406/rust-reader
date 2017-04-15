@@ -1,9 +1,12 @@
-use preferences::Preferences;
+use preferences::{Preferences, AppInfo};
 use winapi::{VK_OEM_2, VK_ESCAPE, VK_OEM_PERIOD, VK_OEM_MINUS, VK_OEM_PLUS};
 
-const SETTINGS_PATH: &'static str = "rust_reader/setings";
+const APP_INFO: AppInfo = AppInfo {
+    name: "rust_reader",
+    author: "us",
+};
 
-#[derive(RustcEncodable, RustcDecodable, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Settings {
     pub rate: i32,
     pub hotkeys: [(u32, u32); 6],
@@ -22,14 +25,13 @@ impl Settings {
         }
     }
     pub fn from_file() -> Settings {
-        let mut new = Settings::new();
-        if new.load(SETTINGS_PATH).is_err() {
+        Settings::load(&APP_INFO, "setings").unwrap_or_else(|_| {
             println!("failed to lode settings.");
-        }
-        new
+            Settings::new()
+        })
     }
     pub fn to_file(&self) {
-        if self.save(SETTINGS_PATH).is_err() {
+        if self.save(&APP_INFO, "setings").is_err() {
             println!("failed to save settings.");
         }
     }

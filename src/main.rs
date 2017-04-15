@@ -8,7 +8,10 @@ extern crate user32;
 extern crate kernel32;
 extern crate clipboard_win;
 extern crate unicode_segmentation;
-extern crate rustc_serialize; //To write rust objects to json
+
+#[macro_use]
+extern crate serde_derive; //To write rust objects to json
+extern crate serde;
 extern crate preferences; //save objects in appdata folder
 extern crate regex;
 #[macro_use]
