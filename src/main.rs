@@ -14,6 +14,7 @@ extern crate serde_derive; //To write rust objects to json
 extern crate serde;
 extern crate preferences; //save objects in appdata folder
 extern crate regex;
+#[cfg(test)]
 #[macro_use]
 extern crate lazy_static;
 #[cfg(test)]
@@ -39,10 +40,10 @@ use settings::*;
 mod clean_text;
 use clean_text::*;
 
-fn read(voice: &mut SpVoice) {
+fn read(voice: &mut SpVoice, list: &[(regex::Regex, &str)]) {
     voice.resume();
     match get_text() {
-        Ok(x) => voice.speak(clean_text(x, &RE_LIST)),
+        Ok(x) => voice.speak(clean_text(x, list)),
         Err(x) => {
             voice.speak_wait("oops. error.");
             println!("{:?}", x);
@@ -73,6 +74,13 @@ fn main() {
     let _com = Com::new();
     let mut voice = SpVoice::new();
     let mut settings = Settings::from_file();
+    let reg_list = prep_regex_cleaner(&[
+            (r"\s+", " "),
+            (concat!(
+                r"^(https?://)?(?P<a>[-a-zA-Z0-9@:%._\+~#=]{2,256}",
+            r"\.[a-z]{2,6})\b[-a-zA-Z0-9@:%_\+.~#?&//=]{10,}$"), "link to $a"),
+            (r"^(?P<s>[0-9a-f]{6})([0-9]+[a-f]|[a-f]+[0-9])[0-9a-f]*$", "hash $s")
+        ]);
     voice.set_rate(settings.rate);
     println!("rate :{:?}", voice.get_rate());
     let hk: Vec<_> = settings.hotkeys
@@ -111,7 +119,7 @@ fn main() {
         match msg.message {
             winapi::WM_HOTKEY => {
                 match msg.wParam { // match on generated HotKey id
-                    0 => read(&mut voice),
+                    0 => read(&mut voice, &reg_list),
                     1 => close(),
                     2 => {
                         voice.toggle_window_visible();

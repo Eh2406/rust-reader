@@ -115,23 +115,11 @@ fn trivial_pare<'a>(text: &'a str) -> Box<Iterator<Item = Pare<'a>> + 'a> {
     Box::new(Some((text, text.into())).into_iter())
 }
 
-pub fn prep_regex_cleaner<'a>(input: &[(&str, &'a str)]) -> Vec<(Regex, &'a str)> {
+pub fn prep_regex_cleaner<'r>(input: &[(&str, &'r str)]) -> Vec<(Regex, &'r str)> {
     input
         .iter()
         .map(|&(ref reg, rep)| (Regex::new(reg).unwrap(), rep))
         .collect()
-}
-
-lazy_static! {
-    pub static ref RE_LIST: Vec<(Regex, &'static str)> = {
-        prep_regex_cleaner(&[
-            (r"\s+", " "),
-            (concat!(
-                r"^(https?://)?(?P<a>[-a-zA-Z0-9@:%._\+~#=]{2,256}",
-            r"\.[a-z]{2,6})\b[-a-zA-Z0-9@:%_\+.~#?&//=]{10,}$"), "link to $a"),
-            (r"^(?P<s>[0-9a-f]{6})([0-9]+[a-f]|[a-f]+[0-9])[0-9a-f]*$", "hash $s")
-        ])
-    };
 }
 
 fn clean_iter<'r: 'a, 'a>(raw: &'a str,
@@ -202,6 +190,19 @@ pub fn clean_text_u16idx_out<T: AsRef<str>>(raw: T, list: &[(Regex, &str)]) -> V
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    lazy_static! {
+        // TODO: use the defalt for settings insted
+        static ref RE_LIST: Vec<(Regex, &'static str)> = {
+            prep_regex_cleaner(&[
+                (r"\s+", " "),
+                (concat!(
+                    r"^(https?://)?(?P<a>[-a-zA-Z0-9@:%._\+~#=]{2,256}",
+                r"\.[a-z]{2,6})\b[-a-zA-Z0-9@:%_\+.~#?&//=]{10,}$"), "link to $a"),
+                (r"^(?P<s>[0-9a-f]{6})([0-9]+[a-f]|[a-f]+[0-9])[0-9a-f]*$", "hash $s")
+            ])
+        };
+    }
 
     #[test]
     fn one_word() {
