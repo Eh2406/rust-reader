@@ -134,9 +134,9 @@ lazy_static! {
     };
 }
 
-fn clean_iter<'a>(raw: &'a str,
-                  list: &'static [(Regex, &'static str)])
-                  -> Box<Iterator<Item = Pare<'a>> + 'a> {
+fn clean_iter<'r: 'a, 'a>(raw: &'a str,
+                          list: &'r [(Regex, &'r str)])
+                          -> Box<Iterator<Item = Pare<'a>> + 'a> {
     let mut out = trivial_pare(raw);
     for &(ref reg, rep) in list.iter() {
         out = regex_replace(out, reg, rep);
@@ -144,7 +144,7 @@ fn clean_iter<'a>(raw: &'a str,
     Box::new(graphemes_pare(out).scan(("".into(), 0), runing_count))
 }
 
-pub fn clean_text<T: AsRef<str>>(raw: T, list: &'static [(Regex, &'static str)]) -> String {
+pub fn clean_text<T: AsRef<str>>(raw: T, list: &[(Regex, &str)]) -> String {
     let raw = raw.as_ref();
     let mut out = String::with_capacity(raw.len());
     for (_, x) in clean_iter(raw, &list) {
@@ -154,12 +154,15 @@ pub fn clean_text<T: AsRef<str>>(raw: T, list: &'static [(Regex, &'static str)])
     out
 }
 
-fn clean_text_idx<'a, F>(raw: &'a str, len: F) -> Box<Iterator<Item = (usize, usize)> + 'a>
+fn clean_text_idx<'r: 'a, 'a, F>(raw: &'a str,
+                                 len: F,
+                                 list: &'r [(Regex, &'r str)])
+                                 -> Box<Iterator<Item = (usize, usize)> + 'a>
     where F: 'a + Fn(&str) -> usize
 {
     Box::new((0..1)
                  .map(|x| (x, x))
-                 .chain(clean_iter(raw, &RE_LIST)
+                 .chain(clean_iter(raw, &list)
                             .map(move |x| (len(x.0), len(&*x.1)))
                             .scan((0, 0), move |st, x| {
         st.0 += x.0;
@@ -169,29 +172,29 @@ fn clean_text_idx<'a, F>(raw: &'a str, len: F) -> Box<Iterator<Item = (usize, us
 }
 
 #[allow(dead_code)]
-pub fn clean_text_u8idx_in<T: AsRef<str>>(raw: T) -> Vec<usize> {
-    clean_text_idx(raw.as_ref(), LenUtf::len_utf8)
+pub fn clean_text_u8idx_in<T: AsRef<str>>(raw: T, list: &[(Regex, &str)]) -> Vec<usize> {
+    clean_text_idx(raw.as_ref(), LenUtf::len_utf8, list)
         .map(|(s, _)| s)
         .collect()
 }
 
 #[allow(dead_code)]
-pub fn clean_text_u16idx_in<T: AsRef<str>>(raw: T) -> Vec<usize> {
-    clean_text_idx(raw.as_ref(), LenUtf::len_utf16)
+pub fn clean_text_u16idx_in<T: AsRef<str>>(raw: T, list: &[(Regex, &str)]) -> Vec<usize> {
+    clean_text_idx(raw.as_ref(), LenUtf::len_utf16, list)
         .map(|(s, _)| s)
         .collect()
 }
 
 #[allow(dead_code)]
-pub fn clean_text_u8idx_out<T: AsRef<str>>(raw: T) -> Vec<usize> {
-    clean_text_idx(raw.as_ref(), LenUtf::len_utf8)
+pub fn clean_text_u8idx_out<T: AsRef<str>>(raw: T, list: &[(Regex, &str)]) -> Vec<usize> {
+    clean_text_idx(raw.as_ref(), LenUtf::len_utf8, list)
         .map(|(_, s)| s)
         .collect()
 }
 
 #[allow(dead_code)]
-pub fn clean_text_u16idx_out<T: AsRef<str>>(raw: T) -> Vec<usize> {
-    clean_text_idx(raw.as_ref(), LenUtf::len_utf16)
+pub fn clean_text_u16idx_out<T: AsRef<str>>(raw: T, list: &[(Regex, &str)]) -> Vec<usize> {
+    clean_text_idx(raw.as_ref(), LenUtf::len_utf16, list)
         .map(|(_, s)| s)
         .collect()
 }
@@ -208,8 +211,8 @@ mod tests {
     #[test]
     fn one_word_u8idx() {
         let text = "Hello";
-        let vec_u8idx_in = clean_text_u8idx_in(text);
-        let vec_u8idx_out = clean_text_u8idx_out(text);
+        let vec_u8idx_in = clean_text_u8idx_in(text, &RE_LIST);
+        let vec_u8idx_out = clean_text_u8idx_out(text, &RE_LIST);
         println!("\r\n{:?}", vec_u8idx_in);
         println!("{:?}", vec_u8idx_out);
         assert_eq!(vec_u8idx_in.len(), vec_u8idx_out.len());
@@ -259,8 +262,8 @@ mod tests {
     #[test]
     fn two_word_with_tabs_u8idx() {
         let text = "Hello\t\n\t\r\t\r\nworld!";
-        let vec_u8idx_in = clean_text_u8idx_in(text);
-        let vec_u8idx_out = clean_text_u8idx_out(text);
+        let vec_u8idx_in = clean_text_u8idx_in(text, &RE_LIST);
+        let vec_u8idx_out = clean_text_u8idx_out(text, &RE_LIST);
         println!("\r\n{:?}", vec_u8idx_in);
         println!("{:?}", vec_u8idx_out);
         assert_eq!(vec_u8idx_in.len(), vec_u8idx_out.len());
@@ -281,8 +284,8 @@ mod tests {
     #[test]
     fn two_word_with_underscore_u8idx() {
         let text = "Hello _________ world!";
-        let vec_u8idx_in = clean_text_u8idx_in(text);
-        let vec_u8idx_out = clean_text_u8idx_out(text);
+        let vec_u8idx_in = clean_text_u8idx_in(text, &RE_LIST);
+        let vec_u8idx_out = clean_text_u8idx_out(text, &RE_LIST);
         println!("\r\n{:?}", vec_u8idx_in);
         println!("{:?}", vec_u8idx_out);
         assert_eq!(vec_u8idx_in.len(), vec_u8idx_out.len());
@@ -305,10 +308,10 @@ mod tests {
         let text = "Hello \u{5d4}\u{5a2}\u{5d4}\u{5a2}\
         \u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2} ----------- \u{1d565}\
         \u{1d565}\u{1d565}\u{1d565}\u{1d565}       ";
-        assert_eq!(clean_text_u8idx_in(text),
+        assert_eq!(clean_text_u8idx_in(text, &RE_LIST),
                    vec![0, 1, 2, 3, 4, 5, 6, 10, 14, 18, 22, 26, 27, 28, 29, 30, 31, 32, 33, 34,
                         35, 36, 37, 38, 39, 43, 47, 51, 55, 59, 66]);
-        assert_eq!(clean_text_u8idx_out(text),
+        assert_eq!(clean_text_u8idx_out(text, &RE_LIST),
                    vec![0, 1, 2, 3, 4, 5, 6, 10, 14, 18, 18, 18, 19, 20, 21, 22, 22, 22, 22, 22,
                         22, 22, 22, 22, 23, 27, 31, 35, 35, 35, 36]);
     }
@@ -318,10 +321,10 @@ mod tests {
         let text = "Hello \u{5d4}\u{5a2}\u{5d4}\u{5a2}\
         \u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2} ----------- \u{1d565}\
         \u{1d565}\u{1d565}\u{1d565}\u{1d565}       ";
-        assert_eq!(clean_text_u16idx_in(text),
+        assert_eq!(clean_text_u16idx_in(text, &RE_LIST),
                    vec![0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24,
                         25, 26, 27, 28, 29, 31, 33, 35, 37, 39, 46]);
-        assert_eq!(clean_text_u16idx_out(text),
+        assert_eq!(clean_text_u16idx_out(text, &RE_LIST),
                    vec![0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 12, 12, 13, 14, 15, 16, 16, 16, 16, 16,
                         16, 16, 16, 16, 17, 19, 21, 23, 23, 23, 24]);
     }
@@ -348,8 +351,8 @@ mod tests {
     #[test]
     fn two_word_with_longchar_u8idx() {
         let text = "Hello \u{1d565}\u{1d565}\u{1d565}\u{1d565}\u{1d565} world!";
-        let vec_u8idx_in = clean_text_u8idx_in(text);
-        let vec_u8idx_out = clean_text_u8idx_out(text);
+        let vec_u8idx_in = clean_text_u8idx_in(text, &RE_LIST);
+        let vec_u8idx_out = clean_text_u8idx_out(text, &RE_LIST);
         println!("\r\n{:?}", vec_u8idx_in);
         println!("{:?}", vec_u8idx_out);
         assert_eq!(vec_u8idx_in.len(), vec_u8idx_out.len());
@@ -373,8 +376,8 @@ mod tests {
     fn two_word_with_multichar_u8idx() {
         let text = "Hello \u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2} \
                     world!";
-        let vec_u8idx_in = clean_text_u8idx_in(text);
-        let vec_u8idx_out = clean_text_u8idx_out(text);
+        let vec_u8idx_in = clean_text_u8idx_in(text, &RE_LIST);
+        let vec_u8idx_out = clean_text_u8idx_out(text, &RE_LIST);
         println!("\r\n{:?}", vec_u8idx_in);
         println!("{:?}", vec_u8idx_out);
         assert_eq!(vec_u8idx_in.len(), vec_u8idx_out.len());
@@ -388,8 +391,8 @@ mod tests {
 
     fn test_clean_text_u8idx<T: AsRef<str>>(text: T) -> bool {
         let text = text.as_ref();
-        let vec_u8idx_in = clean_text_u8idx_in(text);
-        let vec_u8idx_out = clean_text_u8idx_out(text);
+        let vec_u8idx_in = clean_text_u8idx_in(text, &RE_LIST);
+        let vec_u8idx_out = clean_text_u8idx_out(text, &RE_LIST);
         for (&in_idx, &out_idx) in vec_u8idx_in.iter().zip(vec_u8idx_out.iter()) {
             if clean_text(&text[..in_idx], &RE_LIST).len() != out_idx {
                 println!("\r\n{:?}", vec_u8idx_in);
