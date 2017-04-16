@@ -1,4 +1,4 @@
-use preferences::{Preferences, AppInfo};
+use preferences::{Preferences, AppInfo, prefs_base_dir};
 use winapi::{VK_OEM_2, VK_ESCAPE, VK_OEM_PERIOD, VK_OEM_MINUS, VK_OEM_PLUS};
 
 const APP_INFO: AppInfo = AppInfo {
@@ -23,6 +23,16 @@ impl Settings {
                       (3, VK_OEM_MINUS as u32), // ctrl-alt--
                       (3, VK_OEM_PLUS as u32) /* ctrl-alt-= */],
         }
+    }
+    pub fn get_dir(&self) -> ::std::path::PathBuf {
+        prefs_base_dir()
+            .map(|mut p| {
+                     p.push("us");
+                     p.push("rust_reader");
+                     p.push("setings.prefs.json");
+                     p
+                 })
+            .unwrap_or(::std::path::PathBuf::new())
     }
     pub fn from_file() -> Settings {
         Settings::load(&APP_INFO, "setings").unwrap_or_else(|_| {

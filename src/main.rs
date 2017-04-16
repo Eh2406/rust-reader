@@ -75,16 +75,37 @@ fn main() {
     let mut settings = Settings::from_file();
     voice.set_rate(settings.rate);
     println!("rate :{:?}", voice.get_rate());
-    let _hk: Vec<_> = settings.hotkeys
-                              .into_iter()
-                              .enumerate() // generate HotKey id
-                              .map(|(id, &(modifiers, vk))| {
-                                  HotKey::new(modifiers, vk, id as i32).unwrap() // make HotKey
-                              })
-                              .collect();
+    let hk: Vec<_> = settings.hotkeys
+                             .into_iter()
+                             .enumerate() // generate HotKey id
+                             .map(|(id, &(modifiers, vk))| {
+                                 HotKey::new(modifiers, vk, id as i32).unwrap() // make HotKey
+                             })
+                             .collect();
     clipboard_setup();
 
-    voice.speak("Ready!");
+    let mut setup_spech = "Reading from settings at:\r\n".to_string();
+    setup_spech += &settings.get_dir().to_string_lossy();
+    setup_spech += "\r\n";
+    setup_spech += "speech rate of: ";
+    setup_spech += &settings.rate.to_string();
+    setup_spech += "\r\n";
+    setup_spech += "hotkeys\r\n";
+    for (t, h) in ["read",
+                   "close",
+                   "toggle_window_visible",
+                   "play_pause",
+                   "rate_down",
+                   "rate_up"]
+                .iter()
+                .zip(hk.iter()) {
+        setup_spech += t;
+        setup_spech += ": ";
+        setup_spech += &h.display();
+        setup_spech += "\r\n";
+    }
+    setup_spech += "Ready!";
+    voice.speak(setup_spech);
 
     while let Some(msg) = get_message() {
         match msg.message {
