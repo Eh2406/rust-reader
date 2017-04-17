@@ -36,7 +36,6 @@ use hot_key::*;
 mod settings;
 use settings::*;
 
-#[allow(dead_code)]
 mod clean_text;
 use clean_text::*;
 

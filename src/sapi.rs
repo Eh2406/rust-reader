@@ -46,7 +46,6 @@ pub struct SpVoice<'a> {
     last_read: Vec<u16>,
 }
 
-#[allow(dead_code)]
 impl<'a> SpVoice<'a> {
     pub fn new() -> Box<SpVoice<'a>> {
         println!("new for SpVoice");
@@ -153,6 +152,7 @@ impl<'a> SpVoice<'a> {
         }
     }
 
+    #[allow(dead_code)]
     pub fn get_window_handle(&mut self) -> winapi::HWND {
         self.window
     }
@@ -166,6 +166,7 @@ impl<'a> SpVoice<'a> {
         String::from_utf16_lossy(&self.last_read[status.word_range()])
     }
 
+    #[allow(dead_code)]
     pub fn get_status_sent(&mut self) -> String {
         let status = self.get_status();
         String::from_utf16_lossy(&self.last_read[status.sent_range()])
@@ -217,6 +218,7 @@ impl<'a> SpVoice<'a> {
         unsafe { self.voice.SetVolume(min(volume, 100)) };
     }
 
+    #[allow(dead_code)]
     pub fn get_volume(&mut self) -> u16 {
         let mut volume = 0;
         unsafe { self.voice.GetVolume(&mut volume) };
@@ -227,6 +229,7 @@ impl<'a> SpVoice<'a> {
         unsafe { self.voice.SetAlertBoundary(boundary) };
     }
 
+    #[allow(dead_code)]
     pub fn get_alert_boundary(&mut self) -> winapi::SPEVENTENUM {
         let mut boundary = winapi::SPEVENTENUM(0);
         unsafe { self.voice.GetAlertBoundary(&mut boundary) };

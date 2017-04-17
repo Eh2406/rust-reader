@@ -51,7 +51,6 @@ pub mod winapi_stub {
 }
 
 #[inline]
-#[allow(dead_code)]
 pub fn failed(hr: winapi::HRESULT) -> bool {
     hr < 0
 }
