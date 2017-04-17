@@ -2,8 +2,80 @@ use unicode_segmentation::*;
 use wide_string::*;
 use std::borrow::Cow;
 use regex::*;
+use serde::{Serialize, Serializer, Deserializer};
+use serde::de::{self, Deserialize, Visitor, SeqVisitor};
 
 type Pare<'a> = (&'a str, Cow<'a, str>);
+
+#[derive(Debug)]
+pub struct RegexClenerPare {
+    regex: Regex,
+    rep: String,
+}
+
+impl RegexClenerPare {
+    fn new<T: AsRef<str>>(regex: T, rep: String) -> Result<RegexClenerPare, Error> {
+        Ok(RegexClenerPare {
+               regex: Regex::new(regex.as_ref())?,
+               rep: rep,
+           })
+    }
+}
+
+impl Serialize for RegexClenerPare {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where S: Serializer
+    {
+        use serde::ser::SerializeSeq;
+        let mut seq = serializer.serialize_seq_fixed_size(2)?;
+        seq.serialize_element(self.regex.as_str())?;
+        seq.serialize_element(&self.rep)?;
+        seq.end()
+    }
+}
+
+impl Deserialize for RegexClenerPare {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where D: Deserializer
+    {
+        struct RegexClenerPareVisitor;
+
+        impl Visitor for RegexClenerPareVisitor {
+            type Value = RegexClenerPare;
+
+            fn expecting(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+                formatter.write_str("a pair for of regex and replacement")
+            }
+
+            fn visit_seq<V>(self, mut visitor: V) -> Result<RegexClenerPare, V::Error>
+                where V: SeqVisitor
+            {
+                let regex: String = match visitor.visit()? {
+                    Some(value) => value,
+                    None => {
+                        return Err(de::Error::invalid_length(0, &self));
+                    }
+                };
+                let rep: String = match visitor.visit()? {
+                    Some(value) => value,
+                    None => {
+                        return Err(de::Error::invalid_length(1, &self));
+                    }
+                };
+                Ok(RegexClenerPare {
+                       regex: Regex::new(&regex)
+                           .map_err(|_| {
+                                        de::Error::invalid_value(de::Unexpected::Str(&regex), &self)
+                                    })?,
+                       rep: rep,
+                   })
+            }
+        }
+
+        const FIELDS: &'static [&'static str] = &["regex", "rep"];
+        deserializer.deserialize_struct("RegexClenerPare", FIELDS, RegexClenerPareVisitor)
+    }
+}
 
 struct RegexReplace<'r, 'a> {
     text: &'a str,
@@ -115,24 +187,27 @@ fn trivial_pare<'a>(text: &'a str) -> Box<Iterator<Item = Pare<'a>> + 'a> {
     Box::new(Some((text, text.into())).into_iter())
 }
 
-pub fn prep_regex_cleaner<'r>(input: &[(&str, &'r str)]) -> Vec<(Regex, &'r str)> {
+pub fn prep_regex_cleaner(input: &[(&str, &str)]) -> Result<Vec<RegexClenerPare>, Error> {
     input
         .iter()
-        .map(|&(ref reg, rep)| (Regex::new(reg).unwrap(), rep))
+        .map(|&(ref reg, rep)| RegexClenerPare::new(reg, rep.to_string()))
         .collect()
 }
 
 fn clean_iter<'r: 'a, 'a>(raw: &'a str,
-                          list: &'r [(Regex, &'r str)])
+                          list: &'r [RegexClenerPare])
                           -> Box<Iterator<Item = Pare<'a>> + 'a> {
     let mut out = trivial_pare(raw);
-    for &(ref reg, rep) in list.iter() {
-        out = regex_replace(out, reg, rep);
+    for &RegexClenerPare {
+             regex: ref reg,
+             rep: ref repl,
+         } in list.iter() {
+        out = regex_replace(out, reg, repl);
     }
     Box::new(graphemes_pare(out).scan(("".into(), 0), runing_count))
 }
 
-pub fn clean_text<T: AsRef<str>>(raw: T, list: &[(Regex, &str)]) -> String {
+pub fn clean_text<T: AsRef<str>>(raw: T, list: &[RegexClenerPare]) -> String {
     let raw = raw.as_ref();
     let mut out = String::with_capacity(raw.len());
     for (_, x) in clean_iter(raw, &list) {
@@ -144,7 +219,7 @@ pub fn clean_text<T: AsRef<str>>(raw: T, list: &[(Regex, &str)]) -> String {
 
 fn clean_text_idx<'r: 'a, 'a, F>(raw: &'a str,
                                  len: F,
-                                 list: &'r [(Regex, &'r str)])
+                                 list: &'r [RegexClenerPare])
                                  -> Box<Iterator<Item = (usize, usize)> + 'a>
     where F: 'a + Fn(&str) -> usize
 {
@@ -160,28 +235,28 @@ fn clean_text_idx<'r: 'a, 'a, F>(raw: &'a str,
 }
 
 #[allow(dead_code)]
-pub fn clean_text_u8idx_in<T: AsRef<str>>(raw: T, list: &[(Regex, &str)]) -> Vec<usize> {
+pub fn clean_text_u8idx_in<T: AsRef<str>>(raw: T, list: &[RegexClenerPare]) -> Vec<usize> {
     clean_text_idx(raw.as_ref(), LenUtf::len_utf8, list)
         .map(|(s, _)| s)
         .collect()
 }
 
 #[allow(dead_code)]
-pub fn clean_text_u16idx_in<T: AsRef<str>>(raw: T, list: &[(Regex, &str)]) -> Vec<usize> {
+pub fn clean_text_u16idx_in<T: AsRef<str>>(raw: T, list: &[RegexClenerPare]) -> Vec<usize> {
     clean_text_idx(raw.as_ref(), LenUtf::len_utf16, list)
         .map(|(s, _)| s)
         .collect()
 }
 
 #[allow(dead_code)]
-pub fn clean_text_u8idx_out<T: AsRef<str>>(raw: T, list: &[(Regex, &str)]) -> Vec<usize> {
+pub fn clean_text_u8idx_out<T: AsRef<str>>(raw: T, list: &[RegexClenerPare]) -> Vec<usize> {
     clean_text_idx(raw.as_ref(), LenUtf::len_utf8, list)
         .map(|(_, s)| s)
         .collect()
 }
 
 #[allow(dead_code)]
-pub fn clean_text_u16idx_out<T: AsRef<str>>(raw: T, list: &[(Regex, &str)]) -> Vec<usize> {
+pub fn clean_text_u16idx_out<T: AsRef<str>>(raw: T, list: &[RegexClenerPare]) -> Vec<usize> {
     clean_text_idx(raw.as_ref(), LenUtf::len_utf16, list)
         .map(|(_, s)| s)
         .collect()
@@ -193,14 +268,14 @@ mod tests {
 
     lazy_static! {
         // TODO: use the defalt for settings insted
-        static ref RE_LIST: Vec<(Regex, &'static str)> = {
+        static ref RE_LIST: Vec<RegexClenerPare> = {
             prep_regex_cleaner(&[
                 (r"\s+", " "),
                 (concat!(
                     r"^(https?://)?(?P<a>[-a-zA-Z0-9@:%._\+~#=]{2,256}",
                 r"\.[a-z]{2,6})\b[-a-zA-Z0-9@:%_\+.~#?&//=]{10,}$"), "link to $a"),
                 (r"^(?P<s>[0-9a-f]{6})([0-9]+[a-f]|[a-f]+[0-9])[0-9a-f]*$", "hash $s")
-            ])
+            ]).unwrap()
         };
     }
 

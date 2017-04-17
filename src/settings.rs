@@ -1,5 +1,6 @@
 use preferences::{Preferences, AppInfo, prefs_base_dir};
 use winapi::{VK_OEM_2, VK_ESCAPE, VK_OEM_PERIOD, VK_OEM_MINUS, VK_OEM_PLUS};
+use clean_text::{prep_regex_cleaner, RegexClenerPare};
 
 const APP_INFO: AppInfo = AppInfo {
     name: "rust_reader",
@@ -10,6 +11,7 @@ const APP_INFO: AppInfo = AppInfo {
 pub struct Settings {
     pub rate: i32,
     pub hotkeys: [(u32, u32); 6],
+    pub cleaners: Vec<RegexClenerPare>,
 }
 
 impl Settings {
@@ -22,6 +24,15 @@ impl Settings {
                       (2, VK_OEM_PERIOD as u32), // ctrl-.
                       (3, VK_OEM_MINUS as u32), // ctrl-alt--
                       (3, VK_OEM_PLUS as u32) /* ctrl-alt-= */],
+            cleaners:
+                prep_regex_cleaner(&[(r"\s+", " "),
+                                     (concat!(
+                r"^(https?://)?(?P<a>[-a-zA-Z0-9@:%._\+~#=]{2,256}",
+            r"\.[a-z]{2,6})\b[-a-zA-Z0-9@:%_\+.~#?&//=]{10,}$"),
+                                      "link to $a"),
+                                     (r"^(?P<s>[0-9a-f]{6})([0-9]+[a-f]|[a-f]+[0-9])[0-9a-f]*$",
+                                      "hash $s")])
+                        .unwrap(),
         }
     }
     pub fn get_dir(&self) -> ::std::path::PathBuf {
