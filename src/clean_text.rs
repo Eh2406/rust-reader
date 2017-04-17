@@ -20,6 +20,12 @@ impl RegexClenerPare {
                rep: rep,
            })
     }
+    pub fn prep_list(input: &[(&str, &str)]) -> Result<Vec<RegexClenerPare>, Error> {
+        input
+            .iter()
+            .map(|&(ref reg, rep)| RegexClenerPare::new(reg, rep.to_string()))
+            .collect()
+    }
 }
 
 impl Serialize for RegexClenerPare {
@@ -117,12 +123,13 @@ impl<'r, 'a> Iterator for RegexReplace<'r, 'a> {
     }
 }
 
-fn regex_replace<'r, 'a, I>(raw: I,
-                            reg: &'a Regex,
-                            r: &'a str)
-                            -> Box<Iterator<Item = Pare<'a>> + 'a>
+fn regex_replace<'r, 'a, I>(raw: I, reg: &'a RegexClenerPare) -> Box<Iterator<Item = Pare<'a>> + 'a>
     where I: 'a + Iterator<Item = Pare<'a>>
 {
+    let &RegexClenerPare {
+             regex: ref reg,
+             rep: ref r,
+         } = reg;
     Box::new(raw.flat_map(move |(orig, ch)| -> Box<Iterator<Item = Pare<'a>> + 'a> {
         if orig != ch {
             return Box::new(Some((orig, ch)).into_iter());
@@ -187,22 +194,12 @@ fn trivial_pare<'a>(text: &'a str) -> Box<Iterator<Item = Pare<'a>> + 'a> {
     Box::new(Some((text, text.into())).into_iter())
 }
 
-pub fn prep_regex_cleaner(input: &[(&str, &str)]) -> Result<Vec<RegexClenerPare>, Error> {
-    input
-        .iter()
-        .map(|&(ref reg, rep)| RegexClenerPare::new(reg, rep.to_string()))
-        .collect()
-}
-
 fn clean_iter<'r: 'a, 'a>(raw: &'a str,
                           list: &'r [RegexClenerPare])
                           -> Box<Iterator<Item = Pare<'a>> + 'a> {
     let mut out = trivial_pare(raw);
-    for &RegexClenerPare {
-             regex: ref reg,
-             rep: ref repl,
-         } in list.iter() {
-        out = regex_replace(out, reg, repl);
+    for reg in list.iter() {
+        out = regex_replace(out, reg);
     }
     Box::new(graphemes_pare(out).scan(("".into(), 0), runing_count))
 }
@@ -269,7 +266,7 @@ mod tests {
     lazy_static! {
         // TODO: use the defalt for settings insted
         static ref RE_LIST: Vec<RegexClenerPare> = {
-            prep_regex_cleaner(&[
+            RegexClenerPare::prep_list(&[
                 (r"\s+", " "),
                 (concat!(
                     r"^(https?://)?(?P<a>[-a-zA-Z0-9@:%._\+~#=]{2,256}",

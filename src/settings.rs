@@ -1,6 +1,6 @@
 use preferences::{Preferences, AppInfo, prefs_base_dir};
 use winapi::{VK_OEM_2, VK_ESCAPE, VK_OEM_PERIOD, VK_OEM_MINUS, VK_OEM_PLUS};
-use clean_text::{prep_regex_cleaner, RegexClenerPare};
+use clean_text::RegexClenerPare;
 
 const APP_INFO: AppInfo = AppInfo {
     name: "rust_reader",
@@ -25,7 +25,7 @@ impl Settings {
                       (3, VK_OEM_MINUS as u32), // ctrl-alt--
                       (3, VK_OEM_PLUS as u32) /* ctrl-alt-= */],
             cleaners:
-                prep_regex_cleaner(&[(r"\s+", " "),
+                RegexClenerPare::prep_list(&[(r"\s+", " "),
                                      (concat!(
                 r"^(https?://)?(?P<a>[-a-zA-Z0-9@:%._\+~#=]{2,256}",
             r"\.[a-z]{2,6})\b[-a-zA-Z0-9@:%_\+.~#?&//=]{10,}$"),
