@@ -129,6 +129,11 @@ fn clean_iter<'r: 'a, 'a>(raw: &'a str,
     Box::new(graphemes_pare(out).scan(("".into(), 0), runing_count))
 }
 
+pub fn clean_text_vec<'r: 'a, 'a>(raw: &'a str, list: &'r [RegexClenerPare]) -> Vec<Cow<'a, str>> {
+    clean_iter(raw, &list).map(|(_, x)| x).collect()
+}
+
+#[allow(dead_code)]
 pub fn clean_text<T: AsRef<str>>(raw: T, list: &[RegexClenerPare]) -> String {
     let raw = raw.as_ref();
     let mut out = String::with_capacity(raw.len());

@@ -1,5 +1,5 @@
 // Dont show a cmd if using nightly. This will be stabalized in 1.18.
-// If using a stable befor 1.18 build with `cargo rustc --release -- -C link-args=-mwindows`
+// If using a stable befor 1.18 build with for gnu `cargo rustc --release -- -C link-args=-mwindows`
 #![cfg_attr(feature="nightly", windows_subsystem = "windows")]
 
 extern crate winapi;
@@ -42,7 +42,7 @@ use clean_text::*;
 fn read(voice: &mut SpVoice, list: &[RegexClenerPare]) {
     voice.resume();
     match get_text() {
-        Ok(x) => voice.speak(clean_text(x, list)),
+        Ok(x) => voice.speak(clean_text_vec(&x, list)),
         Err(x) => {
             voice.speak_wait("oops. error.");
             println!("{:?}", x);

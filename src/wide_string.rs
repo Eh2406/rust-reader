@@ -2,18 +2,119 @@ use std::ffi::OsStr;
 use std::os::windows::ffi::OsStrExt;
 use std::ops::Range;
 
-pub trait ToWide {
-    fn to_wide(&self) -> Vec<u16>;
-    fn to_wide_null(&self) -> Vec<u16> {
-        let mut out = self.to_wide();
-        out.push(0);
-        out
+#[derive(Debug, PartialEq)]
+pub struct WideString(Vec<u16>);
+
+impl WideString {
+    pub fn new() -> WideString {
+        WideString(vec!())
+    }
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    /// Returns a raw pointer to the slice's buffer.
+    ///
+    /// The caller must ensure that the slice outlives the pointer this
+    /// function returns, or else it will end up pointing to garbage.
+    ///
+    /// Modifying the slice may cause its buffer to be reallocated, which
+    /// would also make any pointers to it invalid.
+    pub fn as_ptr(&self) -> *const u16 {
+        self.0.as_ptr()
+    }
+    pub fn get_slice(&self, range: Range<usize>) -> String {
+        String::from_utf16_lossy(&self.0[range])
     }
 }
 
-impl<T: AsRef<OsStr>> ToWide for T {
-    fn to_wide(&self) -> Vec<u16> {
-        self.as_ref().encode_wide().collect()
+impl<'a> From<&'a str> for WideString {
+    fn from(instring: &'a str) -> Self {
+        let osstr: &OsStr = instring.as_ref();
+        let mut out: Vec<u16> = osstr.encode_wide().collect();
+        out.push(0);
+        WideString(out)
+    }
+}
+
+impl<'a> From<String> for WideString {
+    fn from(instring: String) -> Self {
+        let instr: &str = &instring;
+        instr.into()
+    }
+}
+
+impl<'a> From<::std::borrow::Cow<'a, str>> for WideString {
+    fn from(instring: ::std::borrow::Cow<'a, str>) -> Self {
+        let instr: &str = &instring;
+        instr.into()
+    }
+}
+
+impl<'a> From<&'a [&'a str]> for WideString {
+    fn from(inslice: &'a [&'a str]) -> Self {
+        let mut out: Vec<u16> = vec![];
+        for instring in inslice {
+            let osstr: &OsStr = instring.as_ref();
+            out.extend(osstr.encode_wide());
+        }
+        out.push(0);
+        WideString(out)
+    }
+}
+
+impl<'a> From<Vec<&'a str>> for WideString {
+    fn from(inslice: Vec<&'a str>) -> Self {
+        let instr: &[&'a str]= &inslice;
+        instr.into()
+    }
+}
+
+impl<'a> From<&'a [String]> for WideString {
+    fn from(inslice: &'a [String]) -> Self {
+        let mut out: Vec<u16> = vec![];
+        for instring in inslice {
+            let osstr: &OsStr = instring.as_ref();
+            out.extend(osstr.encode_wide());
+        }
+        out.push(0);
+        WideString(out)
+    }
+}
+
+impl<'a> From<Vec<String>> for WideString {
+    fn from(inslice: Vec<String>) -> Self {
+        let instr: &[String]= &inslice;
+        instr.into()
+    }
+}
+
+impl<'a> From<&'a [::std::borrow::Cow<'a, str>]> for WideString {
+    fn from(inslice: &'a [::std::borrow::Cow<'a, str>]) -> Self {
+        let mut out: Vec<u16> = vec![];
+        for instring in inslice {
+            let osstr: &OsStr = instring.as_ref().as_ref();
+            out.extend(osstr.encode_wide());
+        }
+        out.push(0);
+        WideString(out)
+    }
+}
+
+impl<'a> From<Vec<::std::borrow::Cow<'a, str>>> for WideString {
+    fn from(inslice: Vec<::std::borrow::Cow<'a, str>>) -> Self {
+        let instr: &[::std::borrow::Cow<'a, str>]= &inslice;
+        instr.into()
+    }
+}
+
+impl Drop for WideString {
+    fn drop(&mut self) {
+        // this zerows on drop so if we use freed memory we can see it
+        for i in self.0.iter_mut(){
+            *i = 0;
+        }
+        assert_eq!(self.0.iter().sum::<u16>(), 0u16);
     }
 }
 
@@ -125,8 +226,7 @@ mod tests {
         let s = "\u{1d565}";
         assert_eq!(s.as_bytes(), [0xF0u8, 0x9D, 0x95, 0xA5]);
         assert_eq!(s.chars().collect::<Vec<char>>(), vec!['\u{1d565}']);
-        assert_eq!(s.to_wide(), vec![0xD835, 0xDD65]);
-        assert_eq!(s.to_wide_null(), vec![0xD835, 0xDD65, 0x0000]);
+        assert_eq!(WideString::from(s), WideString(vec![0xD835, 0xDD65, 0x0000]));
 
         assert_eq!(s.indices_utf8(), vec![0, 4]);
         assert_eq!(s.indices_utf16(), vec![0, 2]);
@@ -137,8 +237,7 @@ mod tests {
         let s = "\u{5d4}\u{5a2}";
         assert_eq!(s.as_bytes(), [0xD7, 0x94, 0xD6, 0xA2]);
         assert_eq!(s.chars().collect::<Vec<char>>(), vec!['\u{5d4}', '\u{5a2}']);
-        assert_eq!(s.to_wide(), vec![0x05D4, 0x05A2]);
-        assert_eq!(s.to_wide_null(), vec![0x05D4, 0x05A2, 0x0000]);
+        assert_eq!(WideString::from(s), WideString(vec![0x05D4, 0x05A2, 0x0000]));
 
         assert_eq!(s.indices_utf8(), vec![0, 2, 4]);
         assert_eq!(s.indices_utf16(), vec![0, 1, 2]);

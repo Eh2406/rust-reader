@@ -70,11 +70,11 @@ pub fn get_message() -> Option<winapi::MSG> {
     Some(msg)
 }
 
-pub fn set_console_title(title: &Vec<u16>) -> i32 {
+pub fn set_console_title(title: &WideString) -> i32 {
     unsafe { kernel32::SetConsoleTitleW(title.as_ptr()) }
 }
 
-pub fn set_window_text(h_wnd: winapi::HWND, wide: &Vec<u16>) -> winapi::BOOL {
+pub fn set_window_text(h_wnd: winapi::HWND, wide: &WideString) -> winapi::BOOL {
     unsafe { user32::SetWindowTextW(h_wnd, wide.as_ptr()) }
 }
 

@@ -43,7 +43,7 @@ pub struct SpVoice<'a> {
     window: winapi::HWND,
     edit: winapi::HWND,
     rate: winapi::HWND,
-    last_read: Vec<u16>,
+    last_read: WideString,
 }
 
 impl<'a> SpVoice<'a> {
@@ -51,9 +51,10 @@ impl<'a> SpVoice<'a> {
         println!("new for SpVoice");
         let mut voice: *mut winapi::ISpVoice = null_mut();
         let mut clsid_spvoice: winapi::CLSID = unsafe { mem::zeroed() };
+        let sapi_id: WideString = "SAPI.SpVoice".into();
 
         unsafe {
-            if failed(ole32::CLSIDFromProgID(&"SAPI.SpVoice".to_wide_null()[0],
+            if failed(ole32::CLSIDFromProgID(sapi_id.as_ptr(),
                                              &mut clsid_spvoice)) {
                 panic!("failed for SpVoice at CLSIDFromProgID");
             }
@@ -71,10 +72,10 @@ impl<'a> SpVoice<'a> {
                                        window: null_mut(),
                                        edit: null_mut(),
                                        rate: null_mut(),
-                                       last_read: Vec::new(),
+                                       last_read: WideString::new(),
                                    });
 
-            let window_class_name = "SAPI_event_window_class_name".to_wide_null();
+            let window_class_name: WideString = "SAPI_event_window_class_name".into();
             user32::RegisterClassW(&winapi::WNDCLASSW {
                                         style: 0,
                                         lpfnWndProc: Some(window_proc_generic::<SpVoice>),
@@ -103,8 +104,9 @@ impl<'a> SpVoice<'a> {
                                                  &mut *out as *mut _ as winapi::LPVOID);
 
             // https://msdn.microsoft.com/en-us/library/windows/desktop/hh298433.aspx
+            let wide_edit: WideString = "EDIT".into();
             out.edit = user32::CreateWindowExW(winapi::WS_EX_CLIENTEDGE,
-                                               &"EDIT".to_wide_null()[0],
+                                               wide_edit.as_ptr(),
                                                &0u16,
                                                winapi::WS_CHILD | winapi::WS_VISIBLE |
                                                winapi::WS_VSCROLL |
@@ -122,8 +124,9 @@ impl<'a> SpVoice<'a> {
                                                winapi_stub::ID_EDITCHILD,
                                                0 as winapi::HINSTANCE,
                                                null_mut());
+            let wide_static: WideString = "STATIC".into();
             out.rate = user32::CreateWindowExW(0,
-                                               &"STATIC".to_wide_null()[0],
+                                               wide_static.as_ptr(),
                                                &0u16,
                                                winapi::WS_CHILD | winapi::WS_VISIBLE |
                                                winapi_stub::SS_CENTER |
@@ -163,17 +166,17 @@ impl<'a> SpVoice<'a> {
 
     pub fn get_status_word(&mut self) -> String {
         let status = self.get_status();
-        String::from_utf16_lossy(&self.last_read[status.word_range()])
+        self.last_read.get_slice(status.word_range())
     }
 
     #[allow(dead_code)]
     pub fn get_status_sent(&mut self) -> String {
         let status = self.get_status();
-        String::from_utf16_lossy(&self.last_read[status.sent_range()])
+        self.last_read.get_slice(status.sent_range())
     }
 
-    pub fn speak<T: ToWide>(&mut self, string: T) {
-        self.last_read = string.to_wide_null();
+    pub fn speak<T: Into<WideString>>(&mut self, string: T) {
+        self.last_read = string.into();
         set_window_text(self.edit, &self.last_read);
         unsafe { self.voice.Speak(self.last_read.as_ptr(), 19, null_mut()) };
     }
@@ -182,7 +185,7 @@ impl<'a> SpVoice<'a> {
         unsafe { self.voice.WaitUntilDone(winapi::INFINITE) };
     }
 
-    pub fn speak_wait<T: ToWide>(&mut self, string: T) {
+    pub fn speak_wait<T: Into<WideString>>(&mut self, string: T) {
         self.speak(string);
         self.wait();
     }
@@ -198,14 +201,14 @@ impl<'a> SpVoice<'a> {
     pub fn set_rate(&mut self, rate: i32) -> i32 {
         let rate = max(min(rate, 10), -10);
         unsafe { self.voice.SetRate(rate) };
-        set_window_text(self.rate, &format!("rate: {}", rate).to_wide_null());
+        set_window_text(self.rate, &format!("rate: {}", rate).into());
         rate
     }
 
     pub fn get_rate(&mut self) -> i32 {
         let mut rate = 0;
         unsafe { self.voice.GetRate(&mut rate) };
-        set_window_text(self.rate, &format!("rate: {}", rate).to_wide_null());
+        set_window_text(self.rate, &format!("rate: {}", rate).into());
         rate
     }
 
@@ -278,7 +281,7 @@ impl<'a> Windowed for SpVoice<'a> {
                                            100.0 * (word_range.start as f64) /
                                            (self.last_read.len() as f64),
                                            self.get_status_word())
-                        .to_wide_null();
+                        .into();
                 set_console_title(&window_title);
                 set_window_text(self.window, &window_title);
                 set_edit_selection(self.edit, word_range);
