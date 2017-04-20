@@ -3,8 +3,8 @@ use wide_string::*;
 use std::borrow::Cow;
 use regex::*;
 
-mod regex_clener_pair;
-pub use self::regex_clener_pair::*;
+mod regex_cleaner_pair;
+pub use self::regex_cleaner_pair::*;
 
 #[cfg(test)]
 mod test;
@@ -51,7 +51,7 @@ impl<'r, 'a> Iterator for RegexReplace<'r, 'a> {
     }
 }
 
-fn regex_replace<'r, 'a, I>(raw: I, reg: &'a RegexClenerPair) -> Box<Iterator<Item = Pair<'a>> + 'a>
+fn regex_replace<'r, 'a, I>(raw: I, reg: &'a RegexCleanerPair) -> Box<Iterator<Item = Pair<'a>> + 'a>
     where I: 'a + Iterator<Item = Pair<'a>>
 {
     let (reg, r) = reg.to_parts();
@@ -120,7 +120,7 @@ fn trivial_pair<'a>(text: &'a str) -> Box<Iterator<Item = Pair<'a>> + 'a> {
 }
 
 fn clean_iter<'r: 'a, 'a>(raw: &'a str,
-                          list: &'r [RegexClenerPair])
+                          list: &'r [RegexCleanerPair])
                           -> Box<Iterator<Item = Pair<'a>> + 'a> {
     let mut out = trivial_pair(raw);
     for reg in list.iter() {
@@ -129,12 +129,12 @@ fn clean_iter<'r: 'a, 'a>(raw: &'a str,
     Box::new(graphemes_pair(out).scan(("".into(), 0), runing_count))
 }
 
-pub fn clean_text<'r: 'a, 'a, O: ::std::iter::FromIterator<Cow<'a, str>>>(raw: &'a str, list: &'r [RegexClenerPair]) -> O {
+pub fn clean_text<'r: 'a, 'a, O: ::std::iter::FromIterator<Cow<'a, str>>>(raw: &'a str, list: &'r [RegexCleanerPair]) -> O {
     clean_iter(raw, &list).map(|(_, x)| x).collect()
 }
 
 #[allow(dead_code)]
-pub fn clean_text_string<T: AsRef<str>>(raw: T, list: &[RegexClenerPair]) -> String {
+pub fn clean_text_string<T: AsRef<str>>(raw: T, list: &[RegexCleanerPair]) -> String {
     let raw = raw.as_ref();
     let mut out = String::with_capacity(raw.len());
     for (_, x) in clean_iter(raw, &list) {
@@ -146,7 +146,7 @@ pub fn clean_text_string<T: AsRef<str>>(raw: T, list: &[RegexClenerPair]) -> Str
 
 fn clean_text_idx<'r: 'a, 'a, F>(raw: &'a str,
                                  len: F,
-                                 list: &'r [RegexClenerPair])
+                                 list: &'r [RegexCleanerPair])
                                  -> Box<Iterator<Item = (usize, usize)> + 'a>
     where F: 'a + Fn(&str) -> usize
 {
@@ -162,28 +162,28 @@ fn clean_text_idx<'r: 'a, 'a, F>(raw: &'a str,
 }
 
 #[allow(dead_code)]
-pub fn clean_text_u8idx_in<T: AsRef<str>>(raw: T, list: &[RegexClenerPair]) -> Vec<usize> {
+pub fn clean_text_u8idx_in<T: AsRef<str>>(raw: T, list: &[RegexCleanerPair]) -> Vec<usize> {
     clean_text_idx(raw.as_ref(), LenUtf::len_utf8, list)
         .map(|(s, _)| s)
         .collect()
 }
 
 #[allow(dead_code)]
-pub fn clean_text_u16idx_in<T: AsRef<str>>(raw: T, list: &[RegexClenerPair]) -> Vec<usize> {
+pub fn clean_text_u16idx_in<T: AsRef<str>>(raw: T, list: &[RegexCleanerPair]) -> Vec<usize> {
     clean_text_idx(raw.as_ref(), LenUtf::len_utf16, list)
         .map(|(s, _)| s)
         .collect()
 }
 
 #[allow(dead_code)]
-pub fn clean_text_u8idx_out<T: AsRef<str>>(raw: T, list: &[RegexClenerPair]) -> Vec<usize> {
+pub fn clean_text_u8idx_out<T: AsRef<str>>(raw: T, list: &[RegexCleanerPair]) -> Vec<usize> {
     clean_text_idx(raw.as_ref(), LenUtf::len_utf8, list)
         .map(|(_, s)| s)
         .collect()
 }
 
 #[allow(dead_code)]
-pub fn clean_text_u16idx_out<T: AsRef<str>>(raw: T, list: &[RegexClenerPair]) -> Vec<usize> {
+pub fn clean_text_u16idx_out<T: AsRef<str>>(raw: T, list: &[RegexCleanerPair]) -> Vec<usize> {
     clean_text_idx(raw.as_ref(), LenUtf::len_utf16, list)
         .map(|(_, s)| s)
         .collect()

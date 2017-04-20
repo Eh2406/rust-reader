@@ -2,8 +2,8 @@ use super::*;
 
 lazy_static! {
     // TODO: use the defalt for settings insted
-    static ref RE_LIST: Vec<RegexClenerPair> = {
-        RegexClenerPair::prep_list(&[
+    static ref RE_LIST: Vec<RegexCleanerPair> = {
+        RegexCleanerPair::prep_list(&[
             (r"\s+", " "),
             (concat!(
                 r"^(https?://)?(?P<a>[-a-zA-Z0-9@:%._\+~#=]{2,256}",

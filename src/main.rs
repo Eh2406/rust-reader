@@ -12,7 +12,7 @@ extern crate unicode_segmentation;
 #[macro_use]
 extern crate serde_derive; //To write rust objects to json
 extern crate serde;
-extern crate preferences; //save objects in appdata folder
+extern crate preferences; //save objects in app data folder
 extern crate regex;
 #[cfg(test)]
 #[macro_use]
@@ -39,7 +39,7 @@ use settings::*;
 mod clean_text;
 use clean_text::*;
 
-fn read(voice: &mut SpVoice, list: &[RegexClenerPair]) {
+fn read(voice: &mut SpVoice, list: &[RegexCleanerPair]) {
     voice.resume();
     match get_text() {
         Ok(x) => voice.speak(clean_text::<WideString>(&x, list)),
