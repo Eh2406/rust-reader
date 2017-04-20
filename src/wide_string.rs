@@ -28,83 +28,24 @@ impl WideString {
     }
 }
 
-impl<'a> From<&'a str> for WideString {
-    fn from(instring: &'a str) -> Self {
-        let osstr: &OsStr = instring.as_ref();
+impl<T: ::std::borrow::Borrow<str>> From<T> for WideString {
+    fn from(instring: T) -> Self {
+        let osstr: &OsStr = instring.borrow().as_ref();
         let mut out: Vec<u16> = osstr.encode_wide().collect();
         out.push(0);
         WideString(out)
     }
 }
 
-impl<'a> From<String> for WideString {
-    fn from(instring: String) -> Self {
-        let instr: &str = &instring;
-        instr.into()
-    }
-}
-
-impl<'a> From<::std::borrow::Cow<'a, str>> for WideString {
-    fn from(instring: ::std::borrow::Cow<'a, str>) -> Self {
-        let instr: &str = &instring;
-        instr.into()
-    }
-}
-
-impl<'a> From<&'a [&'a str]> for WideString {
-    fn from(inslice: &'a [&'a str]) -> Self {
-        let mut out: Vec<u16> = vec![];
-        for instring in inslice {
-            let osstr: &OsStr = instring.as_ref();
-            out.extend(osstr.encode_wide());
+impl<T: ::std::borrow::Borrow<str>> ::std::iter::FromIterator<T> for WideString {
+    fn from_iter<I: IntoIterator<Item=T>>(iter: I) -> Self {
+        let mut out: Vec<u16> = Vec::new();
+        for i in iter {
+            let instr: &OsStr = i.borrow().as_ref();
+            out.extend(instr.encode_wide());
         }
         out.push(0);
         WideString(out)
-    }
-}
-
-impl<'a> From<Vec<&'a str>> for WideString {
-    fn from(inslice: Vec<&'a str>) -> Self {
-        let instr: &[&'a str]= &inslice;
-        instr.into()
-    }
-}
-
-impl<'a> From<&'a [String]> for WideString {
-    fn from(inslice: &'a [String]) -> Self {
-        let mut out: Vec<u16> = vec![];
-        for instring in inslice {
-            let osstr: &OsStr = instring.as_ref();
-            out.extend(osstr.encode_wide());
-        }
-        out.push(0);
-        WideString(out)
-    }
-}
-
-impl<'a> From<Vec<String>> for WideString {
-    fn from(inslice: Vec<String>) -> Self {
-        let instr: &[String]= &inslice;
-        instr.into()
-    }
-}
-
-impl<'a> From<&'a [::std::borrow::Cow<'a, str>]> for WideString {
-    fn from(inslice: &'a [::std::borrow::Cow<'a, str>]) -> Self {
-        let mut out: Vec<u16> = vec![];
-        for instring in inslice {
-            let osstr: &OsStr = instring.as_ref().as_ref();
-            out.extend(osstr.encode_wide());
-        }
-        out.push(0);
-        WideString(out)
-    }
-}
-
-impl<'a> From<Vec<::std::borrow::Cow<'a, str>>> for WideString {
-    fn from(inslice: Vec<::std::borrow::Cow<'a, str>>) -> Self {
-        let instr: &[::std::borrow::Cow<'a, str>]= &inslice;
-        instr.into()
     }
 }
 
