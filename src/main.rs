@@ -39,10 +39,10 @@ use settings::*;
 mod clean_text;
 use clean_text::*;
 
-fn read(voice: &mut SpVoice, list: &[RegexClenerPare]) {
+fn read(voice: &mut SpVoice, list: &[RegexClenerPair]) {
     voice.resume();
     match get_text() {
-        Ok(x) => voice.speak(clean_text_vec::<WideString>(&x, list)),
+        Ok(x) => voice.speak(clean_text::<WideString>(&x, list)),
         Err(x) => {
             voice.speak_wait("oops. error.");
             println!("{:?}", x);

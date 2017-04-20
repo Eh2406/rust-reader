@@ -3,24 +3,24 @@ use wide_string::*;
 use std::borrow::Cow;
 use regex::*;
 
-mod regex_clener_pare;
-pub use self::regex_clener_pare::*;
+mod regex_clener_pair;
+pub use self::regex_clener_pair::*;
 
 #[cfg(test)]
 mod test;
 
-type Pare<'a> = (&'a str, Cow<'a, str>);
+type Pair<'a> = (&'a str, Cow<'a, str>);
 
 struct RegexReplace<'r, 'a> {
     text: &'a str,
     last_match: usize,
     captures_iter: CaptureMatches<'r, 'a>,
-    cap: Option<Pare<'a>>,
+    cap: Option<Pair<'a>>,
     rep: &'r str,
 }
 
 impl<'r, 'a> Iterator for RegexReplace<'r, 'a> {
-    type Item = Pare<'a>;
+    type Item = Pair<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let last_match = self.last_match;
@@ -51,11 +51,11 @@ impl<'r, 'a> Iterator for RegexReplace<'r, 'a> {
     }
 }
 
-fn regex_replace<'r, 'a, I>(raw: I, reg: &'a RegexClenerPare) -> Box<Iterator<Item = Pare<'a>> + 'a>
-    where I: 'a + Iterator<Item = Pare<'a>>
+fn regex_replace<'r, 'a, I>(raw: I, reg: &'a RegexClenerPair) -> Box<Iterator<Item = Pair<'a>> + 'a>
+    where I: 'a + Iterator<Item = Pair<'a>>
 {
     let (reg, r) = reg.to_parts();
-    Box::new(raw.flat_map(move |(orig, ch)| -> Box<Iterator<Item = Pare<'a>> + 'a> {
+    Box::new(raw.flat_map(move |(orig, ch)| -> Box<Iterator<Item = Pair<'a>> + 'a> {
         if orig != ch {
             return Box::new(Some((orig, ch)).into_iter());
         }
@@ -69,7 +69,7 @@ fn regex_replace<'r, 'a, I>(raw: I, reg: &'a RegexClenerPare) -> Box<Iterator<It
     }))
 }
 
-fn runing_count<'a>(st: &mut (Cow<'a, str>, usize), (orig, ch): Pare<'a>) -> Option<Pare<'a>> {
+fn runing_count<'a>(st: &mut (Cow<'a, str>, usize), (orig, ch): Pair<'a>) -> Option<Pair<'a>> {
     if orig != ch {
         return Some((orig, ch));
     }
@@ -85,13 +85,13 @@ fn runing_count<'a>(st: &mut (Cow<'a, str>, usize), (orig, ch): Pare<'a>) -> Opt
     }
 }
 
-struct GraphemesPare<'a, I: 'a + Iterator<Item = Pare<'a>>> {
+struct GraphemesPair<'a, I: 'a + Iterator<Item = Pair<'a>>> {
     iter: I,
     graph: Option<Graphemes<'a>>,
 }
 
-impl<'a, I: 'a + Iterator<Item = Pare<'a>>> Iterator for GraphemesPare<'a, I> {
-    type Item = Pare<'a>;
+impl<'a, I: 'a + Iterator<Item = Pair<'a>>> Iterator for GraphemesPair<'a, I> {
+    type Item = Pair<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(x) = self.graph.as_mut().and_then(|gra| gra.next()) {
@@ -108,33 +108,33 @@ impl<'a, I: 'a + Iterator<Item = Pare<'a>>> Iterator for GraphemesPare<'a, I> {
     }
 }
 
-fn graphemes_pare<'a, I: 'a + Iterator<Item = Pare<'a>>>(i: I) -> GraphemesPare<'a, I> {
-    GraphemesPare {
+fn graphemes_pair<'a, I: 'a + Iterator<Item = Pair<'a>>>(i: I) -> GraphemesPair<'a, I> {
+    GraphemesPair {
         iter: i,
         graph: None,
     }
 }
 
-fn trivial_pare<'a>(text: &'a str) -> Box<Iterator<Item = Pare<'a>> + 'a> {
+fn trivial_pair<'a>(text: &'a str) -> Box<Iterator<Item = Pair<'a>> + 'a> {
     Box::new(Some((text, text.into())).into_iter())
 }
 
 fn clean_iter<'r: 'a, 'a>(raw: &'a str,
-                          list: &'r [RegexClenerPare])
-                          -> Box<Iterator<Item = Pare<'a>> + 'a> {
-    let mut out = trivial_pare(raw);
+                          list: &'r [RegexClenerPair])
+                          -> Box<Iterator<Item = Pair<'a>> + 'a> {
+    let mut out = trivial_pair(raw);
     for reg in list.iter() {
         out = regex_replace(out, reg);
     }
-    Box::new(graphemes_pare(out).scan(("".into(), 0), runing_count))
+    Box::new(graphemes_pair(out).scan(("".into(), 0), runing_count))
 }
 
-pub fn clean_text_vec<'r: 'a, 'a, O: ::std::iter::FromIterator<Cow<'a, str>>>(raw: &'a str, list: &'r [RegexClenerPare]) -> O {
+pub fn clean_text<'r: 'a, 'a, O: ::std::iter::FromIterator<Cow<'a, str>>>(raw: &'a str, list: &'r [RegexClenerPair]) -> O {
     clean_iter(raw, &list).map(|(_, x)| x).collect()
 }
 
 #[allow(dead_code)]
-pub fn clean_text<T: AsRef<str>>(raw: T, list: &[RegexClenerPare]) -> String {
+pub fn clean_text_string<T: AsRef<str>>(raw: T, list: &[RegexClenerPair]) -> String {
     let raw = raw.as_ref();
     let mut out = String::with_capacity(raw.len());
     for (_, x) in clean_iter(raw, &list) {
@@ -146,7 +146,7 @@ pub fn clean_text<T: AsRef<str>>(raw: T, list: &[RegexClenerPare]) -> String {
 
 fn clean_text_idx<'r: 'a, 'a, F>(raw: &'a str,
                                  len: F,
-                                 list: &'r [RegexClenerPare])
+                                 list: &'r [RegexClenerPair])
                                  -> Box<Iterator<Item = (usize, usize)> + 'a>
     where F: 'a + Fn(&str) -> usize
 {
@@ -162,28 +162,28 @@ fn clean_text_idx<'r: 'a, 'a, F>(raw: &'a str,
 }
 
 #[allow(dead_code)]
-pub fn clean_text_u8idx_in<T: AsRef<str>>(raw: T, list: &[RegexClenerPare]) -> Vec<usize> {
+pub fn clean_text_u8idx_in<T: AsRef<str>>(raw: T, list: &[RegexClenerPair]) -> Vec<usize> {
     clean_text_idx(raw.as_ref(), LenUtf::len_utf8, list)
         .map(|(s, _)| s)
         .collect()
 }
 
 #[allow(dead_code)]
-pub fn clean_text_u16idx_in<T: AsRef<str>>(raw: T, list: &[RegexClenerPare]) -> Vec<usize> {
+pub fn clean_text_u16idx_in<T: AsRef<str>>(raw: T, list: &[RegexClenerPair]) -> Vec<usize> {
     clean_text_idx(raw.as_ref(), LenUtf::len_utf16, list)
         .map(|(s, _)| s)
         .collect()
 }
 
 #[allow(dead_code)]
-pub fn clean_text_u8idx_out<T: AsRef<str>>(raw: T, list: &[RegexClenerPare]) -> Vec<usize> {
+pub fn clean_text_u8idx_out<T: AsRef<str>>(raw: T, list: &[RegexClenerPair]) -> Vec<usize> {
     clean_text_idx(raw.as_ref(), LenUtf::len_utf8, list)
         .map(|(_, s)| s)
         .collect()
 }
 
 #[allow(dead_code)]
-pub fn clean_text_u16idx_out<T: AsRef<str>>(raw: T, list: &[RegexClenerPare]) -> Vec<usize> {
+pub fn clean_text_u16idx_out<T: AsRef<str>>(raw: T, list: &[RegexClenerPair]) -> Vec<usize> {
     clean_text_idx(raw.as_ref(), LenUtf::len_utf16, list)
         .map(|(_, s)| s)
         .collect()

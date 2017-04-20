@@ -2,8 +2,8 @@ use super::*;
 
 lazy_static! {
     // TODO: use the defalt for settings insted
-    static ref RE_LIST: Vec<RegexClenerPare> = {
-        RegexClenerPare::prep_list(&[
+    static ref RE_LIST: Vec<RegexClenerPair> = {
+        RegexClenerPair::prep_list(&[
             (r"\s+", " "),
             (concat!(
                 r"^(https?://)?(?P<a>[-a-zA-Z0-9@:%._\+~#=]{2,256}",
@@ -15,7 +15,7 @@ lazy_static! {
 
 #[test]
 fn one_word() {
-    assert_eq!(clean_text("Hello", &RE_LIST), "Hello");
+    assert_eq!(clean_text_string("Hello", &RE_LIST), "Hello");
 }
 
 #[test]
@@ -34,38 +34,38 @@ fn one_word_u8idx() {
 
 #[test]
 fn in_string() {
-    assert_eq!(clean_text("Hello".to_string(), &RE_LIST), "Hello");
+    assert_eq!(clean_text_string("Hello".to_string(), &RE_LIST), "Hello");
 }
 
 #[test]
 fn two_word() {
-    assert_eq!(clean_text("Hello world!", &RE_LIST), "Hello world!");
+    assert_eq!(clean_text_string("Hello world!", &RE_LIST), "Hello world!");
 }
 
 #[test]
 fn two_word_with_new_line() {
-    assert_eq!(clean_text("Hello \t\n \t\r \t\r\n world!", &RE_LIST),
+    assert_eq!(clean_text_string("Hello \t\n \t\r \t\r\n world!", &RE_LIST),
                 "Hello world!");
 }
 
 #[test]
 fn two_word_with_tabs() {
-    assert_eq!(clean_text("Hello\t\n\t\r\t\r\nworld!", &RE_LIST),
+    assert_eq!(clean_text_string("Hello\t\n\t\r\t\r\nworld!", &RE_LIST),
                 "Hello world!");
 }
 
 #[test]
 fn sha1() {
-    assert_eq!(clean_text("1 parent 1b329f3 commit 4773d2e39d0be947344ddfebc92d16f37e0584aa",
-                            &RE_LIST),
+    assert_eq!(clean_text_string("1 parent 1b329f3 commit 4773d2e39d0be947344ddfebc92d16f37e0584aa",
+                                 &RE_LIST),
                 "1 parent 1b329f3 commit hash 4773d2");
 }
 
 #[test]
 fn url() {
-    assert_eq!(clean_text("https://www.youtube.com/watch?v=JFpanWNgfQY", &RE_LIST),
+    assert_eq!(clean_text_string("https://www.youtube.com/watch?v=JFpanWNgfQY", &RE_LIST),
                 "link to www.youtube.com");
-    assert_eq!(clean_text("www.youtube.com/watch?v=JFpanWNgfQY", &RE_LIST),
+    assert_eq!(clean_text_string("www.youtube.com/watch?v=JFpanWNgfQY", &RE_LIST),
                 "link to www.youtube.com");
 }
 
@@ -87,7 +87,7 @@ fn two_word_with_tabs_u8idx() {
 
 #[test]
 fn two_word_with_underscore() {
-    assert_eq!(clean_text("Hello _________ world!", &RE_LIST),
+    assert_eq!(clean_text_string("Hello _________ world!", &RE_LIST),
                 "Hello ___ world!");
 }
 
@@ -109,7 +109,7 @@ fn two_word_with_underscore_u8idx() {
 
 #[test]
 fn two_word_with_dash() {
-    assert_eq!(clean_text("Hello ----------- world!", &RE_LIST),
+    assert_eq!(clean_text_string("Hello ----------- world!", &RE_LIST),
                 "Hello --- world!");
 }
 
@@ -141,20 +141,20 @@ fn two_word_with_dash_u16idx() {
 
 #[test]
 fn two_word_with_equals() {
-    assert_eq!(clean_text("Hello =========== world!", &RE_LIST),
+    assert_eq!(clean_text_string("Hello =========== world!", &RE_LIST),
                 "Hello === world!");
 }
 
 #[test]
 fn two_word_with_numbers() {
-    assert_eq!(clean_text("Hello 100000 world!", &RE_LIST),
+    assert_eq!(clean_text_string("Hello 100000 world!", &RE_LIST),
                 "Hello 100000 world!");
 }
 
 #[test]
 fn two_word_with_longchar() {
-    assert_eq!(clean_text("Hello \u{1d565}\u{1d565}\u{1d565}\u{1d565}\u{1d565} world!",
-                            &RE_LIST),
+    assert_eq!(clean_text_string("Hello \u{1d565}\u{1d565}\u{1d565}\u{1d565}\u{1d565} world!",
+                                 &RE_LIST),
                 "Hello \u{1d565}\u{1d565}\u{1d565} world!");
 }
 
@@ -176,9 +176,9 @@ fn two_word_with_longchar_u8idx() {
 
 #[test]
 fn two_word_with_multichar() {
-    assert_eq!(clean_text("Hello \u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2}\
+    assert_eq!(clean_text_string("Hello \u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2}\
                             \u{5d4}\u{5a2} world!",
-                            &RE_LIST),
+                                 &RE_LIST),
                 "Hello \u{5d4}\u{5a2}\u{5d4}\u{5a2}\u{5d4}\u{5a2} world!");
 }
 
@@ -204,13 +204,13 @@ fn test_clean_text_u8idx<T: AsRef<str>>(text: T) -> bool {
     let vec_u8idx_in = clean_text_u8idx_in(text, &RE_LIST);
     let vec_u8idx_out = clean_text_u8idx_out(text, &RE_LIST);
     for (&in_idx, &out_idx) in vec_u8idx_in.iter().zip(vec_u8idx_out.iter()) {
-        if clean_text(&text[..in_idx], &RE_LIST).len() != out_idx {
+        if clean_text_string(&text[..in_idx], &RE_LIST).len() != out_idx {
             println!("\r\n{:?}", vec_u8idx_in);
             println!("{:?}", vec_u8idx_out);
             println!("({:?}, {:?}) {:?}",
-                        in_idx,
-                        out_idx,
-                        clean_text(&text[..in_idx], &RE_LIST).len());
+                     in_idx,
+                     out_idx,
+                     clean_text_string(&text[..in_idx], &RE_LIST).len());
             return false;
         }
     }

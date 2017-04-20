@@ -3,26 +3,26 @@ use serde::{Serialize, Serializer, Deserializer};
 use serde::de::{self, Deserialize, Visitor, SeqVisitor};
 
 #[derive(Debug)]
-pub struct RegexClenerPare {
+pub struct RegexClenerPair {
     regex: Regex,
     rep: String,
 }
 
-impl RegexClenerPare {
-    fn new<T: AsRef<str>>(regex: T, rep: String) -> Result<RegexClenerPare, Error> {
-        Ok(RegexClenerPare {
+impl RegexClenerPair {
+    fn new<T: AsRef<str>>(regex: T, rep: String) -> Result<RegexClenerPair, Error> {
+        Ok(RegexClenerPair {
                regex: Regex::new(regex.as_ref())?,
                rep: rep,
            })
     }
-    pub fn prep_list(input: &[(&str, &str)]) -> Result<Vec<RegexClenerPare>, Error> {
+    pub fn prep_list(input: &[(&str, &str)]) -> Result<Vec<RegexClenerPair>, Error> {
         input
             .iter()
-            .map(|&(ref reg, rep)| RegexClenerPare::new(reg, rep.to_string()))
+            .map(|&(ref reg, rep)| RegexClenerPair::new(reg, rep.to_string()))
             .collect()
     }
     pub fn to_parts(&self) -> (&Regex, &str) {
-        let &RegexClenerPare {
+        let &RegexClenerPair {
                     regex: ref reg,
                     rep: ref r,
                 } = self;
@@ -30,7 +30,7 @@ impl RegexClenerPare {
     }
 }
 
-impl Serialize for RegexClenerPare {
+impl Serialize for RegexClenerPair {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where S: Serializer
     {
@@ -42,20 +42,20 @@ impl Serialize for RegexClenerPare {
     }
 }
 
-impl Deserialize for RegexClenerPare {
+impl Deserialize for RegexClenerPair {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
         where D: Deserializer
     {
-        struct RegexClenerPareVisitor;
+        struct RegexClenerPairVisitor;
 
-        impl Visitor for RegexClenerPareVisitor {
-            type Value = RegexClenerPare;
+        impl Visitor for RegexClenerPairVisitor {
+            type Value = RegexClenerPair;
 
             fn expecting(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
                 formatter.write_str("a pair for of regex and replacement")
             }
 
-            fn visit_seq<V>(self, mut visitor: V) -> Result<RegexClenerPare, V::Error>
+            fn visit_seq<V>(self, mut visitor: V) -> Result<RegexClenerPair, V::Error>
                 where V: SeqVisitor
             {
                 let regex: String = match visitor.visit()? {
@@ -70,7 +70,7 @@ impl Deserialize for RegexClenerPare {
                         return Err(de::Error::invalid_length(1, &self));
                     }
                 };
-                Ok(RegexClenerPare {
+                Ok(RegexClenerPair {
                        regex: Regex::new(&regex)
                            .map_err(|_| {
                                         de::Error::invalid_value(de::Unexpected::Str(&regex), &self)
@@ -81,6 +81,6 @@ impl Deserialize for RegexClenerPare {
         }
 
         const FIELDS: &'static [&'static str] = &["regex", "rep"];
-        deserializer.deserialize_struct("RegexClenerPare", FIELDS, RegexClenerPareVisitor)
+        deserializer.deserialize_struct("RegexClenerPair", FIELDS, RegexClenerPairVisitor)
     }
 }
