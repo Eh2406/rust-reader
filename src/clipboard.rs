@@ -90,7 +90,7 @@ pub fn what_on_get_clipboard_string(n: u64) -> io::Result<String> {
 }
 
 pub fn get_text() -> io::Result<String> {
-    println!("geting text");
+    println!("getting text");
     let old_clip = what_on_get_clipboard_string(25);
     let old_clip_num =
         get_clipboard_seq_num().expect(

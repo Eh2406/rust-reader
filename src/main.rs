@@ -1,5 +1,5 @@
-// Dont show a cmd if using nightly. This will be stabalized in 1.18.
-// If using a stable befor 1.18 build with for gnu `cargo rustc --release -- -C link-args=-mwindows`
+// Don't show a cmd if using nightly. This will be stabilized in 1.18.
+// If using a stable before 1.18 build with for gnu `cargo rustc --release -- -C link-args=-mwindows`
 #![cfg_attr(feature="nightly", windows_subsystem = "windows")]
 
 extern crate winapi;
@@ -84,13 +84,13 @@ fn main() {
                              .collect();
     clipboard_setup();
 
-    let mut setup_spech = "Reading from settings at:\r\n".to_string();
-    setup_spech += &settings.get_dir().to_string_lossy();
-    setup_spech += "\r\n";
-    setup_spech += "speech rate of: ";
-    setup_spech += &settings.rate.to_string();
-    setup_spech += "\r\n";
-    setup_spech += "hotkeys\r\n";
+    let mut setup_speech = "Reading from settings at:\r\n".to_string();
+    setup_speech += &settings.get_dir().to_string_lossy();
+    setup_speech += "\r\n";
+    setup_speech += "speech rate of: ";
+    setup_speech += &settings.rate.to_string();
+    setup_speech += "\r\n";
+    setup_speech += "hotkeys\r\n";
     for (t, h) in ["read",
                    "close",
                    "toggle_window_visible",
@@ -99,13 +99,13 @@ fn main() {
                    "rate_up"]
                 .iter()
                 .zip(hk.iter()) {
-        setup_spech += t;
-        setup_spech += ": ";
-        setup_spech += &h.display();
-        setup_spech += "\r\n";
+        setup_speech += t;
+        setup_speech += ": ";
+        setup_speech += &h.display();
+        setup_speech += "\r\n";
     }
-    setup_spech += "Ready!";
-    voice.speak(setup_spech);
+    setup_speech += "Ready!";
+    voice.speak(setup_speech);
 
     while let Some(msg) = get_message() {
         match msg.message {

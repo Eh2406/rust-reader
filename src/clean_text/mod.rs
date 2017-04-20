@@ -69,7 +69,7 @@ fn regex_replace<'r, 'a, I>(raw: I, reg: &'a RegexCleanerPair) -> Box<Iterator<I
     }))
 }
 
-fn runing_count<'a>(st: &mut (Cow<'a, str>, usize), (orig, ch): Pair<'a>) -> Option<Pair<'a>> {
+fn running_count<'a>(st: &mut (Cow<'a, str>, usize), (orig, ch): Pair<'a>) -> Option<Pair<'a>> {
     if orig != ch {
         return Some((orig, ch));
     }
@@ -126,7 +126,7 @@ fn clean_iter<'r: 'a, 'a>(raw: &'a str,
     for reg in list.iter() {
         out = regex_replace(out, reg);
     }
-    Box::new(graphemes_pair(out).scan(("".into(), 0), runing_count))
+    Box::new(graphemes_pair(out).scan(("".into(), 0), running_count))
 }
 
 pub fn clean_text<'r: 'a, 'a, O: ::std::iter::FromIterator<Cow<'a, str>>>(raw: &'a str, list: &'r [RegexCleanerPair]) -> O {
