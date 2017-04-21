@@ -69,9 +69,3 @@ impl Settings {
         }
     }
 }
-
-impl Drop for Settings {
-    fn drop(&mut self) {
-        self.to_file()
-    }
-}

@@ -51,11 +51,15 @@ fn read(voice: &mut SpVoice, list: &[RegexCleanerPair]) {
     }
 }
 
-fn reload_settings(voice: &mut SpVoice, settings: &mut Settings) {
+fn reload_settings(voice: &mut SpVoice, settings: &mut Settings, hk: &mut Vec<HotKey>) {
     if settings.reload_from_file() {
-        voice.speak("reload settings.")
+        hk.clear();
+        *hk = setup_hotkeys(settings);
+        settings.rate = voice.set_rate(settings.rate);
+        settings.to_file();
+        voice.speak("reload settings.");
     } else {
-        voice.speak("failed to reload settings.")    
+        voice.speak("failed to reload settings.");
     }
 }
 
@@ -83,19 +87,23 @@ fn rate_up(voice: &mut SpVoice, settings: &mut Settings) {
     println!("rate :{:?}", settings.rate);
 }
 
+fn setup_hotkeys(settings: &mut Settings) -> Vec<HotKey> {
+    settings.hotkeys
+            .into_iter()
+            .enumerate() // generate HotKey id
+            .map(|(id, &(modifiers, vk))| {
+                HotKey::new(modifiers, vk, id as i32).unwrap() // make HotKey
+            })
+            .collect()
+}
+
 fn main() {
     let _com = Com::new();
     let mut voice = SpVoice::new();
     let mut settings = Settings::from_file();
     voice.set_rate(settings.rate);
     println!("rate :{:?}", voice.get_rate());
-    let hk: Vec<_> = settings.hotkeys
-                             .into_iter()
-                             .enumerate() // generate HotKey id
-                             .map(|(id, &(modifiers, vk))| {
-                                 HotKey::new(modifiers, vk, id as i32).unwrap() // make HotKey
-                             })
-                             .collect();
+    let mut hk = setup_hotkeys(&mut settings);
     clipboard_setup();
 
     let mut setup_speech = "Reading from settings at:\r\n".to_string();
@@ -129,7 +137,7 @@ fn main() {
                 match msg.wParam { // match on generated HotKey id
                     0 => read(&mut voice, &settings.cleaners),
                     1 => close(),
-                    2 => reload_settings(&mut voice, &mut settings),
+                    2 => reload_settings(&mut voice, &mut settings, &mut hk),
                     3 => open_settings(&mut settings),
                     4 => {
                         voice.toggle_window_visible();
@@ -151,4 +159,5 @@ fn main() {
     }
     voice.resume();
     voice.speak_wait("bye!");
+    settings.to_file();
 }
