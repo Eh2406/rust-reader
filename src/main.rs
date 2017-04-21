@@ -52,15 +52,18 @@ fn read(voice: &mut SpVoice, list: &[RegexCleanerPair]) {
 }
 
 fn reload_settings(voice: &mut SpVoice, settings: &mut Settings, hk: &mut Vec<HotKey>) {
+    let mut speech = String::new();
     if settings.reload_from_file() {
         hk.clear();
         *hk = setup_hotkeys(settings);
         settings.rate = voice.set_rate(settings.rate);
         settings.to_file();
-        voice.speak("reload settings.");
+        speech += "reloaded settings.\r\n";
     } else {
-        voice.speak("failed to reload settings.");
+        speech += "failed to reload settings.\r\n";
     }
+    speech += &make_speech(&settings, &hk);
+    voice.speak(speech);
 }
 
 fn open_settings(settings: &mut Settings) {
@@ -97,22 +100,15 @@ fn setup_hotkeys(settings: &mut Settings) -> Vec<HotKey> {
             .collect()
 }
 
-fn main() {
-    let com = Com::new();
-    let mut voice = SpVoice::new(&com);
-    let mut settings = Settings::from_file();
-    voice.set_rate(settings.rate);
-    println!("rate :{:?}", voice.get_rate());
-    let mut hk = setup_hotkeys(&mut settings);
-    clipboard_setup();
-
-    let mut setup_speech = "Reading from settings at:\r\n".to_string();
-    setup_speech += &settings.get_dir().to_string_lossy();
-    setup_speech += "\r\n";
-    setup_speech += "speech rate of: ";
-    setup_speech += &settings.rate.to_string();
-    setup_speech += "\r\n";
-    setup_speech += "hotkeys\r\n";
+fn make_speech(settings: &Settings, hk: &[HotKey]) -> String {
+    let mut out = "Reading from settings at:".to_string();
+    out += "\r\n";
+    out += &settings.get_dir().to_string_lossy();
+    out += "\r\n";
+    out += "speech rate of: ";
+    out += &settings.rate.to_string();
+    out += "\r\n";
+    out += "hotkeys\r\n";
     for (t, h) in ["read",
                    "close",
                    "reload_settings",
@@ -123,13 +119,24 @@ fn main() {
                    "rate_up"]
                 .iter()
                 .zip(hk.iter()) {
-        setup_speech += t;
-        setup_speech += ": ";
-        setup_speech += &h.display();
-        setup_speech += "\r\n";
+        out += t;
+        out += ": ";
+        out += &h.display();
+        out += "\r\n";
     }
-    setup_speech += "Ready!";
-    voice.speak(setup_speech);
+    out += "Ready!";
+    out
+}
+
+fn main() {
+    let com = Com::new();
+    let mut voice = SpVoice::new(&com);
+    let mut settings = Settings::from_file();
+    voice.set_rate(settings.rate);
+    let mut hk = setup_hotkeys(&mut settings);
+    clipboard_setup();
+    
+    voice.speak(make_speech(&settings, &hk));
 
     while let Some(msg) = get_message() {
         match msg.message {
