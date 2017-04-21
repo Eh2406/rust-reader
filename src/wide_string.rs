@@ -7,7 +7,7 @@ pub struct WideString(Vec<u16>);
 
 impl WideString {
     pub fn new() -> WideString {
-        WideString(vec!())
+        WideString(vec![])
     }
     pub fn len(&self) -> usize {
         self.0.len()
@@ -38,7 +38,7 @@ impl<T: ::std::borrow::Borrow<str>> From<T> for WideString {
 }
 
 impl<T: ::std::borrow::Borrow<str>> ::std::iter::FromIterator<T> for WideString {
-    fn from_iter<I: IntoIterator<Item=T>>(iter: I) -> Self {
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
         let mut out: Vec<u16> = Vec::new();
         for i in iter {
             let instr: &OsStr = i.borrow().as_ref();
@@ -52,7 +52,7 @@ impl<T: ::std::borrow::Borrow<str>> ::std::iter::FromIterator<T> for WideString 
 impl Drop for WideString {
     fn drop(&mut self) {
         // this zeroes on drop so if we use freed memory we can see it
-        for i in self.0.iter_mut(){
+        for i in self.0.iter_mut() {
             *i = 0;
         }
         assert_eq!(self.0.iter().sum::<u16>(), 0u16);
@@ -167,7 +167,8 @@ mod tests {
         let s = "\u{1d565}";
         assert_eq!(s.as_bytes(), [0xF0u8, 0x9D, 0x95, 0xA5]);
         assert_eq!(s.chars().collect::<Vec<char>>(), vec!['\u{1d565}']);
-        assert_eq!(WideString::from(s), WideString(vec![0xD835, 0xDD65, 0x0000]));
+        assert_eq!(WideString::from(s),
+                   WideString(vec![0xD835, 0xDD65, 0x0000]));
 
         assert_eq!(s.indices_utf8(), vec![0, 4]);
         assert_eq!(s.indices_utf16(), vec![0, 2]);
@@ -178,7 +179,8 @@ mod tests {
         let s = "\u{5d4}\u{5a2}";
         assert_eq!(s.as_bytes(), [0xD7, 0x94, 0xD6, 0xA2]);
         assert_eq!(s.chars().collect::<Vec<char>>(), vec!['\u{5d4}', '\u{5a2}']);
-        assert_eq!(WideString::from(s), WideString(vec![0x05D4, 0x05A2, 0x0000]));
+        assert_eq!(WideString::from(s),
+                   WideString(vec![0x05D4, 0x05A2, 0x0000]));
 
         assert_eq!(s.indices_utf8(), vec![0, 2, 4]);
         assert_eq!(s.indices_utf16(), vec![0, 1, 2]);

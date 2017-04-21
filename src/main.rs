@@ -68,7 +68,10 @@ fn reload_settings(voice: &mut SpVoice, settings: &mut Settings, hk: &mut Vec<Ho
 
 fn open_settings(settings: &mut Settings) {
     use std::process::Command;
-    println!("{:?}", Command::new(r"C:\Windows\System32\notepad.exe").arg(settings.get_dir()).spawn());
+    println!("{:?}",
+             Command::new(r"C:\Windows\System32\notepad.exe")
+                 .arg(settings.get_dir())
+                 .spawn());
 }
 
 fn play_pause(voice: &mut SpVoice) {
@@ -135,7 +138,7 @@ fn main() {
     voice.set_rate(settings.rate);
     let mut hk = setup_hotkeys(&mut settings);
     clipboard_setup();
-    
+
     voice.speak(make_speech(&settings, &hk));
 
     while let Some(msg) = get_message() {

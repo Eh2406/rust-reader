@@ -54,8 +54,7 @@ impl<'a> SpVoice<'a> {
         let sapi_id: WideString = "SAPI.SpVoice".into();
 
         unsafe {
-            if failed(ole32::CLSIDFromProgID(sapi_id.as_ptr(),
-                                             &mut clsid_spvoice)) {
+            if failed(ole32::CLSIDFromProgID(sapi_id.as_ptr(), &mut clsid_spvoice)) {
                 panic!("failed for SpVoice at CLSIDFromProgID");
             }
 

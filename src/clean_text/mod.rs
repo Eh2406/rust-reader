@@ -55,43 +55,51 @@ impl<'r, 'a> Iterator for RegexReplace<'r, 'a> {
 struct FlatPair<I, C, F> {
     source: I,
     current: Option<C>,
-    func: F
+    func: F,
 }
 
-impl<'a, I: 'a + Iterator<Item = Pair<'a>>, C: 'a + Iterator<Item = Pair<'a>>, F: Fn(&'a str) -> C> Iterator for FlatPair<I, C, F> {
+impl<'a, I, C, F> Iterator for FlatPair<I, C, F>
+    where I: 'a + Iterator<Item = Pair<'a>>,
+          C: 'a + Iterator<Item = Pair<'a>>,
+          F: Fn(&'a str) -> C
+{
     type Item = Pair<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(p) = self.current.as_mut().and_then(|cur| cur.next()){
+        if let Some(p) = self.current.as_mut().and_then(|cur| cur.next()) {
             return Some(p);
         }
         if let Some(s) = self.source.next() {
             if s.0 != s.1 {
-                return Some(s)
+                return Some(s);
             } else {
                 self.current = Some((self.func)(s.0));
-                return self.next()
+                return self.next();
             }
         }
         None
     }
 }
 
-fn regex_replace<'r, 'a, I>(raw: I, reg: &'a RegexCleanerPair) -> Box<Iterator<Item = Pair<'a>> + 'a>
+fn regex_replace<'r, 'a, I>(raw: I,
+                            reg: &'a RegexCleanerPair)
+                            -> Box<Iterator<Item = Pair<'a>> + 'a>
     where I: 'a + Iterator<Item = Pair<'a>>
 {
     let (reg, r) = reg.to_parts();
-    Box::new(FlatPair{
-        source: raw,
-        current: None,
-        func: move |orig| RegexReplace {
-                     text: orig,
-                     last_match: 0,
-                     captures_iter: reg.captures_iter(orig),
-                     cap: None,
-                     rep: r,
-                 }
-    })
+    Box::new(FlatPair {
+                 source: raw,
+                 current: None,
+                 func: move |orig| {
+        RegexReplace {
+            text: orig,
+            last_match: 0,
+            captures_iter: reg.captures_iter(orig),
+            cap: None,
+            rep: r,
+        }
+    },
+             })
 }
 
 fn running_count<'a>(st: &mut (&'a str, usize), ch: &'a str) -> Option<Pair<'a>> {
@@ -107,12 +115,15 @@ fn running_count<'a>(st: &mut (&'a str, usize), ch: &'a str) -> Option<Pair<'a>>
     }
 }
 
-fn graphemes_pair<'a, I: 'a + Iterator<Item = Pair<'a>>>(i: I) -> Box<Iterator<Item = Pair<'a>> + 'a> {
-    Box::new(FlatPair{
-        source: i,
-        current: None,
-        func: move |orig: &'a str| orig.graphemes(true).scan(("".into(), 0), running_count)
-    })
+fn graphemes_pair<'a, I: 'a + Iterator<Item = Pair<'a>>>(i: I)
+                                                         -> Box<Iterator<Item = Pair<'a>> + 'a> {
+    Box::new(FlatPair {
+                 source: i,
+                 current: None,
+                 func: move |orig: &'a str| {
+                     orig.graphemes(true).scan(("".into(), 0), running_count)
+                 },
+             })
 }
 
 fn trivial_pair<'a>(text: &'a str) -> Box<Iterator<Item = Pair<'a>> + 'a> {
@@ -129,7 +140,9 @@ fn clean_iter<'r: 'a, 'a>(raw: &'a str,
     Box::new(graphemes_pair(out))
 }
 
-pub fn clean_text<'r: 'a, 'a, O: ::std::iter::FromIterator<Cow<'a, str>>>(raw: &'a str, list: &'r [RegexCleanerPair]) -> O {
+pub fn clean_text<'r: 'a, 'a, O>(raw: &'a str, list: &'r [RegexCleanerPair]) -> O
+    where O: ::std::iter::FromIterator<Cow<'a, str>>
+{
     clean_iter(raw, &list).map(|(_, x)| x).collect()
 }
 

@@ -54,7 +54,7 @@ impl Settings {
         })
     }
     pub fn reload_from_file(&mut self) -> bool {
-        if let Ok(new) = Settings::load(&APP_INFO, "setings"){
+        if let Ok(new) = Settings::load(&APP_INFO, "setings") {
             println!("reload settings.");
             *self = new;
             true

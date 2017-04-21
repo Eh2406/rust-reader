@@ -23,9 +23,9 @@ impl RegexCleanerPair {
     }
     pub fn to_parts(&self) -> (&Regex, &str) {
         let &RegexCleanerPair {
-                    regex: ref reg,
-                    rep: ref r,
-                } = self;
+                 regex: ref reg,
+                 rep: ref r,
+             } = self;
         (reg, r)
     }
 }
