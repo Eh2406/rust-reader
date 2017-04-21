@@ -98,8 +98,8 @@ fn setup_hotkeys(settings: &mut Settings) -> Vec<HotKey> {
 }
 
 fn main() {
-    let _com = Com::new();
-    let mut voice = SpVoice::new();
+    let com = Com::new();
+    let mut voice = SpVoice::new(&com);
     let mut settings = Settings::from_file();
     voice.set_rate(settings.rate);
     println!("rate :{:?}", voice.get_rate());

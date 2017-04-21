@@ -47,7 +47,7 @@ pub struct SpVoice<'a> {
 }
 
 impl<'a> SpVoice<'a> {
-    pub fn new() -> Box<SpVoice<'a>> {
+    pub fn new<'c: 'a>(_con: &'c Com) -> Box<SpVoice<'a>> {
         println!("new for SpVoice");
         let mut voice: *mut winapi::ISpVoice = null_mut();
         let mut clsid_spvoice: winapi::CLSID = unsafe { mem::zeroed() };
