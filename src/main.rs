@@ -50,6 +50,19 @@ fn read(voice: &mut SpVoice, list: &[RegexCleanerPair]) {
     }
 }
 
+fn reload_settings(voice: &mut SpVoice, settings: &mut Settings) {
+    if settings.reload_from_file() {
+        voice.speak("reload settings.")
+    } else {
+        voice.speak("failed to reload settings.")    
+    }
+}
+
+fn open_settings(settings: &mut Settings) {
+    use std::process::Command;
+    println!("{:?}", Command::new(r"C:\Windows\System32\notepad.exe").arg(settings.get_dir()).spawn());
+}
+
 fn play_pause(voice: &mut SpVoice) {
     match voice.get_status().dwRunningState {
         2 => voice.pause(),
@@ -93,6 +106,8 @@ fn main() {
     setup_speech += "hotkeys\r\n";
     for (t, h) in ["read",
                    "close",
+                   "reload_settings",
+                   "open_settings",
                    "toggle_window_visible",
                    "play_pause",
                    "rate_down",
@@ -113,12 +128,14 @@ fn main() {
                 match msg.wParam { // match on generated HotKey id
                     0 => read(&mut voice, &settings.cleaners),
                     1 => close(),
-                    2 => {
+                    2 => reload_settings(&mut voice, &mut settings),
+                    3 => open_settings(&mut settings),
+                    4 => {
                         voice.toggle_window_visible();
                     }
-                    3 => play_pause(&mut voice),
-                    4 => rate_down(&mut voice, &mut settings),
-                    5 => rate_up(&mut voice, &mut settings),
+                    5 => play_pause(&mut voice),
+                    6 => rate_down(&mut voice, &mut settings),
+                    7 => rate_up(&mut voice, &mut settings),
                     _ => println!("unknown hot {}", msg.wParam),
                 }
             }
