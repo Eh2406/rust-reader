@@ -14,6 +14,7 @@ extern crate serde_derive; //To write rust objects to json
 extern crate serde;
 extern crate preferences; //save objects in app data folder
 extern crate regex;
+extern crate itertools;
 #[cfg(test)]
 #[macro_use]
 extern crate lazy_static;

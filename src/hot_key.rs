@@ -1,5 +1,6 @@
 use user32;
 use winapi::VK_ESCAPE;
+use itertools::Itertools;
 
 use std::ptr::null_mut;
 
@@ -9,7 +10,7 @@ fn convert_modifiers(modifiers: u32) -> String {
         .enumerate()
         .filter(|&(i, _)| (modifiers & (1 << i)) > 0)
         .map(|(_, &val)| val)
-        .collect()
+        .join("+")
 }
 
 #[test]
@@ -29,12 +30,12 @@ fn test_modifiers_sht() {
 
 #[test]
 fn test_modifiers_altctr() {
-    assert_eq!(&convert_modifiers(3), "AltCtr");
+    assert_eq!(&convert_modifiers(3), "Alt+Ctr");
 }
 
 #[test]
 fn test_modifiers_altctrsht() {
-    assert_eq!(&convert_modifiers(7), "AltCtrSht");
+    assert_eq!(&convert_modifiers(7), "Alt+Ctr+Sht");
 }
 
 pub struct HotKey {
@@ -58,6 +59,7 @@ impl HotKey {
     pub fn display(&self) -> String {
         use std::char;
         let mut out = convert_modifiers(self.modifiers);
+        out += "+";
         if self.vk == VK_ESCAPE as u32 {
             out += "Esc";
         } else {
