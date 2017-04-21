@@ -1,15 +1,8 @@
 use super::*;
 
 lazy_static! {
-    // TODO: use the defalt for settings insted
     static ref RE_LIST: Vec<RegexCleanerPair> = {
-        RegexCleanerPair::prep_list(&[
-            (r"\s+", " "),
-            (concat!(
-                r"^(https?://)?(?P<a>[-a-zA-Z0-9@:%._\+~#=]{2,256}",
-            r"\.[a-z]{2,6})\b[-a-zA-Z0-9@:%_\+.~#?&//=]{10,}$"), "link to $a"),
-            (r"^(?P<s>[0-9a-f]{6})([0-9]+[a-f]|[a-f]+[0-9])[0-9a-f]*$", "hash $s")
-        ]).unwrap()
+        ::settings::Settings::new().cleaners
     };
 }
 
