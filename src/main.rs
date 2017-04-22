@@ -45,7 +45,7 @@ fn read(voice: &mut SpVoice, list: &[RegexCleanerPair]) {
     match get_text() {
         Ok(x) => voice.speak(clean_text::<WideString>(&x, list)),
         Err(x) => {
-            voice.speak_wait("oops. error.");
+            voice.speak("oops. error.");
             println!("{:?}", x);
         }
     }

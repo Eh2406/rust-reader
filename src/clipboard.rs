@@ -60,13 +60,19 @@ pub fn send_key_event(vk: u16, flags: u32) {
     }
 }
 
-pub fn send_ctrl_c() {
-    use winapi::{VK_CONTROL, KEYEVENTF_KEYUP};
+pub fn press_key(vk: &[u16]) {
+    for &v in vk {
+        send_key_event(v, 0);
+    }
+    sleep(Duration::from_millis(1));
+    for &v in vk.iter().rev() {
+        send_key_event(v, winapi::KEYEVENTF_KEYUP);
+    }
+}
+
+pub fn press_ctrl_c() {
     println!("sending ctrl-c");
-    send_key_event(VK_CONTROL as u16, 0);
-    send_key_event(67, 0); //ascii for "c"
-    send_key_event(67, KEYEVENTF_KEYUP); //ascii for "c"
-    send_key_event(VK_CONTROL as u16, KEYEVENTF_KEYUP);
+    press_key(&[winapi::VK_CONTROL as u16, 67]); //ascii for "c"
 }
 
 pub fn what_on_clipboard_seq_num(clip_num: u32, n: u64) -> bool {
@@ -95,7 +101,7 @@ pub fn get_text() -> io::Result<String> {
     let old_clip_num =
         get_clipboard_seq_num().expect(
             "Lacks sufficient rights to access clipboard(WINSTA_ACCESSCLIPBOARD)");
-    send_ctrl_c();
+    press_ctrl_c();
     if !what_on_clipboard_seq_num(old_clip_num, 25) {
         return Err(io::Error::new(io::ErrorKind::Other, "oh no!"));
     }
