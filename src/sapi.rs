@@ -201,7 +201,10 @@ impl<'a> SpVoice<'a> {
         let rate = max(min(rate, 10), -10);
         unsafe { self.voice.SetRate(rate) };
         //todo fix window text to be about sapi and find somewhere else for this info.
-        set_window_text(self.rate, &format!("reading at rate: {}. To reload settings: ctrl+alt+shift+r", rate).into());
+        set_window_text(self.rate,
+                        &format!("reading at rate: {}. To reload settings: Alt+Ctr+Sht+r",
+                                 rate)
+                                 .into());
         rate
     }
 
@@ -210,7 +213,10 @@ impl<'a> SpVoice<'a> {
         unsafe { self.voice.GetRate(&mut rate) };
         //todo fix window text to be about sapi and find somewhere else for this info.
         //todo this should not be needed. When we take it out the message is doulble on window text.
-        set_window_text(self.rate, &format!("reading at rate: {}. To reload settings: ctrl+alt+shift+r", rate).into());
+        set_window_text(self.rate,
+                        &format!("reading at rate: {}. To reload settings: Alt+Ctr+Sht+r",
+                                 rate)
+                                 .into());
         rate
     }
 
