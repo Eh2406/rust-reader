@@ -280,7 +280,7 @@ impl<'a> Windowed for SpVoice<'a> {
             WM_SAPI_EVENT => {
                 let word_range = self.get_status().word_range();
                 let window_title = format!("{:.1}% \"{}\" rust_reader",
-                                           100.0 * (word_range.start as f64) /
+                                           100.0 * ((word_range.end + 2) as f64) /
                                            (self.last_read.len() as f64),
                                            self.get_status_word())
                         .into();
