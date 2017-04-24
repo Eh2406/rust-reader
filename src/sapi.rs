@@ -200,14 +200,17 @@ impl<'a> SpVoice<'a> {
     pub fn set_rate(&mut self, rate: i32) -> i32 {
         let rate = max(min(rate, 10), -10);
         unsafe { self.voice.SetRate(rate) };
-        set_window_text(self.rate, &format!("rate: {}", rate).into());
+        //todo fix window text to be about sapi and find somewhere else for this info.
+        set_window_text(self.rate, &format!("reading at rate: {}. To reload settings: ctrl+alt+shift+r", rate).into());
         rate
     }
 
     pub fn get_rate(&mut self) -> i32 {
         let mut rate = 0;
         unsafe { self.voice.GetRate(&mut rate) };
-        set_window_text(self.rate, &format!("rate: {}", rate).into());
+        //todo fix window text to be about sapi and find somewhere else for this info.
+        //todo this should not be needed. When we take it out the message is doulble on window text.
+        set_window_text(self.rate, &format!("reading at rate: {}. To reload settings: ctrl+alt+shift+r", rate).into());
         rate
     }
 
