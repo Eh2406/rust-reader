@@ -1,7 +1,7 @@
 use super::*;
 
 lazy_static! {
-    static ref RE_LIST: Vec<RegexCleanerPair> = {
+    pub static ref RE_LIST: Vec<RegexCleanerPair> = {
         ::settings::Settings::new().cleaners
     };
 }

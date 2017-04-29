@@ -6,6 +6,10 @@ use regex::*;
 mod regex_cleaner_pair;
 pub use self::regex_cleaner_pair::*;
 
+// // un coment and add #![feature(test)] to main to benchmark
+// #[cfg(test)]
+// mod bench;
+
 #[cfg(test)]
 mod test;
 
@@ -36,6 +40,44 @@ impl<'r, 'a> Iterator for RegexReplace<'r, 'a> {
                 let mut replace = String::new();
                 cap.expand(self.rep, &mut replace);
                 self.cap = Some((&self.text[s..e], replace.into()));
+                self.last_match = e;
+                Some((&self.text[last_match..s], self.text[last_match..s].into()))
+            }
+            None => {
+                if self.last_match < self.text.len() {
+                    self.last_match = self.text.len();
+                    Some((&self.text[last_match..], self.text[last_match..].into()))
+                } else {
+                    None
+                }
+            }
+        }
+    }
+}
+
+struct RegexSubstitute<'r, 'a> {
+    text: &'a str,
+    last_match: usize,
+    captures_iter: CaptureMatches<'r, 'a>,
+    cap: Option<Pair<'a>>,
+    rep: &'a str,
+}
+
+impl<'r, 'a> Iterator for RegexSubstitute<'r, 'a> {
+    type Item = Pair<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let last_match = self.last_match;
+        if let Some(cap) = self.cap.take() {
+            return Some(cap);
+        }
+        match self.captures_iter.next() {
+            Some(cap) => {
+                // unwrap on 0 is OK because captures only reports matches
+                let s = cap.get(0).unwrap().start();
+                let e = cap.get(0).unwrap().end();
+                let last_match = self.last_match;
+                self.cap = Some((&self.text[s..e], self.rep.clone().into()));
                 self.last_match = e;
                 Some((&self.text[last_match..s], self.text[last_match..s].into()))
             }
@@ -86,20 +128,36 @@ fn regex_replace<'r, 'a, I>(raw: I,
                             -> Box<Iterator<Item = Pair<'a>> + 'a>
     where I: 'a + Iterator<Item = Pair<'a>>
 {
-    let (reg, r) = reg.to_parts();
-    Box::new(FlatPair {
-                 source: raw,
-                 current: None,
-                 func: move |orig| {
-        RegexReplace {
-            text: orig,
-            last_match: 0,
-            captures_iter: reg.captures_iter(orig),
-            cap: None,
-            rep: r,
-        }
-    },
-             })
+    let (reg, mut r) = reg.to_parts();
+    if r.no_expansion().is_some() {
+        Box::new(FlatPair {
+                     source: raw,
+                     current: None,
+                     func: move |orig| {
+            RegexSubstitute {
+                text: orig,
+                last_match: 0,
+                captures_iter: reg.captures_iter(orig),
+                cap: None,
+                rep: r,
+            }
+        },
+                 })
+    } else {
+        Box::new(FlatPair {
+                     source: raw,
+                     current: None,
+                     func: move |orig| {
+            RegexReplace {
+                text: orig,
+                last_match: 0,
+                captures_iter: reg.captures_iter(orig),
+                cap: None,
+                rep: r,
+            }
+        },
+                 })
+    }
 }
 
 fn running_count<'a>(st: &mut (&'a str, usize), ch: &'a str) -> Option<Pair<'a>> {
