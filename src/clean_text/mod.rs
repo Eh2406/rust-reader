@@ -58,7 +58,7 @@ impl<'r, 'a> Iterator for RegexReplace<'r, 'a> {
 struct RegexSubstitute<'r, 'a> {
     text: &'a str,
     last_match: usize,
-    captures_iter: CaptureMatches<'r, 'a>,
+    captures_iter: Matches<'r, 'a>,
     cap: Option<Pair<'a>>,
     rep: &'a str,
 }
@@ -74,8 +74,8 @@ impl<'r, 'a> Iterator for RegexSubstitute<'r, 'a> {
         match self.captures_iter.next() {
             Some(cap) => {
                 // unwrap on 0 is OK because captures only reports matches
-                let s = cap.get(0).unwrap().start();
-                let e = cap.get(0).unwrap().end();
+                let s = cap.start();
+                let e = cap.end();
                 let last_match = self.last_match;
                 self.cap = Some((&self.text[s..e], self.rep.clone().into()));
                 self.last_match = e;
@@ -137,7 +137,7 @@ fn regex_replace<'r, 'a, I>(raw: I,
             RegexSubstitute {
                 text: orig,
                 last_match: 0,
-                captures_iter: reg.captures_iter(orig),
+                captures_iter: reg.find_iter(orig),
                 cap: None,
                 rep: r,
             }
