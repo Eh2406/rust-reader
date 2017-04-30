@@ -10,7 +10,23 @@ fn short_text(b: &mut Bencher) {
 }
 
 #[bench]
-fn long_text(b: &mut Bencher) {
+fn hafe_pap_text(b: &mut Bencher) {
+    // if we maintain O(n) the shud take half the time
     print!("{:}", clean_text_string("", &RE_LIST));
-    b.iter(|| clean_text_string(include_str!("p&p.txt"), &RE_LIST));
+    let pap = include_str!("p&p.txt");
+    b.iter(|| clean_text_string(&pap[..(pap.len() / 2)], &RE_LIST));
+}
+
+#[bench]
+fn pap_text(b: &mut Bencher) {
+    print!("{:}", clean_text_string("", &RE_LIST));
+    let pap = include_str!("p&p.txt");
+    b.iter(|| clean_text_string(pap, &RE_LIST));
+}
+
+#[bench]
+fn pap_wide(b: &mut Bencher) {
+    print!("{:}", clean_text_string("", &RE_LIST));
+    let pap = include_str!("p&p.txt");
+    b.iter(|| clean_text::<WideString>(pap, &RE_LIST));
 }
