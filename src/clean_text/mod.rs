@@ -13,7 +13,7 @@ pub use self::regex_cleaner_pair::*;
 #[cfg(test)]
 mod test;
 
-type Pair<'a> = (&'a str, Cow<'a, str>);
+type Pair<'a> = (&'a str, Option<Cow<'a, str>>);
 
 struct RegexReplace<'r, 'a> {
     text: &'a str,
@@ -39,14 +39,14 @@ impl<'r, 'a> Iterator for RegexReplace<'r, 'a> {
                 let last_match = self.last_match;
                 let mut replace = String::new();
                 cap.expand(self.rep, &mut replace);
-                self.cap = Some((&self.text[s..e], replace.into()));
+                self.cap = Some((&self.text[s..e], Some(replace.into())));
                 self.last_match = e;
-                Some((&self.text[last_match..s], self.text[last_match..s].into()))
+                Some((&self.text[last_match..s], None))
             }
             None => {
                 if self.last_match < self.text.len() {
                     self.last_match = self.text.len();
-                    Some((&self.text[last_match..], self.text[last_match..].into()))
+                    Some((&self.text[last_match..], None))
                 } else {
                     None
                 }
@@ -77,14 +77,14 @@ impl<'r, 'a> Iterator for RegexSubstitute<'r, 'a> {
                 let s = cap.start();
                 let e = cap.end();
                 let last_match = self.last_match;
-                self.cap = Some((&self.text[s..e], self.rep.clone().into()));
+                self.cap = Some((&self.text[s..e], Some(self.rep.clone().into())));
                 self.last_match = e;
-                Some((&self.text[last_match..s], self.text[last_match..s].into()))
+                Some((&self.text[last_match..s], None))
             }
             None => {
                 if self.last_match < self.text.len() {
                     self.last_match = self.text.len();
-                    Some((&self.text[last_match..], self.text[last_match..].into()))
+                    Some((&self.text[last_match..], None))
                 } else {
                     None
                 }
@@ -112,7 +112,7 @@ impl<'a, I, C, F> Iterator for FlatPair<I, C, F>
             return Some(p);
         }
         if let Some(s) = self.source.next() {
-            if s.0 != s.1 {
+            if s.1.is_some() {
                 return Some(s);
             } else {
                 self.current = Some((self.func)(s.0));
@@ -167,9 +167,9 @@ fn running_count<'a>(st: &mut (&'a str, usize), ch: &'a str) -> Option<Pair<'a>>
     }
     st.1 += 1;
     if st.1 < 4 || ch.chars().all(|x| x.is_numeric()) {
-        Some((ch, ch.into()))
+        Some((ch, None))
     } else {
-        Some((ch, "".into()))
+        Some((ch, Some("".into())))
     }
 }
 
@@ -185,7 +185,7 @@ fn graphemes_pair<'a, I: 'a + Iterator<Item = Pair<'a>>>(i: I)
 }
 
 fn trivial_pair<'a>(text: &'a str) -> Box<Iterator<Item = Pair<'a>> + 'a> {
-    Box::new(Some((text, text.into())).into_iter())
+    Box::new(Some((text, None)).into_iter())
 }
 
 fn clean_iter<'r: 'a, 'a>(raw: &'a str,
@@ -201,15 +201,15 @@ fn clean_iter<'r: 'a, 'a>(raw: &'a str,
 pub fn clean_text<'r: 'a, 'a, O>(raw: &'a str, list: &'r [RegexCleanerPair]) -> O
     where O: ::std::iter::FromIterator<Cow<'a, str>>
 {
-    clean_iter(raw, &list).map(|(_, x)| x).collect()
+    clean_iter(raw, &list).map(|(o, r)| r.unwrap_or_else(|| o.into())).collect()
 }
 
 #[allow(dead_code)]
 pub fn clean_text_string<T: AsRef<str>>(raw: T, list: &[RegexCleanerPair]) -> String {
     let raw = raw.as_ref();
     let mut out = String::with_capacity(raw.len());
-    for (_, x) in clean_iter(raw, &list) {
-        out.push_str(&*x)
+    for (o, r) in clean_iter(raw, &list) {
+        out.push_str(&*r.unwrap_or_else(|| o.into()))
     }
     out.shrink_to_fit();
     out
@@ -224,7 +224,7 @@ fn clean_text_idx<'r: 'a, 'a, F>(raw: &'a str,
     Box::new((0..1)
                  .map(|x| (x, x))
                  .chain(clean_iter(raw, &list)
-                            .map(move |x| (len(x.0), len(&*x.1)))
+                            .map(move |(o, r)| (len(o), len(&*r.unwrap_or_else(|| o.into()))))
                             .scan((0, 0), move |st, x| {
         st.0 += x.0;
         st.1 += x.1;
