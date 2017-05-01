@@ -1,5 +1,6 @@
 // Don't show a cmd if using nightly. This will be stabilized in 1.18.
-// If using a stable before 1.18 build with for gnu `cargo rustc --release -- -C link-args=-mwindows`
+// If using a stable before 1.18 build with
+// for gnu `cargo rustc --release -- -C link-args=-mwindows`
 #![cfg_attr(feature="nightly", windows_subsystem = "windows")]
 
 extern crate winapi;
@@ -63,6 +64,7 @@ fn reload_settings(voice: &mut SpVoice, settings: &mut Settings, hk: &mut Vec<Ho
         speech += "failed to reload settings.\r\n";
     }
     speech += &make_speech(&settings, &hk);
+    voice.resume();
     voice.speak(speech);
 }
 

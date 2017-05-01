@@ -34,14 +34,13 @@ impl<'r, 'a> Iterator for RegexReplace<'r, 'a> {
         match self.captures_iter.next() {
             Some(cap) => {
                 // unwrap on 0 is OK because captures only reports matches
-                let s = cap.get(0).unwrap().start();
-                let e = cap.get(0).unwrap().end();
-                let last_match = self.last_match;
+                let cap0 = cap.get(0).unwrap();
+                let unmached = &self.text[self.last_match..cap0.start()];
                 let mut replace = String::new();
                 cap.expand(self.rep, &mut replace);
-                self.cap = Some((&self.text[s..e], Some(replace.into())));
-                self.last_match = e;
-                Some((&self.text[last_match..s], None))
+                self.cap = Some((cap0.as_str(), Some(replace.into())));
+                self.last_match = cap0.end();
+                Some((unmached, None))
             }
             None => {
                 if self.last_match < self.text.len() {
@@ -73,13 +72,10 @@ impl<'r, 'a> Iterator for RegexSubstitute<'r, 'a> {
         }
         match self.captures_iter.next() {
             Some(cap) => {
-                // unwrap on 0 is OK because captures only reports matches
-                let s = cap.start();
-                let e = cap.end();
-                let last_match = self.last_match;
-                self.cap = Some((&self.text[s..e], Some(self.rep.clone().into())));
-                self.last_match = e;
-                Some((&self.text[last_match..s], None))
+                let unmached = &self.text[self.last_match..cap.start()];
+                self.cap = Some((cap.as_str(), Some(self.rep.clone().into())));
+                self.last_match = cap.end();
+                Some((unmached, None))
             }
             None => {
                 if self.last_match < self.text.len() {
@@ -139,7 +135,7 @@ impl<'a, I, C, F> Iterator for FlatPair<I, C, F>
 
 fn regex_replace<'r, 'a, I>(raw: I,
                             reg: &'a RegexCleanerPair)
-                            -> Box<Iterator<Item = Pair<'a>> + 'a>
+                            -> Box<'a + Iterator<Item = Pair<'a>>>
     where I: 'a + Iterator<Item = Pair<'a>>
 {
     let (reg, mut r) = reg.to_parts();
@@ -181,18 +177,18 @@ fn running_count<'a>(st: &mut (&'a str, usize), ch: &'a str) -> Option<Pair<'a>>
 }
 
 fn graphemes_pair<'a, I: 'a + Iterator<Item = Pair<'a>>>(i: I)
-                                                         -> Box<Iterator<Item = Pair<'a>> + 'a> {
+                                                         -> Box<'a + Iterator<Item = Pair<'a>>> {
     FlatPair::new_box(i,
                       move |orig: &'a str| orig.graphemes(true).scan(("".into(), 0), running_count))
 }
 
-fn trivial_pair<'a>(text: &'a str) -> Box<Iterator<Item = Pair<'a>> + 'a> {
+fn trivial_pair<'a>(text: &'a str) -> Box<'a + Iterator<Item = Pair<'a>>> {
     Box::new(Some((text, None)).into_iter())
 }
 
 fn clean_iter<'r: 'a, 'a>(raw: &'a str,
                           list: &'r [RegexCleanerPair])
-                          -> Box<Iterator<Item = Pair<'a>> + 'a> {
+                          -> Box<'a + Iterator<Item = Pair<'a>>> {
     let mut out = trivial_pair(raw);
     for reg in list.iter() {
         out = regex_replace(out, reg);

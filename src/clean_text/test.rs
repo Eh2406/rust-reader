@@ -1,4 +1,5 @@
 use super::*;
+use quickcheck::quickcheck;
 
 lazy_static! {
     pub static ref RE_LIST: Vec<RegexCleanerPair> = {
@@ -230,6 +231,16 @@ fn tests_clean_text_u8idx() {
 
 #[test]
 fn quickcheck_clean_text_u8idx() {
-    use quickcheck::quickcheck;
     quickcheck(test_clean_text_u8idx as fn(String) -> bool);
+}
+
+fn test_does_not_lose_segments<T: AsRef<str>>(text: T) -> bool {
+    let text = text.as_ref();
+    let left_out: String = clean_iter(text, &RE_LIST).map(|(o, _)| o).collect();
+    text == left_out
+}
+
+#[test]
+fn quickcheck_does_not_lose_segments() {
+    quickcheck(test_does_not_lose_segments as fn(String) -> bool);
 }
