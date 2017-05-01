@@ -172,11 +172,12 @@ fn running_count<'a>(st: &mut (&'a str, usize), ch: &'a str) -> Option<Pair<'a>>
         st.0 = ch.clone();
     }
     st.1 += 1;
-    if st.1 < 4 || ch.chars().all(|x| x.is_numeric()) {
-        Some((ch, None))
-    } else {
-        Some((ch, Some("".into())))
-    }
+    Some((ch,
+          if st.1 < 4 || ch.chars().all(|x| x.is_numeric()) {
+              None
+          } else {
+              Some("".into())
+          }))
 }
 
 fn graphemes_pair<'a, I: 'a + Iterator<Item = Pair<'a>>>(i: I)
