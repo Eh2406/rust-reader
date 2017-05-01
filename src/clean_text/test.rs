@@ -52,6 +52,9 @@ fn sha1() {
     assert_eq!(clean_text_string("1 parent 1b329f3 commit 4773d2e39d0be947344ddfebc92d16f37e0584aa",
                                  &RE_LIST),
                "1 parent 1b329f3 commit hash 4773d2");
+    assert_eq!(clean_text_string("hash in code <4773d2e39d0be947344ddfebc92d16f37e0584aa>",
+                                 &RE_LIST),
+               "hash in code <hash 4773d2>");
 }
 
 #[test]
@@ -60,6 +63,9 @@ fn url() {
                "link to www.youtube.com");
     assert_eq!(clean_text_string("www.youtube.com/watch?v=JFpanWNgfQY", &RE_LIST),
                "link to www.youtube.com");
+    assert_eq!(clean_text_string("link in code <www.youtube.com/watch?v=JFpanWNgfQY>",
+                                 &RE_LIST),
+               "link in code <link to www.youtube.com>");
 }
 
 #[test]
