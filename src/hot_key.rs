@@ -38,6 +38,7 @@ fn test_modifiers_altctrsht() {
     assert_eq!(&convert_modifiers(7), "Alt+Ctr+Sht");
 }
 
+#[derive(Debug)]
 pub struct HotKey {
     vk: u32,
     modifiers: u32,

@@ -41,58 +41,71 @@ use settings::*;
 mod clean_text;
 use clean_text::*;
 
-fn read(voice: &mut SpVoice, list: &[RegexCleanerPair]) {
-    voice.resume();
-    match get_text() {
-        Ok(x) => voice.speak(clean_text::<WideString>(&x, list)),
-        Err(x) => {
-            voice.speak("oops. error.");
-            println!("{:?}", x);
+#[derive(Debug)]
+struct State<'a> {
+    voice: Box<SpVoice<'a>>,
+    settings: Settings,
+    hk: Vec<HotKey>,
+}
+
+impl<'a> State<'a> {
+    fn read(&mut self) {
+        self.voice.resume();
+        match get_text() {
+            Ok(x) => self.voice.speak(clean_text::<WideString>(&x, &self.settings.cleaners)),
+            Err(x) => {
+                self.voice.speak("oops. error.");
+                println!("{:?}", x);
+            }
         }
     }
-}
 
-fn reload_settings(voice: &mut SpVoice, settings: &mut Settings, hk: &mut Vec<HotKey>) {
-    let mut speech = String::new();
-    if settings.reload_from_file() {
-        hk.clear();
-        *hk = setup_hotkeys(settings);
-        settings.rate = voice.set_rate(settings.rate);
-        settings.to_file();
-        speech += "reloaded settings.\r\n";
-    } else {
-        speech += "failed to reload settings.\r\n";
+    fn reload_settings(&mut self) {
+        let mut speech = String::new();
+        if self.settings.reload_from_file() {
+            self.hk.clear();
+            self.hk = setup_hotkeys(&mut self.settings);
+            self.settings.rate = self.voice.set_rate(self.settings.rate);
+            self.settings.to_file();
+            speech += "reloaded settings.\r\n";
+        } else {
+            speech += "failed to reload settings.\r\n";
+        }
+        speech += &make_speech(&self.settings, &self.hk);
+        self.voice.resume();
+        self.voice.speak(speech);
     }
-    speech += &make_speech(&settings, &hk);
-    voice.resume();
-    voice.speak(speech);
-}
 
-fn open_settings(settings: &mut Settings) {
-    use std::process::Command;
-    println!("{:?}",
-             Command::new(r"C:\Windows\System32\notepad.exe")
-                 .arg(settings.get_dir())
-                 .spawn());
-}
-
-fn play_pause(voice: &mut SpVoice) {
-    match voice.get_status().dwRunningState {
-        2 => voice.pause(),
-        _ => voice.resume(),
+    fn open_settings(&self) {
+        use std::process::Command;
+        println!("{:?}",
+                Command::new(r"C:\Windows\System32\notepad.exe")
+                        .arg(self.settings.get_dir())
+                        .spawn());
     }
-}
 
-fn rate_down(voice: &mut SpVoice, settings: &mut Settings) {
-    settings.rate = voice.change_rate(-1);
-    settings.to_file();
-    println!("rate :{:?}", settings.rate);
-}
+    fn toggle_window_visible(&mut self) {
+        self.voice.toggle_window_visible();
+    }
 
-fn rate_up(voice: &mut SpVoice, settings: &mut Settings) {
-    settings.rate = voice.change_rate(1);
-    settings.to_file();
-    println!("rate :{:?}", settings.rate);
+    fn play_pause(&mut self) {
+        match self.voice.get_status().dwRunningState {
+            2 => self.voice.pause(),
+            _ => self.voice.resume(),
+        }
+    }
+
+    fn rate_down(&mut self) {
+        self.settings.rate = self.voice.change_rate(-1);
+        self.settings.to_file();
+        println!("rate :{:?}", self.settings.rate);
+    }
+
+    fn rate_up(&mut self) {
+        self.settings.rate = self.voice.change_rate(1);
+        self.settings.to_file();
+        println!("rate :{:?}", self.settings.rate);
+    }
 }
 
 fn setup_hotkeys(settings: &mut Settings) -> Vec<HotKey> {
@@ -103,6 +116,22 @@ fn setup_hotkeys(settings: &mut Settings) -> Vec<HotKey> {
                 HotKey::new(modifiers, vk, id as i32).unwrap() // make HotKey
             })
             .collect()
+}
+
+impl<'a> State<'a> {
+    fn match_hotkey_id(&mut self, id: winapi::WPARAM) {
+        match id { // match on generated HotKey id
+            0 => self.read(),
+            1 => close(),
+            2 => self.reload_settings(),
+            3 => self.open_settings(),
+            4 => self.toggle_window_visible(),
+            5 => self.play_pause(),
+            6 => self.rate_down(),
+            7 => self.rate_up(),
+            _ => println!("unknown hot {}", id),
+        }
+    }
 }
 
 fn make_speech(settings: &Settings, hk: &[HotKey]) -> String {
@@ -138,28 +167,20 @@ fn main() {
     let mut voice = SpVoice::new(&com);
     let mut settings = Settings::from_file();
     voice.set_rate(settings.rate);
-    let mut hk = setup_hotkeys(&mut settings);
+    let hk = setup_hotkeys(&mut settings);
     clipboard_setup();
 
-    voice.speak(make_speech(&settings, &hk));
+    let mut state = State {
+        voice: voice,
+        settings: settings,
+        hk: hk,
+    };
+
+    state.voice.speak(make_speech(&state.settings, &state.hk));
 
     while let Some(msg) = get_message() {
         match msg.message {
-            winapi::WM_HOTKEY => {
-                match msg.wParam { // match on generated HotKey id
-                    0 => read(&mut voice, &settings.cleaners),
-                    1 => close(),
-                    2 => reload_settings(&mut voice, &mut settings, &mut hk),
-                    3 => open_settings(&mut settings),
-                    4 => {
-                        voice.toggle_window_visible();
-                    }
-                    5 => play_pause(&mut voice),
-                    6 => rate_down(&mut voice, &mut settings),
-                    7 => rate_up(&mut voice, &mut settings),
-                    _ => println!("unknown hot {}", msg.wParam),
-                }
-            }
+            winapi::WM_HOTKEY => state.match_hotkey_id(msg.wParam),
             _ => {
                 // println!("{:?}", msg);
                 unsafe {
@@ -169,7 +190,7 @@ fn main() {
             }
         }
     }
-    voice.resume();
-    voice.speak_wait("bye!");
-    settings.to_file();
+    state.voice.resume();
+    state.voice.speak_wait("bye!");
+    state.settings.to_file();
 }

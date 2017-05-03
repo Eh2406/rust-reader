@@ -37,6 +37,7 @@ impl Drop for Com {
     }
 }
 
+#[derive(Debug)]
 pub struct SpVoice<'a> {
     // https://msdn.microsoft.com/en-us/library/ms723602.aspx
     voice: &'a mut winapi::ISpVoice,
