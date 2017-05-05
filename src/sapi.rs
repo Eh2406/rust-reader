@@ -332,9 +332,10 @@ impl<'a> Windowed for SpVoice<'a> {
             }
             winapi::WM_COMMAND => {
                 use press_hotkey;
+                use Action;
                 match w_param {
                     SETTING_BUTTON => {
-                        press_hotkey(2);
+                        press_hotkey(Action::ReloadSettings);
                         return Some(0);
                     },
                     _ => return None,

@@ -108,36 +108,85 @@ impl<'a> State<'a> {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+enum Action {
+    Read,
+    Close,
+    ReloadSettings,
+    OpenSettings,
+    ToggleWindowWisible,
+    PlayPause,
+    RateDown,
+    RateUp,
+}
+
+const ACTION_LIST: [Action; 8] = [Action::Read,
+            Action::Close,
+            Action::ReloadSettings,
+            Action::OpenSettings,
+            Action::ToggleWindowWisible,
+            Action::PlayPause,
+            Action::RateDown,
+            Action::RateUp];
+
+#[test]
+fn action_list_match_enum() {
+    for (id, &act) in ACTION_LIST.iter().enumerate() {
+        assert_eq!(id, act as usize);
+    }
+}
+
+#[test]
+fn action_list_match_settins() {
+    assert_eq!(ACTION_LIST.len(), Settings::new().hotkeys.len());
+}
+
+impl std::fmt::Display for Action {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        use Action::*;
+        match self {
+            &Read => write!(f, "read"),
+            &Close => write!(f, "close"),
+            &ReloadSettings => write!(f, "reload_settings"),
+            &OpenSettings => write!(f, "open_settings"),
+            &ToggleWindowWisible => write!(f, "toggle_window_visible"),
+            &PlayPause => write!(f, "play_pause"),
+            &RateDown => write!(f, "rate_down"),
+            &RateUp => write!(f, "rate_up"),
+        }
+    }
+}
+
 fn setup_hotkeys(settings: &mut Settings) -> Vec<HotKey> {
-    settings.hotkeys
-            .into_iter()
-            .enumerate() // generate HotKey id
-            .map(|(id, &(modifiers, vk))| {
-                HotKey::new(modifiers, vk, id as i32).unwrap() // make HotKey
+    assert_eq!(ACTION_LIST.len(), settings.hotkeys.len());
+    ACTION_LIST.iter().zip(settings.hotkeys
+            .into_iter())
+            .map(|(&act, &(modifiers, vk))| {
+                HotKey::new(modifiers, vk, act as i32).unwrap() // make HotKey
             })
             .collect()
 }
 
-fn press_hotkey(id: winapi::WPARAM) {
+fn press_hotkey(id: Action) {
     unsafe {
             user32::PostThreadMessageW(kernel32::GetCurrentThreadId(),
                                         winapi::WM_HOTKEY,
-                                        id,
+                                        id as winapi::WPARAM,
                                         0)};
 }
 
 impl<'a> State<'a> {
-    fn match_hotkey_id(&mut self, id: winapi::WPARAM) {
-        match id { // match on generated HotKey id
-            0 => self.read(),
-            1 => close(),
-            2 => self.reload_settings(),
-            3 => self.open_settings(),
-            4 => self.toggle_window_visible(),
-            5 => self.play_pause(),
-            6 => self.rate_down(),
-            7 => self.rate_up(),
-            _ => println!("unknown hot {}", id),
+    fn match_hotkey_id(&mut self, act: Action) {
+        use Action::*;
+        match act {
+            Read => self.read(),
+            Close => close(),
+            ReloadSettings => self.reload_settings(),
+            OpenSettings => self.open_settings(),
+            ToggleWindowWisible => self.toggle_window_visible(),
+            PlayPause => self.play_pause(),
+            RateDown => self.rate_down(),
+            RateUp => self.rate_up(),
         }
     }
 }
@@ -151,20 +200,8 @@ fn make_speech(settings: &Settings, hk: &[HotKey]) -> String {
     out += &settings.rate.to_string();
     out += "\r\n";
     out += "hotkeys\r\n";
-    for (t, h) in ["read",
-                   "close",
-                   "reload_settings",
-                   "open_settings",
-                   "toggle_window_visible",
-                   "play_pause",
-                   "rate_down",
-                   "rate_up"]
-                .iter()
-                .zip(hk.iter()) {
-        out += t;
-        out += ": ";
-        out += &h.display();
-        out += "\r\n";
+    for (act, h) in ACTION_LIST.iter().zip(hk.iter()) {
+        out += &format!("{}: {}\r\n", act, h);
     }
     out += "Ready!";
     out
@@ -188,7 +225,9 @@ fn main() {
 
     while let Some(msg) = get_message() {
         match msg.message {
-            winapi::WM_HOTKEY => state.match_hotkey_id(msg.wParam),
+            winapi::WM_HOTKEY if (msg.wParam as usize) < state.hk.len() => {
+                state.match_hotkey_id(ACTION_LIST[msg.wParam as usize])
+            }
             _ => {
                 // println!("{:?}", msg);
                 unsafe {

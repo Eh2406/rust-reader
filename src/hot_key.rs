@@ -52,23 +52,25 @@ impl HotKey {
             vk: vk,
             id: id,
         };
-        println!("new for HotKey: {} {}", new_hot.display(), id);
+        println!("new for HotKey: {} {}", new_hot, id);
         // https://msdn.microsoft.com/en-us/library/windows/desktop/ms646309.aspx
         let hr = unsafe { user32::RegisterHotKey(null_mut(), id, modifiers, vk) };
         if hr == 0 { None } else { Some(new_hot) }
     }
-    pub fn display(&self) -> String {
+}
+
+
+impl ::std::fmt::Display for HotKey {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         use std::char;
-        let mut out = convert_modifiers(self.modifiers);
-        out += "+";
+        write!(f, "{}+", convert_modifiers(self.modifiers))?;
         if self.vk == VK_ESCAPE as u32 {
-            out += "Esc";
+            write!(f, "Esc")
         } else {
-            out += &char::from_u32(unsafe { user32::MapVirtualKeyW(self.vk, 2) })
-                        .unwrap()
-                        .to_string();
+            write!(f,
+                   "{}",
+                   char::from_u32(unsafe { user32::MapVirtualKeyW(self.vk, 2) }).unwrap())
         }
-        out
     }
 }
 
@@ -78,3 +80,4 @@ impl Drop for HotKey {
         println!("drop for HotKey");
     }
 }
+
