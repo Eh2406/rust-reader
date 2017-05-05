@@ -134,9 +134,12 @@ pub fn toggle_window_visible(h_wnd: winapi::HWND) -> winapi::BOOL {
 }
 
 // rect utilities
-pub trait RectUtil {
+pub trait RectUtil where Self: Sized {
     fn inset(&mut self, i32);
     fn shift_down(&mut self, delta: i32);
+    fn shift_right(&mut self, delta: i32);
+    fn split_columns(&self, at: i32) -> (Self, Self);
+    fn split_rows(&self, at: i32) -> (Self, Self);
 }
 
 impl RectUtil for winapi::RECT {
@@ -149,6 +152,24 @@ impl RectUtil for winapi::RECT {
     fn shift_down(&mut self, delta: i32) {
         self.top += delta;
         self.bottom -= delta;
+    }
+    fn shift_right(&mut self, delta: i32) {
+        self.left += delta;
+        self.right -= delta;
+    }
+    fn split_columns(&self, at: i32) -> (Self, Self) {
+        let mut l = self.clone();
+        let mut r = self.clone();
+        l.right = at;
+        r.shift_right(at);
+        (l, r)
+    }
+    fn split_rows(&self, at: i32) -> (Self, Self) {
+        let mut u = self.clone();
+        let mut b = self.clone();
+        u.bottom = at;
+        b.shift_down(at);
+        (u, b)
     }
 }
 

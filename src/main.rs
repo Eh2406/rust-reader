@@ -118,6 +118,14 @@ fn setup_hotkeys(settings: &mut Settings) -> Vec<HotKey> {
             .collect()
 }
 
+fn press_hotkey(id: winapi::WPARAM) {
+    unsafe {
+            user32::PostThreadMessageW(kernel32::GetCurrentThreadId(),
+                                        winapi::WM_HOTKEY,
+                                        id,
+                                        0)};
+}
+
 impl<'a> State<'a> {
     fn match_hotkey_id(&mut self, id: winapi::WPARAM) {
         match id { // match on generated HotKey id

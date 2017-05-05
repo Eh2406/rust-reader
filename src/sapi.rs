@@ -37,6 +37,8 @@ impl Drop for Com {
     }
 }
 
+const SETTING_BUTTON: winapi::WPARAM = 101;
+
 #[derive(Debug)]
 pub struct SpVoice<'a> {
     // https://msdn.microsoft.com/en-us/library/ms723602.aspx
@@ -44,6 +46,7 @@ pub struct SpVoice<'a> {
     window: winapi::HWND,
     edit: winapi::HWND,
     rate: winapi::HWND,
+    reload_settings: winapi::HWND,
     last_read: WideString,
 }
 
@@ -72,6 +75,7 @@ impl<'a> SpVoice<'a> {
                                        window: null_mut(),
                                        edit: null_mut(),
                                        rate: null_mut(),
+                                       reload_settings: null_mut(),
                                        last_read: WideString::new(),
                                    });
 
@@ -139,6 +143,22 @@ impl<'a> SpVoice<'a> {
                                                0 as winapi::HMENU,
                                                0 as winapi::HINSTANCE,
                                                null_mut());
+            let wide_button: WideString = "BUTTON".into();
+            let wide_settings: WideString = "Reload Settings".into();
+            out.reload_settings = user32::CreateWindowExW(0,
+                                                          wide_button.as_ptr(),
+                                                          wide_settings.as_ptr(),
+                                                          winapi::WS_TABSTOP | winapi::WS_VISIBLE |
+                                                          winapi::WS_CHILD |
+                                                          winapi::BS_DEFPUSHBUTTON,
+                                                          10,
+                                                          10,
+                                                          20,
+                                                          20,
+                                                          out.window,
+                                                          SETTING_BUTTON as winapi::HMENU,
+                                                          0 as winapi::HINSTANCE,
+                                                          null_mut());
             move_window(out.window,
                         &winapi::RECT {
                              left: 0,
@@ -201,23 +221,13 @@ impl<'a> SpVoice<'a> {
     pub fn set_rate(&mut self, rate: i32) -> i32 {
         let rate = max(min(rate, 10), -10);
         unsafe { self.voice.SetRate(rate) };
-        //todo fix window text to be about sapi and find somewhere else for this info.
-        set_window_text(self.rate,
-                        &format!("reading at rate: {}. To reload settings: Alt+Ctr+Sht+r",
-                                 rate)
-                                 .into());
-        rate
+        self.get_rate()
     }
 
     pub fn get_rate(&mut self) -> i32 {
         let mut rate = 0;
         unsafe { self.voice.GetRate(&mut rate) };
-        //todo fix window text to be about sapi and find somewhere else for this info.
-        //todo this should not be needed. When we take it out the message is doulble on window text.
-        set_window_text(self.rate,
-                        &format!("reading at rate: {}. To reload settings: Alt+Ctr+Sht+r",
-                                 rate)
-                                 .into());
+        set_window_text(self.rate, &format!("reading at rate: {}", rate).into());
         rate
     }
 
@@ -301,26 +311,34 @@ impl<'a> Windowed for SpVoice<'a> {
             winapi::WM_SIZE => {
                 let mut rect = get_client_rect(self.window);
                 if (w_param <= 2) && rect.right > 0 && rect.bottom > 0 {
-                    rect.inset(10);
-                    {
-                        let mut rect = rect.clone();
-                        rect.shift_down(20);
-                        move_window(self.edit, &rect);
-                    }
-                    {
-                        let mut rect = rect.clone();
-                        rect.bottom = 20;
-                        move_window(self.rate, &rect);
-                        self.get_rate(); //force repaint of text
-                    }
+                    rect.inset(3);
+                    let (up, mut down) = rect.split_rows(25);
+                    down.inset(3);
+                    move_window(self.edit, &down);
+                    let (mut left, mut right) = up.split_columns(120);
+                    left.inset(3);
+                    right.inset(3);
+                    move_window(self.reload_settings, &left);
+                    move_window(self.rate, &right);
+                    self.get_rate(); //force repaint of text
                     return Some(0);
                 }
             }
             winapi::WM_GETMINMAXINFO => {
                 let data = unsafe { &mut *(l_param as *mut winapi::MINMAXINFO) };
-                data.ptMinTrackSize.x = 180;
+                data.ptMinTrackSize.x = 300;
                 data.ptMinTrackSize.y = 110;
                 return Some(0);
+            }
+            winapi::WM_COMMAND => {
+                use press_hotkey;
+                match w_param {
+                    SETTING_BUTTON => {
+                        press_hotkey(2);
+                        return Some(0);
+                    },
+                    _ => return None,
+                }
             }
             _ => {}
         }
@@ -348,3 +366,4 @@ impl StatusUtil for winapi::SPVOICESTATUS {
         self.ulInputSentPos as usize..(self.ulInputSentPos + self.ulInputSentLen) as usize
     }
 }
+
