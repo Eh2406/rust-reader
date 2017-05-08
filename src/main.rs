@@ -32,6 +32,9 @@ use sapi::*;
 mod clipboard;
 use clipboard::*;
 
+mod actions;
+use actions::*;
+
 mod hot_key;
 use hot_key::*;
 
@@ -79,9 +82,9 @@ impl<'a> State<'a> {
     fn open_settings(&self) {
         use std::process::Command;
         println!("{:?}",
-                Command::new(r"C:\Windows\System32\notepad.exe")
-                        .arg(self.settings.get_dir())
-                        .spawn());
+                 Command::new(r"C:\Windows\System32\notepad.exe")
+                     .arg(self.settings.get_dir())
+                     .spawn());
     }
 
     fn toggle_window_visible(&mut self) {
@@ -106,76 +109,7 @@ impl<'a> State<'a> {
         self.settings.to_file();
         println!("rate :{:?}", self.settings.rate);
     }
-}
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-enum Action {
-    Read,
-    Close,
-    ReloadSettings,
-    OpenSettings,
-    ToggleWindowWisible,
-    PlayPause,
-    RateDown,
-    RateUp,
-}
-
-const ACTION_LIST: [Action; 8] = [Action::Read,
-            Action::Close,
-            Action::ReloadSettings,
-            Action::OpenSettings,
-            Action::ToggleWindowWisible,
-            Action::PlayPause,
-            Action::RateDown,
-            Action::RateUp];
-
-#[test]
-fn action_list_match_enum() {
-    for (id, &act) in ACTION_LIST.iter().enumerate() {
-        assert_eq!(id, act as usize);
-    }
-}
-
-#[test]
-fn action_list_match_settins() {
-    assert_eq!(ACTION_LIST.len(), Settings::new().hotkeys.len());
-}
-
-impl std::fmt::Display for Action {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        use Action::*;
-        match self {
-            &Read => write!(f, "read"),
-            &Close => write!(f, "close"),
-            &ReloadSettings => write!(f, "reload_settings"),
-            &OpenSettings => write!(f, "open_settings"),
-            &ToggleWindowWisible => write!(f, "toggle_window_visible"),
-            &PlayPause => write!(f, "play_pause"),
-            &RateDown => write!(f, "rate_down"),
-            &RateUp => write!(f, "rate_up"),
-        }
-    }
-}
-
-fn setup_hotkeys(settings: &mut Settings) -> Vec<HotKey> {
-    assert_eq!(ACTION_LIST.len(), settings.hotkeys.len());
-    ACTION_LIST.iter().zip(settings.hotkeys
-            .into_iter())
-            .map(|(&act, &(modifiers, vk))| {
-                HotKey::new(modifiers, vk, act as i32).unwrap() // make HotKey
-            })
-            .collect()
-}
-
-fn press_hotkey(id: Action) {
-    unsafe {
-            user32::PostThreadMessageW(kernel32::GetCurrentThreadId(),
-                                        winapi::WM_HOTKEY,
-                                        id as winapi::WPARAM,
-                                        0)};
-}
-
-impl<'a> State<'a> {
     fn match_hotkey_id(&mut self, act: Action) {
         use Action::*;
         match act {
@@ -189,6 +123,25 @@ impl<'a> State<'a> {
             RateUp => self.rate_up(),
         }
     }
+}
+
+fn setup_hotkeys(settings: &mut Settings) -> Vec<HotKey> {
+    assert_eq!(ACTION_LIST.len(), settings.hotkeys.len());
+    ACTION_LIST.iter().zip(settings.hotkeys
+        .into_iter())
+        .map(|(&act, &(modifiers, vk))| {
+            HotKey::new(modifiers, vk, act as i32).unwrap() // make HotKey
+        })
+        .collect()
+}
+
+fn press_hotkey(id: Action) {
+    unsafe {
+        user32::PostThreadMessageW(kernel32::GetCurrentThreadId(),
+                                   winapi::WM_HOTKEY,
+                                   id as winapi::WPARAM,
+                                   0)
+    };
 }
 
 fn make_speech(settings: &Settings, hk: &[HotKey]) -> String {
