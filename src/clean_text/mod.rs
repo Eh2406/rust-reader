@@ -6,7 +6,7 @@ use regex::*;
 mod regex_cleaner_pair;
 pub use self::regex_cleaner_pair::*;
 
-// // un coment and add #![feature(test)] to main to benchmark
+// // un comment and add #![feature(test)] to main to benchmark
 // #[cfg(test)]
 // mod bench;
 
@@ -35,12 +35,12 @@ impl<'r, 'a> Iterator for RegexReplace<'r, 'a> {
             Some(cap) => {
                 // unwrap on 0 is OK because captures only reports matches
                 let cap0 = cap.get(0).unwrap();
-                let unmached = &self.text[self.last_match..cap0.start()];
+                let unmatched = &self.text[self.last_match..cap0.start()];
                 let mut replace = String::new();
                 cap.expand(self.rep, &mut replace);
                 self.cap = Some((cap0.as_str(), Some(replace.into())));
                 self.last_match = cap0.end();
-                Some((unmached, None))
+                Some((unmatched, None))
             }
             None => {
                 if self.last_match < self.text.len() {
@@ -72,10 +72,10 @@ impl<'r, 'a> Iterator for RegexSubstitute<'r, 'a> {
         }
         match self.captures_iter.next() {
             Some(cap) => {
-                let unmached = &self.text[self.last_match..cap.start()];
+                let unmatched = &self.text[self.last_match..cap.start()];
                 self.cap = Some((cap.as_str(), Some(self.rep.clone().into())));
                 self.last_match = cap.end();
-                Some((unmached, None))
+                Some((unmatched, None))
             }
             None => {
                 if self.last_match < self.text.len() {

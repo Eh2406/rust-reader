@@ -117,7 +117,7 @@ impl<'a> State<'a> {
             Close => close(),
             ReloadSettings => self.reload_settings(),
             OpenSettings => self.open_settings(),
-            ToggleWindowWisible => self.toggle_window_visible(),
+            ToggleWindowVisible => self.toggle_window_visible(),
             PlayPause => self.play_pause(),
             RateDown => self.rate_down(),
             RateUp => self.rate_up(),

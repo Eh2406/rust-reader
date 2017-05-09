@@ -4,7 +4,7 @@ pub enum Action {
     Close,
     ReloadSettings,
     OpenSettings,
-    ToggleWindowWisible,
+    ToggleWindowVisible,
     PlayPause,
     RateDown,
     RateUp,
@@ -14,7 +14,7 @@ pub const ACTION_LIST: [Action; 8] = [Action::Read,
                                       Action::Close,
                                       Action::ReloadSettings,
                                       Action::OpenSettings,
-                                      Action::ToggleWindowWisible,
+                                      Action::ToggleWindowVisible,
                                       Action::PlayPause,
                                       Action::RateDown,
                                       Action::RateUp];
@@ -27,7 +27,7 @@ fn action_list_match_enum() {
 }
 
 #[test]
-fn action_list_match_settins() {
+fn action_list_match_settings() {
     assert_eq!(ACTION_LIST.len(), ::Settings::new().hotkeys.len());
 }
 
@@ -39,7 +39,7 @@ impl ::std::fmt::Display for Action {
             &Close => write!(f, "close"),
             &ReloadSettings => write!(f, "reload_settings"),
             &OpenSettings => write!(f, "open_settings"),
-            &ToggleWindowWisible => write!(f, "toggle_window_visible"),
+            &ToggleWindowVisible => write!(f, "toggle_window_visible"),
             &PlayPause => write!(f, "play_pause"),
             &RateDown => write!(f, "rate_down"),
             &RateUp => write!(f, "rate_up"),

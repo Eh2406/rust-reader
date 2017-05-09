@@ -10,8 +10,8 @@ fn short_text(b: &mut Bencher) {
 }
 
 #[bench]
-fn hafe_pap_text(b: &mut Bencher) {
-    // if we maintain O(n) the shud take half the time
+fn half_pap_text(b: &mut Bencher) {
+    // if we maintain O(n) the should take half the time
     print!("{:}", clean_text_string("", &RE_LIST));
     let pap = include_str!("p&p.txt");
     b.iter(|| clean_text_string(&pap[..(pap.len() / 2)], &RE_LIST));
