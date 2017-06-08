@@ -1,7 +1,4 @@
-// Don't show a cmd if using nightly. This will be stabilized in 1.18.
-// If using a stable before 1.18 build with
-// for gnu `cargo rustc --release -- -C link-args=-mwindows`
-#![cfg_attr(feature="nightly", windows_subsystem = "windows")]
+#![cfg_attr(not(test), windows_subsystem = "windows")]
 
 extern crate winapi;
 extern crate ole32;
