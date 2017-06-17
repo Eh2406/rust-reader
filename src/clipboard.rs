@@ -16,8 +16,9 @@ pub fn clipboard_setup() {
         // this may fix the problem
         set_clipboard_string("").unwrap();
         // let us see if it did
-        get_clipboard_seq_num()
-            .expect("Lacks sufficient rights to access clipboard(WINSTA_ACCESSCLIPBOARD)");
+        get_clipboard_seq_num().expect(
+            "Lacks sufficient rights to access clipboard(WINSTA_ACCESSCLIPBOARD)",
+        );
     }
 }
 
@@ -98,9 +99,9 @@ pub fn what_on_get_clipboard_string(n: u64) -> io::Result<String> {
 pub fn get_text() -> io::Result<String> {
     println!("getting text");
     let old_clip = what_on_get_clipboard_string(25);
-    let old_clip_num =
-        get_clipboard_seq_num().expect(
-            "Lacks sufficient rights to access clipboard(WINSTA_ACCESSCLIPBOARD)");
+    let old_clip_num = get_clipboard_seq_num().expect(
+        "Lacks sufficient rights to access clipboard(WINSTA_ACCESSCLIPBOARD)",
+    );
     press_ctrl_c();
     if !what_on_clipboard_seq_num(old_clip_num, 25) {
         return Err(io::Error::new(io::ErrorKind::Other, "oh no!"));

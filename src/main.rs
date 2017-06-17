@@ -52,7 +52,10 @@ impl<'a> State<'a> {
     fn read(&mut self) {
         self.voice.resume();
         match get_text() {
-            Ok(x) => self.voice.speak(clean_text::<WideString>(&x, &self.settings.cleaners)),
+            Ok(x) => {
+                self.voice
+                    .speak(clean_text::<WideString>(&x, &self.settings.cleaners))
+            }
             Err(x) => {
                 self.voice.speak("oops. error.");
                 println!("{:?}", x);
@@ -78,10 +81,12 @@ impl<'a> State<'a> {
 
     fn open_settings(&self) {
         use std::process::Command;
-        println!("{:?}",
-                 Command::new(r"C:\Windows\System32\notepad.exe")
-                     .arg(self.settings.get_dir())
-                     .spawn());
+        println!(
+            "{:?}",
+            Command::new(r"C:\Windows\System32\notepad.exe")
+                .arg(self.settings.get_dir())
+                .spawn()
+        );
     }
 
     fn toggle_window_visible(&mut self) {
@@ -124,8 +129,9 @@ impl<'a> State<'a> {
 
 fn setup_hotkeys(settings: &mut Settings) -> Vec<HotKey> {
     assert_eq!(ACTION_LIST.len(), settings.hotkeys.len());
-    ACTION_LIST.iter().zip(settings.hotkeys
-        .into_iter())
+    ACTION_LIST
+        .iter()
+        .zip(settings.hotkeys.into_iter())
         .map(|(&act, &(modifiers, vk))| {
             HotKey::new(modifiers, vk, act as i32).unwrap() // make HotKey
         })
@@ -134,10 +140,12 @@ fn setup_hotkeys(settings: &mut Settings) -> Vec<HotKey> {
 
 fn press_hotkey(id: Action) {
     unsafe {
-        user32::PostThreadMessageW(kernel32::GetCurrentThreadId(),
-                                   winapi::WM_HOTKEY,
-                                   id as winapi::WPARAM,
-                                   0)
+        user32::PostThreadMessageW(
+            kernel32::GetCurrentThreadId(),
+            winapi::WM_HOTKEY,
+            id as winapi::WPARAM,
+            0,
+        )
     };
 }
 

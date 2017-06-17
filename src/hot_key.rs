@@ -67,9 +67,11 @@ impl ::std::fmt::Display for HotKey {
         if self.vk == VK_ESCAPE as u32 {
             write!(f, "Esc")
         } else {
-            write!(f,
-                   "{}",
-                   char::from_u32(unsafe { user32::MapVirtualKeyW(self.vk, 2) }).unwrap())
+            write!(
+                f,
+                "{}",
+                char::from_u32(unsafe { user32::MapVirtualKeyW(self.vk, 2) }).unwrap()
+            )
         }
     }
 }
@@ -80,4 +82,3 @@ impl Drop for HotKey {
         println!("drop for HotKey");
     }
 }
-

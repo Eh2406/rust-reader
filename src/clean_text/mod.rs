@@ -98,22 +98,24 @@ struct FlatPair<I, C, F> {
 
 impl<I, C, F> FlatPair<I, C, F> {
     fn new_box<'a>(i: I, f: F) -> Box<FlatPair<I, C, F>>
-        where I: 'a + Iterator<Item = Pair<'a>>,
-              C: 'a + Iterator<Item = Pair<'a>>,
-              F: Fn(&'a str) -> C
+    where
+        I: 'a + Iterator<Item = Pair<'a>>,
+        C: 'a + Iterator<Item = Pair<'a>>,
+        F: Fn(&'a str) -> C,
     {
         Box::new(FlatPair {
-                     source: i,
-                     current: None,
-                     func: f,
-                 })
+            source: i,
+            current: None,
+            func: f,
+        })
     }
 }
 
 impl<'a, I, C, F> Iterator for FlatPair<I, C, F>
-    where I: 'a + Iterator<Item = Pair<'a>>,
-          C: 'a + Iterator<Item = Pair<'a>>,
-          F: Fn(&'a str) -> C
+where
+    I: 'a + Iterator<Item = Pair<'a>>,
+    C: 'a + Iterator<Item = Pair<'a>>,
+    F: Fn(&'a str) -> C,
 {
     type Item = Pair<'a>;
 
@@ -133,10 +135,12 @@ impl<'a, I, C, F> Iterator for FlatPair<I, C, F>
     }
 }
 
-fn regex_replace<'r, 'a, I>(raw: I,
-                            reg: &'a RegexCleanerPair)
-                            -> Box<Iterator<Item = Pair<'a>> + 'a>
-    where I: 'a + Iterator<Item = Pair<'a>>
+fn regex_replace<'r, 'a, I>(
+    raw: I,
+    reg: &'a RegexCleanerPair,
+) -> Box<Iterator<Item = Pair<'a>> + 'a>
+where
+    I: 'a + Iterator<Item = Pair<'a>>,
 {
     let (reg, mut r) = reg.to_parts();
     if r.no_expansion().is_some() {
@@ -168,27 +172,32 @@ fn running_count<'a>(st: &mut (&'a str, usize), ch: &'a str) -> Option<Pair<'a>>
         st.0 = ch.clone();
     }
     st.1 += 1;
-    Some((ch,
-          if st.1 < 4 || ch.chars().all(|x| x.is_numeric()) {
-              None
-          } else {
-              Some("".into())
-          }))
+    Some((
+        ch,
+        if st.1 < 4 || ch.chars().all(|x| x.is_numeric()) {
+            None
+        } else {
+            Some("".into())
+        },
+    ))
 }
 
-fn graphemes_pair<'a, I: 'a + Iterator<Item = Pair<'a>>>(i: I)
-                                                         -> Box<Iterator<Item = Pair<'a>> + 'a> {
-    FlatPair::new_box(i,
-                      move |orig: &'a str| orig.graphemes(true).scan(("".into(), 0), running_count))
+fn graphemes_pair<'a, I: 'a + Iterator<Item = Pair<'a>>>(
+    i: I,
+) -> Box<Iterator<Item = Pair<'a>> + 'a> {
+    FlatPair::new_box(i, move |orig: &'a str| {
+        orig.graphemes(true).scan(("".into(), 0), running_count)
+    })
 }
 
 fn trivial_pair<'a>(text: &'a str) -> Box<Iterator<Item = Pair<'a>> + 'a> {
     Box::new(Some((text, None)).into_iter())
 }
 
-fn clean_iter<'r: 'a, 'a>(raw: &'a str,
-                          list: &'r [RegexCleanerPair])
-                          -> Box<Iterator<Item = Pair<'a>> + 'a> {
+fn clean_iter<'r: 'a, 'a>(
+    raw: &'a str,
+    list: &'r [RegexCleanerPair],
+) -> Box<Iterator<Item = Pair<'a>> + 'a> {
     let mut out = trivial_pair(raw);
     for reg in list.iter() {
         out = regex_replace(out, reg);
@@ -197,7 +206,8 @@ fn clean_iter<'r: 'a, 'a>(raw: &'a str,
 }
 
 pub fn clean_text<'r: 'a, 'a, O>(raw: &'a str, list: &'r [RegexCleanerPair]) -> O
-    where O: ::std::iter::FromIterator<Cow<'a, str>>
+where
+    O: ::std::iter::FromIterator<Cow<'a, str>>,
 {
     clean_iter(raw, &list)
         .map(|(o, r)| r.unwrap_or_else(|| o.into()))
@@ -215,23 +225,25 @@ pub fn clean_text_string<T: AsRef<str>>(raw: T, list: &[RegexCleanerPair]) -> St
     out
 }
 
-fn clean_text_idx<'r: 'a, 'a, F>(raw: &'a str,
-                                 len: F,
-                                 list: &'r [RegexCleanerPair])
-                                 -> Box<Iterator<Item = (usize, usize)> + 'a>
-    where F: 'a + Fn(&str) -> usize
+fn clean_text_idx<'r: 'a, 'a, F>(
+    raw: &'a str,
+    len: F,
+    list: &'r [RegexCleanerPair],
+) -> Box<Iterator<Item = (usize, usize)> + 'a>
+where
+    F: 'a + Fn(&str) -> usize,
 {
-    Box::new((0..1)
-                 .map(|x| (x, x))
-                 .chain(clean_iter(raw, &list)
-                            .map(move |(o, r)| {
-                                     (len(o), len(&*r.unwrap_or_else(|| o.into())))
-                                 })
-                            .scan((0, 0), move |st, x| {
-        st.0 += x.0;
-        st.1 += x.1;
-        Some(*st)
-    })))
+    Box::new(
+        (0..1).map(|x| (x, x)).chain(
+            clean_iter(raw, &list)
+                .map(move |(o, r)| (len(o), len(&*r.unwrap_or_else(|| o.into()))))
+                .scan((0, 0), move |st, x| {
+                    st.0 += x.0;
+                    st.1 += x.1;
+                    Some(*st)
+                }),
+        ),
+    )
 }
 
 #[allow(dead_code)]

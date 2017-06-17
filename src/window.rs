@@ -84,19 +84,23 @@ pub fn close() {
 
 pub fn set_edit_selection(h_wnd: winapi::HWND, celec: Range<usize>) -> winapi::LRESULT {
     unsafe {
-        user32::SendMessageW(h_wnd,
-                             winapi::EM_SETSEL as winapi::UINT,
-                             celec.start as winapi::WPARAM,
-                             celec.end as winapi::LPARAM)
+        user32::SendMessageW(
+            h_wnd,
+            winapi::EM_SETSEL as winapi::UINT,
+            celec.start as winapi::WPARAM,
+            celec.end as winapi::LPARAM,
+        )
     }
 }
 
 pub fn set_edit_scroll_caret(h_wnd: winapi::HWND) -> winapi::LRESULT {
     unsafe {
-        user32::SendMessageW(h_wnd,
-                             winapi::EM_SCROLLCARET as winapi::UINT,
-                             0 as winapi::WPARAM,
-                             0 as winapi::LPARAM)
+        user32::SendMessageW(
+            h_wnd,
+            winapi::EM_SCROLLCARET as winapi::UINT,
+            0 as winapi::WPARAM,
+            0 as winapi::LPARAM,
+        )
     }
 }
 
@@ -108,12 +112,14 @@ pub fn get_client_rect(h_wnd: winapi::HWND) -> winapi::RECT {
 
 pub fn move_window(h_wnd: winapi::HWND, rect: &winapi::RECT) -> winapi::BOOL {
     unsafe {
-        user32::MoveWindow(h_wnd,
-                           rect.left,
-                           rect.top,
-                           rect.right,
-                           rect.bottom,
-                           winapi::TRUE)
+        user32::MoveWindow(
+            h_wnd,
+            rect.left,
+            rect.top,
+            rect.right,
+            rect.bottom,
+            winapi::TRUE,
+        )
     }
 }
 
@@ -134,7 +140,10 @@ pub fn toggle_window_visible(h_wnd: winapi::HWND) -> winapi::BOOL {
 }
 
 // rect utilities
-pub trait RectUtil where Self: Sized {
+pub trait RectUtil
+where
+    Self: Sized,
+{
     fn inset(&mut self, i32);
     fn shift_down(&mut self, delta: i32);
     fn shift_right(&mut self, delta: i32);
@@ -199,9 +208,11 @@ pub fn get_window_wrapper<'a, T>(h_wnd: winapi::HWND) -> Option<&'a mut T> {
 pub fn set_window_wrapper(h_wnd: winapi::HWND, l_param: winapi::LPARAM) {
     let data = unsafe { &mut *(l_param as *mut winapi::CREATESTRUCTW) };
     unsafe {
-        user32::SetWindowLongPtrW(h_wnd,
-                                  winapi::GWLP_USERDATA,
-                                  data.lpCreateParams as winapi::LONG_PTR);
+        user32::SetWindowLongPtrW(
+            h_wnd,
+            winapi::GWLP_USERDATA,
+            data.lpCreateParams as winapi::LONG_PTR,
+        );
     }
 }
 
@@ -209,25 +220,29 @@ pub fn set_window_wrapper(h_wnd: winapi::HWND, l_param: winapi::LPARAM) {
 pub fn set_window_wrapper(h_wnd: winapi::HWND, l_param: winapi::LPARAM) {
     let data = unsafe { &mut *(l_param as *mut winapi::CREATESTRUCTW) };
     unsafe {
-        user32::SetWindowLongW(h_wnd,
-                               winapi::GWLP_USERDATA,
-                               data.lpCreateParams as winapi::LONG);
+        user32::SetWindowLongW(
+            h_wnd,
+            winapi::GWLP_USERDATA,
+            data.lpCreateParams as winapi::LONG,
+        );
     }
 }
 
 pub trait Windowed {
-    fn window_proc(&mut self,
-                   msg: winapi::UINT,
-                   w_param: winapi::WPARAM,
-                   l_param: winapi::LPARAM)
-                   -> Option<winapi::LRESULT>;
+    fn window_proc(
+        &mut self,
+        msg: winapi::UINT,
+        w_param: winapi::WPARAM,
+        l_param: winapi::LPARAM,
+    ) -> Option<winapi::LRESULT>;
 }
 
-pub unsafe extern "system" fn window_proc_generic<T: Windowed>(h_wnd: winapi::HWND,
-                                                               msg: winapi::UINT,
-                                                               w_param: winapi::WPARAM,
-                                                               l_param: winapi::LPARAM)
-                                                               -> winapi::LRESULT {
+pub unsafe extern "system" fn window_proc_generic<T: Windowed>(
+    h_wnd: winapi::HWND,
+    msg: winapi::UINT,
+    w_param: winapi::WPARAM,
+    l_param: winapi::LPARAM,
+) -> winapi::LRESULT {
     if msg == winapi::WM_CREATE {
         set_window_wrapper(h_wnd, l_param);
     }

@@ -81,8 +81,7 @@ pub trait IndicesUtf {
 impl IndicesUtf for str {
     fn indices_utf8(&self) -> Vec<usize> {
         let mut out = vec![0];
-        out.extend(self.chars()
-                       .scan(0, |s, c| {
+        out.extend(self.chars().scan(0, |s, c| {
             *s += c.len_utf8();
             Some(*s)
         }));
@@ -90,8 +89,7 @@ impl IndicesUtf for str {
     }
     fn indices_utf16(&self) -> Vec<usize> {
         let mut out = vec![0];
-        out.extend(self.chars()
-                       .scan(0, |s, c| {
+        out.extend(self.chars().scan(0, |s, c| {
             *s += c.len_utf16();
             Some(*s)
         }));
@@ -101,7 +99,8 @@ impl IndicesUtf for str {
 
 #[allow(dead_code)]
 pub fn convert_range<T>(v: &[T], r: &Range<T>) -> Range<usize>
-    where T: Ord
+where
+    T: Ord,
 {
     let mut s = v.binary_search(&r.start).unwrap_or_else(|x| x);
     while s > 0 && v[s - 1] == r.start {
@@ -116,15 +115,17 @@ pub fn convert_range<T>(v: &[T], r: &Range<T>) -> Range<usize>
 
 #[allow(dead_code)]
 pub fn lookup_range<T>(v: &[T], r: &Range<usize>) -> Range<T>
-    where T: Clone
+where
+    T: Clone,
 {
     v[r.start].clone()..v[r.end].clone()
 }
 
 #[allow(dead_code)]
 pub fn invert_idx<I, O>(i: &[I], o: &[O], r: &Range<O>) -> Range<I>
-    where O: Ord,
-          I: Clone
+where
+    O: Ord,
+    I: Clone,
 {
     assert_eq!(i.len(), o.len());
     lookup_range(i, &convert_range(o, r))
@@ -167,8 +168,10 @@ mod tests {
         let s = "\u{1d565}";
         assert_eq!(s.as_bytes(), [0xF0u8, 0x9D, 0x95, 0xA5]);
         assert_eq!(s.chars().collect::<Vec<char>>(), vec!['\u{1d565}']);
-        assert_eq!(WideString::from(s),
-                   WideString(vec![0xD835, 0xDD65, 0x0000]));
+        assert_eq!(
+            WideString::from(s),
+            WideString(vec![0xD835, 0xDD65, 0x0000])
+        );
 
         assert_eq!(s.indices_utf8(), vec![0, 4]);
         assert_eq!(s.indices_utf16(), vec![0, 2]);
@@ -179,8 +182,10 @@ mod tests {
         let s = "\u{5d4}\u{5a2}";
         assert_eq!(s.as_bytes(), [0xD7, 0x94, 0xD6, 0xA2]);
         assert_eq!(s.chars().collect::<Vec<char>>(), vec!['\u{5d4}', '\u{5a2}']);
-        assert_eq!(WideString::from(s),
-                   WideString(vec![0x05D4, 0x05A2, 0x0000]));
+        assert_eq!(
+            WideString::from(s),
+            WideString(vec![0x05D4, 0x05A2, 0x0000])
+        );
 
         assert_eq!(s.indices_utf8(), vec![0, 2, 4]);
         assert_eq!(s.indices_utf16(), vec![0, 1, 2]);

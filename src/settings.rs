@@ -18,33 +18,42 @@ impl Settings {
     pub fn new() -> Settings {
         Settings {
             rate: 6,
-            hotkeys: [(2, VK_OEM_2 as u32), // ctrl-? key
-                      (7, VK_ESCAPE as u32), // ctrl-alt-shift-esk
-                      (7, 0x52 as u32), // ctrl-alt-shift-r
-                      (7, 0x53 as u32), // ctrl-alt-shift-s
-                      (3, VK_OEM_2 as u32), // ctrl-alt-?
-                      (2, VK_OEM_PERIOD as u32), // ctrl-.
-                      (3, VK_OEM_MINUS as u32), // ctrl-alt--
-                      (3, VK_OEM_PLUS as u32) /* ctrl-alt-= */],
-            cleaners:
-                RegexCleanerPair::prep_list(&[(r"\s+", " "),
-                                     (concat!(
-                r"(https?://)?(?P<a>[-a-zA-Z0-9@:%._\+~#=]{2,256}",
-                   r"\.[a-z]{2,6})\b[-a-zA-Z0-9@:%_\+.~#?&//=]{10,}"),
-                                      "link to $a"),
-                                     (r"(?P<s>[0-9a-f]{6})([0-9]+[a-f]|[a-f]+[0-9])[0-9a-f]*",
-                                      "hash $s")])
-                        .unwrap(),
+            hotkeys: [
+                (2, VK_OEM_2 as u32), // ctrl-? key
+                (7, VK_ESCAPE as u32), // ctrl-alt-shift-esk
+                (7, 0x52 as u32), // ctrl-alt-shift-r
+                (7, 0x53 as u32), // ctrl-alt-shift-s
+                (3, VK_OEM_2 as u32), // ctrl-alt-?
+                (2, VK_OEM_PERIOD as u32), // ctrl-.
+                (3, VK_OEM_MINUS as u32), // ctrl-alt--
+                (3, VK_OEM_PLUS as u32), // ctrl-alt-=
+            ],
+            cleaners: RegexCleanerPair::prep_list(
+                &[
+                    (r"\s+", " "),
+                    (
+                        concat!(
+                            r"(https?://)?(?P<a>[-a-zA-Z0-9@:%._\+~#=]{2,256}",
+                            r"\.[a-z]{2,6})\b[-a-zA-Z0-9@:%_\+.~#?&//=]{10,}"
+                        ),
+                        "link to $a",
+                    ),
+                    (
+                        r"(?P<s>[0-9a-f]{6})([0-9]+[a-f]|[a-f]+[0-9])[0-9a-f]*",
+                        "hash $s",
+                    ),
+                ],
+            ).unwrap(),
         }
     }
     pub fn get_dir(&self) -> ::std::path::PathBuf {
         prefs_base_dir()
             .map(|mut p| {
-                     p.push("us");
-                     p.push("rust_reader");
-                     p.push("setings.prefs.json");
-                     p
-                 })
+                p.push("us");
+                p.push("rust_reader");
+                p.push("setings.prefs.json");
+                p
+            })
             .unwrap_or(::std::path::PathBuf::new())
     }
     pub fn from_file() -> Settings {

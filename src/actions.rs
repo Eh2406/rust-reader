@@ -10,14 +10,16 @@ pub enum Action {
     RateUp,
 }
 
-pub const ACTION_LIST: [Action; 8] = [Action::Read,
-                                      Action::Close,
-                                      Action::ReloadSettings,
-                                      Action::OpenSettings,
-                                      Action::ToggleWindowVisible,
-                                      Action::PlayPause,
-                                      Action::RateDown,
-                                      Action::RateUp];
+pub const ACTION_LIST: [Action; 8] = [
+    Action::Read,
+    Action::Close,
+    Action::ReloadSettings,
+    Action::OpenSettings,
+    Action::ToggleWindowVisible,
+    Action::PlayPause,
+    Action::RateDown,
+    Action::RateUp,
+];
 
 #[test]
 fn action_list_match_enum() {

@@ -11,28 +11,31 @@ pub struct RegexCleanerPair {
 impl RegexCleanerPair {
     fn new<T: AsRef<str>>(regex: T, rep: String) -> Result<RegexCleanerPair, Error> {
         Ok(RegexCleanerPair {
-               regex: Regex::new(regex.as_ref())?,
-               rep: rep,
-           })
+            regex: Regex::new(regex.as_ref())?,
+            rep: rep,
+        })
     }
     pub fn prep_list(input: &[(&str, &str)]) -> Result<Vec<RegexCleanerPair>, Error> {
         input
             .iter()
-            .map(|&(ref reg, rep)| RegexCleanerPair::new(reg, rep.to_string()))
+            .map(|&(ref reg, rep)| {
+                RegexCleanerPair::new(reg, rep.to_string())
+            })
             .collect()
     }
     pub fn to_parts(&self) -> (&Regex, &str) {
         let &RegexCleanerPair {
-                 regex: ref reg,
-                 rep: ref r,
-             } = self;
+            regex: ref reg,
+            rep: ref r,
+        } = self;
         (reg, r)
     }
 }
 
 impl Serialize for RegexCleanerPair {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where S: Serializer
+    where
+        S: Serializer,
     {
         use serde::ser::SerializeSeq;
         let mut seq = serializer.serialize_seq_fixed_size(2)?;
@@ -44,7 +47,8 @@ impl Serialize for RegexCleanerPair {
 
 impl Deserialize for RegexCleanerPair {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where D: Deserializer
+    where
+        D: Deserializer,
     {
         struct RegexCleanerPairVisitor;
 
@@ -56,7 +60,8 @@ impl Deserialize for RegexCleanerPair {
             }
 
             fn visit_seq<V>(self, mut visitor: V) -> Result<RegexCleanerPair, V::Error>
-                where V: SeqVisitor
+            where
+                V: SeqVisitor,
             {
                 let regex: String = match visitor.visit()? {
                     Some(value) => value,
@@ -71,12 +76,12 @@ impl Deserialize for RegexCleanerPair {
                     }
                 };
                 Ok(RegexCleanerPair {
-                       regex: Regex::new(&regex)
-                           .map_err(|_| {
-                                        de::Error::invalid_value(de::Unexpected::Str(&regex), &self)
-                                    })?,
-                       rep: rep,
-                   })
+                    regex: Regex::new(&regex)
+                        .map_err(|_| {
+                            de::Error::invalid_value(de::Unexpected::Str(&regex), &self)
+                        })?,
+                    rep: rep,
+                })
             }
         }
 

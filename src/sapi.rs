@@ -62,110 +62,114 @@ impl<'a> SpVoice<'a> {
                 panic!("failed for SpVoice at CLSIDFromProgID");
             }
 
-            if failed(ole32::CoCreateInstance(&clsid_spvoice,
-                                              null_mut(),
-                                              winapi::CLSCTX_ALL,
-                                              &winapi::UuidOfISpVoice,
-                                              &mut voice as *mut *mut winapi::ISpVoice as
-                                              *mut *mut winapi::c_void)) {
+            if failed(ole32::CoCreateInstance(
+                &clsid_spvoice,
+                null_mut(),
+                winapi::CLSCTX_ALL,
+                &winapi::UuidOfISpVoice,
+                &mut voice as *mut *mut winapi::ISpVoice as *mut *mut winapi::c_void,
+            ))
+            {
                 panic!("failed for SpVoice at CoCreateInstance");
             }
             let mut out = Box::new(SpVoice {
-                                       voice: &mut *voice,
-                                       window: null_mut(),
-                                       edit: null_mut(),
-                                       rate: null_mut(),
-                                       reload_settings: null_mut(),
-                                       last_read: WideString::new(),
-                                   });
+                voice: &mut *voice,
+                window: null_mut(),
+                edit: null_mut(),
+                rate: null_mut(),
+                reload_settings: null_mut(),
+                last_read: WideString::new(),
+            });
 
             let window_class_name: WideString = "SAPI_event_window_class_name".into();
             user32::RegisterClassW(&winapi::WNDCLASSW {
-                                        style: 0,
-                                        lpfnWndProc: Some(window_proc_generic::<SpVoice>),
-                                        cbClsExtra: 0,
-                                        cbWndExtra: 0,
-                                        hInstance: 0 as winapi::HINSTANCE,
-                                        hIcon: user32::LoadIconW(0 as winapi::HINSTANCE,
-                                                                 winapi::IDI_APPLICATION),
-                                        hCursor: user32::LoadCursorW(0 as winapi::HINSTANCE,
-                                                                     winapi::IDI_APPLICATION),
-                                        hbrBackground: 16 as winapi::HBRUSH,
-                                        lpszMenuName: 0 as winapi::LPCWSTR,
-                                        lpszClassName: window_class_name.as_ptr(),
-                                    });
-            out.window = user32::CreateWindowExW(0,
-                                                 window_class_name.as_ptr(),
-                                                 &0u16,
-                                                 winapi::WS_OVERLAPPEDWINDOW,
-                                                 0,
-                                                 0,
-                                                 0,
-                                                 0,
-                                                 user32::GetDesktopWindow(),
-                                                 0 as winapi::HMENU,
-                                                 0 as winapi::HINSTANCE,
-                                                 &mut *out as *mut _ as winapi::LPVOID);
+                style: 0,
+                lpfnWndProc: Some(window_proc_generic::<SpVoice>),
+                cbClsExtra: 0,
+                cbWndExtra: 0,
+                hInstance: 0 as winapi::HINSTANCE,
+                hIcon: user32::LoadIconW(0 as winapi::HINSTANCE, winapi::IDI_APPLICATION),
+                hCursor: user32::LoadCursorW(0 as winapi::HINSTANCE, winapi::IDI_APPLICATION),
+                hbrBackground: 16 as winapi::HBRUSH,
+                lpszMenuName: 0 as winapi::LPCWSTR,
+                lpszClassName: window_class_name.as_ptr(),
+            });
+            out.window = user32::CreateWindowExW(
+                0,
+                window_class_name.as_ptr(),
+                &0u16,
+                winapi::WS_OVERLAPPEDWINDOW,
+                0,
+                0,
+                0,
+                0,
+                user32::GetDesktopWindow(),
+                0 as winapi::HMENU,
+                0 as winapi::HINSTANCE,
+                &mut *out as *mut _ as winapi::LPVOID,
+            );
 
             // https://msdn.microsoft.com/en-us/library/windows/desktop/hh298433.aspx
             let wide_edit: WideString = "EDIT".into();
-            out.edit = user32::CreateWindowExW(winapi::WS_EX_CLIENTEDGE,
-                                               wide_edit.as_ptr(),
-                                               &0u16,
-                                               winapi::WS_CHILD | winapi::WS_VISIBLE |
-                                               winapi::WS_VSCROLL |
-                                               winapi::WS_BORDER |
-                                               winapi::ES_LEFT |
-                                               winapi::ES_MULTILINE |
-                                               winapi::ES_AUTOVSCROLL |
-                                               winapi::ES_NOHIDESEL |
-                                               winapi::ES_AUTOVSCROLL,
-                                               0,
-                                               0,
-                                               0,
-                                               0,
-                                               out.window,
-                                               winapi_stub::ID_EDITCHILD,
-                                               0 as winapi::HINSTANCE,
-                                               null_mut());
+            out.edit = user32::CreateWindowExW(
+                winapi::WS_EX_CLIENTEDGE,
+                wide_edit.as_ptr(),
+                &0u16,
+                winapi::WS_CHILD | winapi::WS_VISIBLE | winapi::WS_VSCROLL |
+                    winapi::WS_BORDER | winapi::ES_LEFT | winapi::ES_MULTILINE |
+                    winapi::ES_AUTOVSCROLL |
+                    winapi::ES_NOHIDESEL | winapi::ES_AUTOVSCROLL,
+                0,
+                0,
+                0,
+                0,
+                out.window,
+                winapi_stub::ID_EDITCHILD,
+                0 as winapi::HINSTANCE,
+                null_mut(),
+            );
             let wide_static: WideString = "STATIC".into();
-            out.rate = user32::CreateWindowExW(0,
-                                               wide_static.as_ptr(),
-                                               &0u16,
-                                               winapi::WS_CHILD | winapi::WS_VISIBLE |
-                                               winapi_stub::SS_CENTER |
-                                               winapi_stub::SS_NOPREFIX,
-                                               0,
-                                               0,
-                                               0,
-                                               0,
-                                               out.window,
-                                               0 as winapi::HMENU,
-                                               0 as winapi::HINSTANCE,
-                                               null_mut());
+            out.rate = user32::CreateWindowExW(
+                0,
+                wide_static.as_ptr(),
+                &0u16,
+                winapi::WS_CHILD | winapi::WS_VISIBLE | winapi_stub::SS_CENTER |
+                    winapi_stub::SS_NOPREFIX,
+                0,
+                0,
+                0,
+                0,
+                out.window,
+                0 as winapi::HMENU,
+                0 as winapi::HINSTANCE,
+                null_mut(),
+            );
             let wide_button: WideString = "BUTTON".into();
             let wide_settings: WideString = "Reload Settings".into();
-            out.reload_settings = user32::CreateWindowExW(0,
-                                                          wide_button.as_ptr(),
-                                                          wide_settings.as_ptr(),
-                                                          winapi::WS_TABSTOP | winapi::WS_VISIBLE |
-                                                          winapi::WS_CHILD |
-                                                          winapi::BS_DEFPUSHBUTTON,
-                                                          10,
-                                                          10,
-                                                          20,
-                                                          20,
-                                                          out.window,
-                                                          SETTING_BUTTON as winapi::HMENU,
-                                                          0 as winapi::HINSTANCE,
-                                                          null_mut());
-            move_window(out.window,
-                        &winapi::RECT {
-                             left: 0,
-                             top: 0,
-                             right: 400,
-                             bottom: 400,
-                         });
+            out.reload_settings = user32::CreateWindowExW(
+                0,
+                wide_button.as_ptr(),
+                wide_settings.as_ptr(),
+                winapi::WS_TABSTOP | winapi::WS_VISIBLE | winapi::WS_CHILD |
+                    winapi::BS_DEFPUSHBUTTON,
+                10,
+                10,
+                20,
+                20,
+                out.window,
+                SETTING_BUTTON as winapi::HMENU,
+                0 as winapi::HINSTANCE,
+                null_mut(),
+            );
+            move_window(
+                out.window,
+                &winapi::RECT {
+                    left: 0,
+                    top: 0,
+                    right: 400,
+                    bottom: 400,
+                },
+            );
             show_window(out.window, winapi::SW_SHOWNORMAL);
             out.set_notify_window_message();
             out.set_volume(100);
@@ -266,41 +270,46 @@ impl<'a> SpVoice<'a> {
 
     fn set_notify_window_message(&mut self) {
         unsafe {
-            self.voice
-                .SetNotifyWindowMessage(self.window, WM_SAPI_EVENT, 0, 0)
+            self.voice.SetNotifyWindowMessage(
+                self.window,
+                WM_SAPI_EVENT,
+                0,
+                0,
+            )
         };
     }
 
     pub fn set_interest(&mut self, event: &[u64], queued: &[u64]) {
-        let queued = queued
-            .iter()
-            .map(|&x| winapi::SPFEI(x))
-            .fold(0u64, |acc, x| acc | x);
-        let event = event
-            .iter()
-            .map(|&x| winapi::SPFEI(x))
-            .fold(queued, |acc, x| acc | x);
+        let queued = queued.iter().map(|&x| winapi::SPFEI(x)).fold(
+            0u64,
+            |acc, x| acc | x,
+        );
+        let event = event.iter().map(|&x| winapi::SPFEI(x)).fold(
+            queued,
+            |acc, x| acc | x,
+        );
         unsafe { self.voice.SetInterest(event, queued) };
     }
 }
 
 impl<'a> Windowed for SpVoice<'a> {
-    fn window_proc(&mut self,
-                   msg: winapi::UINT,
-                   w_param: winapi::WPARAM,
-                   l_param: winapi::LPARAM)
-                   -> Option<winapi::LRESULT> {
+    fn window_proc(
+        &mut self,
+        msg: winapi::UINT,
+        w_param: winapi::WPARAM,
+        l_param: winapi::LPARAM,
+    ) -> Option<winapi::LRESULT> {
         match msg {
             winapi::WM_DESTROY => close(),
             winapi::WM_QUERYENDSESSION => close(),
             winapi::WM_ENDSESSION => close(),
             WM_SAPI_EVENT => {
                 let word_range = self.get_status().word_range();
-                let window_title = format!("{:.1}% \"{}\" rust_reader",
-                                           100.0 * ((word_range.end + 2) as f64) /
-                                           (self.last_read.len() as f64),
-                                           self.get_status_word())
-                        .into();
+                let window_title = format!(
+                    "{:.1}% \"{}\" rust_reader",
+                    100.0 * ((word_range.end + 2) as f64) / (self.last_read.len() as f64),
+                    self.get_status_word()
+                ).into();
                 set_console_title(&window_title);
                 set_window_text(self.window, &window_title);
                 set_edit_selection(self.edit, word_range);
@@ -337,7 +346,7 @@ impl<'a> Windowed for SpVoice<'a> {
                     SETTING_BUTTON => {
                         press_hotkey(Action::ReloadSettings);
                         return Some(0);
-                    },
+                    }
                     _ => return None,
                 }
             }
@@ -367,4 +376,3 @@ impl StatusUtil for winapi::SPVOICESTATUS {
         self.ulInputSentPos as usize..(self.ulInputSentPos + self.ulInputSentLen) as usize
     }
 }
-
