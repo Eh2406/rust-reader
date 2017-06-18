@@ -300,8 +300,8 @@ impl<'a> Windowed for SpVoice<'a> {
         l_param: winapi::LPARAM,
     ) -> Option<winapi::LRESULT> {
         match msg {
-            winapi::WM_DESTROY => close(),
-            winapi::WM_QUERYENDSESSION => close(),
+            winapi::WM_DESTROY |
+            winapi::WM_QUERYENDSESSION |
             winapi::WM_ENDSESSION => close(),
             WM_SAPI_EVENT => {
                 let word_range = self.get_status().word_range();
@@ -312,11 +312,10 @@ impl<'a> Windowed for SpVoice<'a> {
                 ).into();
                 set_console_title(&window_title);
                 set_window_text(self.window, &window_title);
-                set_edit_selection(self.edit, word_range);
+                set_edit_selection(self.edit, &word_range);
                 set_edit_scroll_caret(self.edit);
                 return Some(0);
             }
-            winapi::WM_CREATE => {}
             winapi::WM_SIZE => {
                 let mut rect = get_client_rect(self.window);
                 if (w_param <= 2) && rect.right > 0 && rect.bottom > 0 {

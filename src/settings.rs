@@ -54,7 +54,7 @@ impl Settings {
                 p.push("setings.prefs.json");
                 p
             })
-            .unwrap_or(::std::path::PathBuf::new())
+            .unwrap_or_default()
     }
     pub fn from_file() -> Settings {
         Settings::load(&APP_INFO, "setings").unwrap_or_else(|_| {

@@ -18,9 +18,7 @@ impl RegexCleanerPair {
     pub fn prep_list(input: &[(&str, &str)]) -> Result<Vec<RegexCleanerPair>, Error> {
         input
             .iter()
-            .map(|&(ref reg, rep)| {
-                RegexCleanerPair::new(reg, rep.to_string())
-            })
+            .map(|&(reg, rep)| RegexCleanerPair::new(reg, rep.to_string()))
             .collect()
     }
     pub fn to_parts(&self) -> (&Regex, &str) {

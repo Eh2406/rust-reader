@@ -73,7 +73,7 @@ impl<'r, 'a> Iterator for RegexSubstitute<'r, 'a> {
         match self.captures_iter.next() {
             Some(cap) => {
                 let unmatched = &self.text[self.last_match..cap.start()];
-                self.cap = Some((cap.as_str(), Some(self.rep.clone().into())));
+                self.cap = Some((cap.as_str(), Some(self.rep.into())));
                 self.last_match = cap.end();
                 Some((unmatched, None))
             }
@@ -169,7 +169,7 @@ where
 fn running_count<'a>(st: &mut (&'a str, usize), ch: &'a str) -> Option<Pair<'a>> {
     if st.0 != ch {
         st.1 = 0;
-        st.0 = ch.clone();
+        st.0 = ch;
     }
     st.1 += 1;
     Some((
@@ -209,7 +209,7 @@ pub fn clean_text<'r: 'a, 'a, O>(raw: &'a str, list: &'r [RegexCleanerPair]) -> 
 where
     O: ::std::iter::FromIterator<Cow<'a, str>>,
 {
-    clean_iter(raw, &list)
+    clean_iter(raw, list)
         .map(|(o, r)| r.unwrap_or_else(|| o.into()))
         .collect()
 }
@@ -218,7 +218,7 @@ where
 pub fn clean_text_string<T: AsRef<str>>(raw: T, list: &[RegexCleanerPair]) -> String {
     let raw = raw.as_ref();
     let mut out = String::with_capacity(raw.len());
-    for (o, r) in clean_iter(raw, &list) {
+    for (o, r) in clean_iter(raw, list) {
         out.push_str(&*r.unwrap_or_else(|| o.into()))
     }
     out.shrink_to_fit();
@@ -235,7 +235,7 @@ where
 {
     Box::new(
         (0..1).map(|x| (x, x)).chain(
-            clean_iter(raw, &list)
+            clean_iter(raw, list)
                 .map(move |(o, r)| (len(o), len(&*r.unwrap_or_else(|| o.into()))))
                 .scan((0, 0), move |st, x| {
                     st.0 += x.0;

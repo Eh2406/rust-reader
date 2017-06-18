@@ -82,7 +82,7 @@ pub fn close() {
     unsafe { user32::PostQuitMessage(0) }
 }
 
-pub fn set_edit_selection(h_wnd: winapi::HWND, celec: Range<usize>) -> winapi::LRESULT {
+pub fn set_edit_selection(h_wnd: winapi::HWND, celec: &Range<usize>) -> winapi::LRESULT {
     unsafe {
         user32::SendMessageW(
             h_wnd,
@@ -167,15 +167,15 @@ impl RectUtil for winapi::RECT {
         self.right -= delta;
     }
     fn split_columns(&self, at: i32) -> (Self, Self) {
-        let mut l = self.clone();
-        let mut r = self.clone();
+        let mut l = *self;
+        let mut r = *self;
         l.right = at;
         r.shift_right(at);
         (l, r)
     }
     fn split_rows(&self, at: i32) -> (Self, Self) {
-        let mut u = self.clone();
-        let mut b = self.clone();
+        let mut u = *self;
+        let mut b = *self;
         u.bottom = at;
         b.shift_down(at);
         (u, b)
@@ -252,5 +252,5 @@ pub unsafe extern "system" fn window_proc_generic<T: Windowed>(
             return out;
         }
     }
-    return user32::DefWindowProcW(h_wnd, msg, w_param, l_param);
+    user32::DefWindowProcW(h_wnd, msg, w_param, l_param)
 }

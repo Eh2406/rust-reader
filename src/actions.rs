@@ -36,15 +36,15 @@ fn action_list_match_settings() {
 impl ::std::fmt::Display for Action {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         use self::Action::*;
-        match self {
-            &Read => write!(f, "read"),
-            &Close => write!(f, "close"),
-            &ReloadSettings => write!(f, "reload_settings"),
-            &OpenSettings => write!(f, "open_settings"),
-            &ToggleWindowVisible => write!(f, "toggle_window_visible"),
-            &PlayPause => write!(f, "play_pause"),
-            &RateDown => write!(f, "rate_down"),
-            &RateUp => write!(f, "rate_up"),
+        match *self {
+            Read => write!(f, "read"),
+            Close => write!(f, "close"),
+            ReloadSettings => write!(f, "reload_settings"),
+            OpenSettings => write!(f, "open_settings"),
+            ToggleWindowVisible => write!(f, "toggle_window_visible"),
+            PlayPause => write!(f, "play_pause"),
+            RateDown => write!(f, "rate_down"),
+            RateUp => write!(f, "rate_up"),
         }
     }
 }

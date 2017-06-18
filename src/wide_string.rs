@@ -52,7 +52,7 @@ impl<T: ::std::borrow::Borrow<str>> ::std::iter::FromIterator<T> for WideString 
 impl Drop for WideString {
     fn drop(&mut self) {
         // this zeroes on drop so if we use freed memory we can see it
-        for i in self.0.iter_mut() {
+        for i in &mut self.0 {
             *i = 0;
         }
         assert_eq!(self.0.iter().sum::<u16>(), 0u16);
