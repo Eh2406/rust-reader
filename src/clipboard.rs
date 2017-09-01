@@ -76,21 +76,21 @@ pub fn press_ctrl_c() {
     press_key(&[winapi::VK_CONTROL as u16, 67]); //ascii for "c"
 }
 
-pub fn what_on_clipboard_seq_num(clip_num: u32, n: u64) -> bool {
-    for i in 1..(n + 1) {
+pub fn what_on_clipboard_seq_num(clip_num: u32, n: u8) -> bool {
+    for i in 0..(n as u32) {
         if get_clipboard_seq_num().unwrap_or(clip_num) != clip_num {
             return true;
         }
-        sleep(Duration::from_millis(i));
+        sleep(Duration::from_millis((2 as u64).pow(i)));
     }
     get_clipboard_seq_num().unwrap_or(clip_num) != clip_num
 }
 
-pub fn what_on_get_clipboard_string(n: u64) -> io::Result<String> {
-    for i in 1..(n + 1) {
+pub fn what_on_get_clipboard_string(n: u8) -> io::Result<String> {
+    for i in 0..(n as u32) {
         match get_clipboard_string() {
             Ok(x) => return Ok(x),
-            Err(_) => sleep(Duration::from_millis(i)),
+            Err(_) => sleep(Duration::from_millis((2 as u64).pow(i))),
         }
     }
     get_clipboard_string()
@@ -98,15 +98,15 @@ pub fn what_on_get_clipboard_string(n: u64) -> io::Result<String> {
 
 pub fn get_text() -> io::Result<String> {
     println!("getting text");
-    let old_clip = what_on_get_clipboard_string(25);
+    let old_clip = what_on_get_clipboard_string(6);
     let old_clip_num = get_clipboard_seq_num().expect(
         "Lacks sufficient rights to access clipboard(WINSTA_ACCESSCLIPBOARD)",
     );
     press_ctrl_c();
-    if !what_on_clipboard_seq_num(old_clip_num, 25) {
+    if !what_on_clipboard_seq_num(old_clip_num, 6) {
         return Err(io::Error::new(io::ErrorKind::Other, "oh no!"));
     }
-    let new_clip = what_on_get_clipboard_string(25);
+    let new_clip = what_on_get_clipboard_string(6);
     if let Ok(clip) = old_clip {
         let _ = set_clipboard_string(&clip);
     }
