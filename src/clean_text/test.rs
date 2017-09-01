@@ -7,6 +7,10 @@ lazy_static! {
     };
 }
 
+pub fn clean_text_string<T: AsRef<str>>(raw: T, list: &[RegexCleanerPair]) -> String {
+    clean_text(raw.as_ref(), list)
+}
+
 #[test]
 fn one_word() {
     assert_eq!(clean_text_string("Hello", &RE_LIST), "Hello");

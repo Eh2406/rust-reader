@@ -1,7 +1,7 @@
 extern crate test;
 use self::test::Bencher;
 use super::*;
-use super::test::RE_LIST;
+use super::test::{RE_LIST, clean_text_string};
 
 #[bench]
 fn short_text(b: &mut Bencher) {

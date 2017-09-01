@@ -214,17 +214,6 @@ where
         .collect()
 }
 
-#[allow(dead_code)]
-pub fn clean_text_string<T: AsRef<str>>(raw: T, list: &[RegexCleanerPair]) -> String {
-    let raw = raw.as_ref();
-    let mut out = String::with_capacity(raw.len());
-    for (o, r) in clean_iter(raw, list) {
-        out.push_str(&*r.unwrap_or_else(|| o.into()))
-    }
-    out.shrink_to_fit();
-    out
-}
-
 fn clean_text_idx<'r: 'a, 'a, F>(
     raw: &'a str,
     len: F,
