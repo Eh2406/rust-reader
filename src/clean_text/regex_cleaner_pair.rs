@@ -1,6 +1,6 @@
 use regex::*;
 use serde::{Serialize, Serializer, Deserializer};
-use serde::de::{self, Deserialize, Visitor, SeqVisitor};
+use serde::de::{self, Deserialize, Visitor, SeqAccess};
 
 #[derive(Debug)]
 pub struct RegexCleanerPair {
@@ -36,21 +36,21 @@ impl Serialize for RegexCleanerPair {
         S: Serializer,
     {
         use serde::ser::SerializeSeq;
-        let mut seq = serializer.serialize_seq_fixed_size(2)?;
+        let mut seq = serializer.serialize_seq(Some(2))?;
         seq.serialize_element(self.regex.as_str())?;
         seq.serialize_element(&self.rep)?;
         seq.end()
     }
 }
 
-impl Deserialize for RegexCleanerPair {
+impl<'de> Deserialize<'de> for RegexCleanerPair {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
-        D: Deserializer,
+        D: Deserializer<'de>,
     {
         struct RegexCleanerPairVisitor;
 
-        impl Visitor for RegexCleanerPairVisitor {
+        impl<'de> Visitor<'de> for RegexCleanerPairVisitor {
             type Value = RegexCleanerPair;
 
             fn expecting(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
@@ -59,15 +59,15 @@ impl Deserialize for RegexCleanerPair {
 
             fn visit_seq<V>(self, mut visitor: V) -> Result<RegexCleanerPair, V::Error>
             where
-                V: SeqVisitor,
+                V: SeqAccess<'de>,
             {
-                let regex: String = match visitor.visit()? {
+                let regex: String = match visitor.next_element()? {
                     Some(value) => value,
                     None => {
                         return Err(de::Error::invalid_length(0, &self));
                     }
                 };
-                let rep: String = match visitor.visit()? {
+                let rep: String = match visitor.next_element()? {
                     Some(value) => value,
                     None => {
                         return Err(de::Error::invalid_length(1, &self));
