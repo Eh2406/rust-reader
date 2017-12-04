@@ -1,8 +1,0 @@
-clean up hotkeys code
-serialization and options
-fix pause, keep track of what we are reading ourselves.
-add Shell_NotifyIcon ie tray for the commands like exit
-add set voice and get voices
-multiple window
-mispronounced words
-remaining time estimate
