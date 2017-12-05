@@ -4,7 +4,16 @@ The primary function is the `Read` hotkey by defalt `Ctr-/` witch:
 1. Save the contents of the clipbored
 2. Types `Ctr-c`
 3. Start reading the new contents of the clipbored
-4. Put the clipbored back to the contents it saved in 1.
+4. Put the clipbored back to the contents it saved in step 1.
+
+----
+Upgrade and Installation (after rust is installed)
+----
+1. Get the latest Rust release. On the command line type `rustup update`.
+2. Replace the source code with the code from github.
+3. Close the reader
+3. Build reader by typing on the command line `cargo build --release`
+4. Reopen reader.
 
 ----
 Prehistory
@@ -20,4 +29,4 @@ It had:
 - Full persistence; on launching the program it would have restored all the windows you had open.
 - A progress bar complete with percent complete and time left.
 
-Unfortunately, we had stretched out programing language AutoIt3 far past its limits. Years later I went back to fix sum bugs, but discovered it was too unwieldy to make any progress on. So when I was learning rust I thought this would be a good project to practice with.
+Unfortunately, we had stretched out programing language AutoIt3 far past its limits. Later, when I was learning rust, I went back to fix sum bugs, but discovered it was too unwieldy and so started this rewrite in rust.
