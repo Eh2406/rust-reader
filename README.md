@@ -29,4 +29,4 @@ It had:
 - Full persistence; on launching the program it would have restored all the windows you had open.
 - A progress bar complete with percent complete and time left.
 
-Unfortunately, we had stretched out programing language AutoIt3 far past its limits. Later, when I was learning rust, I went back to fix sum bugs, but discovered it was too unwieldy and so started this rewrite in rust.
+Unfortunately, we had stretched out our programing language AutoIt3 far past its limits. Later, when I was learning rust, I went back to fix sum bugs, but discovered it was too unwieldy and so started this rewrite in rust.
