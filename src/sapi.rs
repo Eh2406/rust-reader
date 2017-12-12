@@ -3,8 +3,9 @@ use ole32;
 use user32;
 
 use std::cmp::{min, max};
-use std::ptr::null_mut;
 use std::mem;
+use std::ptr::null_mut;
+use std::time::Instant;
 use std::ops::Range;
 
 use window::*;
@@ -48,6 +49,7 @@ pub struct SpVoice<'a> {
     rate: winapi::HWND,
     reload_settings: winapi::HWND,
     last_read: WideString,
+    last_update: Option<(Instant, Range<usize>)>,
 }
 
 impl<'a> SpVoice<'a> {
@@ -79,6 +81,7 @@ impl<'a> SpVoice<'a> {
                 rate: null_mut(),
                 reload_settings: null_mut(),
                 last_read: WideString::new(),
+                last_update: None,
             });
 
             let window_class_name: WideString = "SAPI_event_window_class_name".into();
@@ -188,6 +191,7 @@ impl<'a> SpVoice<'a> {
         toggle_window_visible(self.window)
     }
 
+    #[allow(dead_code)]
     pub fn get_status_word(&mut self) -> String {
         let status = self.get_status();
         self.last_read.get_slice(status.word_range())
@@ -203,6 +207,7 @@ impl<'a> SpVoice<'a> {
         self.last_read = string.into();
         set_window_text(self.edit, &self.last_read);
         unsafe { self.voice.Speak(self.last_read.as_ptr(), 19, null_mut()) };
+        self.last_update = None;
     }
 
     pub fn wait(&mut self) {
@@ -216,15 +221,18 @@ impl<'a> SpVoice<'a> {
 
     pub fn pause(&mut self) {
         unsafe { self.voice.Pause() };
+        self.last_update = None;
     }
 
     pub fn resume(&mut self) {
         unsafe { self.voice.Resume() };
+        self.last_update = None;
     }
 
     pub fn set_rate(&mut self, rate: i32) -> i32 {
         let rate = max(min(rate, 10), -10);
         unsafe { self.voice.SetRate(rate) };
+        self.last_update = None;
         self.get_rate()
     }
 
@@ -305,10 +313,16 @@ impl<'a> Windowed for SpVoice<'a> {
             winapi::WM_ENDSESSION => close(),
             WM_SAPI_EVENT => {
                 let word_range = self.get_status().word_range();
+                if let Some((_, ref old_word_range)) = self.last_update {
+                    if old_word_range.start == word_range.start {
+                        return Some(0);
+                    }
+                }
+                self.last_update = Some((Instant::now(), word_range.clone()));
                 let window_title = format!(
                     "{:.1}% \"{}\" rust_reader",
                     100.0 * ((word_range.end + 2) as f64) / (self.last_read.len() as f64),
-                    self.get_status_word()
+                    self.last_read.get_slice(word_range.clone())
                 ).into();
                 set_console_title(&window_title);
                 set_window_text(self.window, &window_title);

@@ -56,7 +56,7 @@ pub fn send_key_event(vk: u16, flags: u32) {
             time: 0,
             dwExtraInfo: 0,
         };
-        let mut b = &mut input;
+        let b = &mut input;
         user32::SendInput(1, b, mem::size_of::<winapi::INPUT>() as i32);
     }
 }
