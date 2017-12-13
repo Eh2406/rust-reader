@@ -1,6 +1,7 @@
 use winapi;
 use ole32;
 use user32;
+use chrono;
 
 use std::cmp::{min, max};
 use std::mem;
@@ -50,6 +51,7 @@ pub struct SpVoice<'a> {
     reload_settings: winapi::HWND,
     last_read: WideString,
     last_update: Option<(Instant, Range<usize>)>,
+    us_per_utf16: i64,
 }
 
 impl<'a> SpVoice<'a> {
@@ -82,6 +84,7 @@ impl<'a> SpVoice<'a> {
                 reload_settings: null_mut(),
                 last_read: WideString::new(),
                 last_update: None,
+                us_per_utf16: 20_000,
             });
 
             let window_class_name: WideString = "SAPI_event_window_class_name".into();
@@ -313,15 +316,20 @@ impl<'a> Windowed for SpVoice<'a> {
             winapi::WM_ENDSESSION => close(),
             WM_SAPI_EVENT => {
                 let word_range = self.get_status().word_range();
-                if let Some((_, ref old_word_range)) = self.last_update {
+                if let Some((ref old_time, ref old_word_range)) = self.last_update {
                     if old_word_range.start == word_range.start {
                         return Some(0);
                     }
+                    let elapsed = chrono::Duration::from_std(old_time.elapsed()).expect("bad time diffrence.").num_microseconds().expect("bad time diffrence.");
+                    let new_rate = elapsed / ((word_range.start - old_word_range.start) as i64);
+                    self.us_per_utf16 = (self.us_per_utf16 * 1000 + new_rate) / 1001;
                 }
                 self.last_update = Some((Instant::now(), word_range.clone()));
+                let ms_left = chrono::Duration::microseconds(((self.last_read.len() - word_range.end) as i64) * self.us_per_utf16);
                 let window_title = format!(
-                    "{:.1}% \"{}\" rust_reader",
+                    "{:.1}% {}s \"{}\" rust_reader",
                     100.0 * ((word_range.end + 2) as f64) / (self.last_read.len() as f64),
+                    ms_left.num_seconds(),
                     self.last_read.get_slice(word_range.clone())
                 ).into();
                 set_console_title(&window_title);
