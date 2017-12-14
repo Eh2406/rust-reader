@@ -309,7 +309,21 @@ impl<'a> Windowed for SpVoice<'a> {
         match msg {
             winapi::WM_DESTROY | winapi::WM_QUERYENDSESSION | winapi::WM_ENDSESSION => close(),
             WM_SAPI_EVENT => {
-                let word_range = self.get_status().word_range();
+                let status = self.get_status();
+                let word_range = status.word_range();
+                if word_range.end == 0 {
+                    // called before start of reading.
+                    self.last_update = None;
+                    return Some(0);
+                }
+                if status.dwRunningState == 3 {
+                    // called before end of reading.
+                    let window_title = "100.0% 0.0s rust_reader".into();
+                    set_console_title(&window_title);
+                    set_window_text(self.window, &window_title);
+                    self.last_update = None;
+                    return Some(0);
+                }
                 if let Some((ref old_time, ref old_word_range)) = self.last_update {
                     if old_word_range.start == word_range.start {
                         return Some(0);
@@ -328,7 +342,7 @@ impl<'a> Windowed for SpVoice<'a> {
                 let std_ms_left = (len_left * self.us_per_utf16.sample_variance()).sqrt();
                 let window_title = format!(
                     "{:.1}% {:.1}s \"{}\" rust_reader",
-                    100.0 * ((word_range.end + 2) as f64) / (self.last_read.len() as f64),
+                    100.0 * (word_range.start as f64) / (self.last_read.len() as f64),
                     1e-6 * (ms_left + std_ms_left),
                     self.last_read.get_slice(word_range.clone())
                 ).into();
