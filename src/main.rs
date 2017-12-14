@@ -6,6 +6,7 @@ extern crate user32;
 extern crate kernel32;
 extern crate clipboard_win;
 extern crate unicode_segmentation;
+extern crate average;
 extern crate chrono;
 
 #[macro_use]

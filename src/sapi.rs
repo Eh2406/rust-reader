@@ -1,6 +1,7 @@
 use winapi;
 use ole32;
 use user32;
+use average::{Variance, Estimate};
 use chrono;
 
 use std::cmp::{min, max};
@@ -51,7 +52,7 @@ pub struct SpVoice<'a> {
     reload_settings: winapi::HWND,
     last_read: WideString,
     last_update: Option<(Instant, Range<usize>)>,
-    us_per_utf16: i64,
+    us_per_utf16: Variance,
 }
 
 impl<'a> SpVoice<'a> {
@@ -84,7 +85,7 @@ impl<'a> SpVoice<'a> {
                 reload_settings: null_mut(),
                 last_read: WideString::new(),
                 last_update: None,
-                us_per_utf16: 20_000,
+                us_per_utf16: Variance::new(),
             });
 
             let window_class_name: WideString = "SAPI_event_window_class_name".into();
@@ -321,15 +322,17 @@ impl<'a> Windowed for SpVoice<'a> {
                         return Some(0);
                     }
                     let elapsed = chrono::Duration::from_std(old_time.elapsed()).expect("bad time diffrence.").num_microseconds().expect("bad time diffrence.");
-                    let new_rate = elapsed / ((word_range.start - old_word_range.start) as i64);
-                    self.us_per_utf16 = (self.us_per_utf16 * 1000 + new_rate) / 1001;
+                    let new_rate = (elapsed as f64) / ((word_range.start - old_word_range.start) as f64);
+                    self.us_per_utf16.add(new_rate);
                 }
                 self.last_update = Some((Instant::now(), word_range.clone()));
-                let ms_left = chrono::Duration::microseconds(((self.last_read.len() - word_range.end) as i64) * self.us_per_utf16);
+                let len_left = (self.last_read.len() - word_range.end) as f64;
+                let ms_left = len_left * self.us_per_utf16.mean();
+                let std_ms_left = (len_left * self.us_per_utf16.sample_variance()).sqrt();
                 let window_title = format!(
                     "{:.1}% {}s \"{}\" rust_reader",
                     100.0 * ((word_range.end + 2) as f64) / (self.last_read.len() as f64),
-                    ms_left.num_seconds(),
+                    chrono::Duration::microseconds((ms_left + std_ms_left) as i64).num_seconds(),
                     self.last_read.get_slice(word_range.clone())
                 ).into();
                 set_console_title(&window_title);
