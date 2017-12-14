@@ -69,7 +69,7 @@ impl LenUtf for str {
         self.len()
     }
     fn len_utf16(&self) -> usize {
-        self.chars().fold(0, |s, e| s + e.len_utf16())
+        self.chars().map(char::len_utf16).sum()
     }
 }
 

@@ -275,7 +275,7 @@ impl<'a> SpVoice<'a> {
 
     pub fn get_status(&mut self) -> winapi::SPVOICESTATUS {
         let mut status: winapi::SPVOICESTATUS = unsafe { mem::zeroed() };
-        unsafe { self.voice.GetStatus(&mut status, 0u16 as *mut *mut u16) };
+        unsafe { self.voice.GetStatus(&mut status, null_mut()) };
         status
     }
 

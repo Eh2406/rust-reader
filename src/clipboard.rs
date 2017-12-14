@@ -76,7 +76,7 @@ pub fn press_ctrl_c() {
 }
 
 pub fn what_on_clipboard_seq_num(clip_num: u32, n: u8) -> bool {
-    for i in 0..(n as u32) {
+    for i in 0..u32::from(n) {
         if get_clipboard_seq_num().unwrap_or(clip_num) != clip_num {
             return true;
         }
@@ -86,7 +86,7 @@ pub fn what_on_clipboard_seq_num(clip_num: u32, n: u8) -> bool {
 }
 
 pub fn what_on_get_clipboard_string(n: u8) -> io::Result<String> {
-    for i in 0..(n as u32) {
+    for i in 0..u32::from(n) {
         match get_clipboard_string() {
             Ok(x) => return Ok(x),
             Err(_) => sleep(Duration::from_millis((2 as u64).pow(i))),

@@ -81,7 +81,7 @@ impl<'de> Deserialize<'de> for RegexCleanerPair {
             }
         }
 
-        const FIELDS: &'static [&'static str] = &["regex", "rep"];
+        const FIELDS: &[&str] = &["regex", "rep"];
         deserializer.deserialize_struct("RegexCleanerPair", FIELDS, RegexCleanerPairVisitor)
     }
 }

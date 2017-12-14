@@ -14,38 +14,38 @@ pub mod winapi_stub {
 
     // Static Control Constants
     //
-    pub const SS_LEFT: DWORD = 0x00000000;
-    pub const SS_CENTER: DWORD = 0x0000001;
-    pub const SS_RIGHT: DWORD = 0x00000002;
-    pub const SS_ICON: DWORD = 0x00000003;
-    pub const SS_BLACKRECT: DWORD = 0x00000004;
-    pub const SS_GRAYRECT: DWORD = 0x00000005;
-    pub const SS_WHITERECT: DWORD = 0x00000006;
-    pub const SS_BLACKFRAME: DWORD = 0x00000007;
-    pub const SS_GRAYFRAME: DWORD = 0x00000008;
-    pub const SS_WHITEFRAME: DWORD = 0x00000009;
-    pub const SS_USERITEM: DWORD = 0x0000000A;
-    pub const SS_SIMPLE: DWORD = 0x0000000B;
-    pub const SS_LEFTNOWORDWRAP: DWORD = 0x0000000C;
-    pub const SS_OWNERDRAW: DWORD = 0x0000000D;
-    pub const SS_BITMAP: DWORD = 0x0000000E;
-    pub const SS_ENHMETAFILE: DWORD = 0x0000000F;
-    pub const SS_ETCHEDHORZ: DWORD = 0x00000010;
-    pub const SS_ETCHEDVERT: DWORD = 0x00000011;
-    pub const SS_ETCHEDFRAME: DWORD = 0x00000012;
-    pub const SS_TYPEMASK: DWORD = 0x0000001F;
-    pub const SS_REALSIZECONTROL: DWORD = 0x00000040;
-    pub const SS_NOPREFIX: DWORD = 0x00000080;
-    pub const SS_NOTIFY: DWORD = 0x00000100;
-    pub const SS_CENTERIMAGE: DWORD = 0x00000200;
-    pub const SS_RIGHTJUST: DWORD = 0x00000400;
-    pub const SS_REALSIZEIMAGE: DWORD = 0x00000800;
-    pub const SS_SUNKEN: DWORD = 0x00001000;
-    pub const SS_EDITCONTROL: DWORD = 0x00002000;
-    pub const SS_ENDELLIPSIS: DWORD = 0x00004000;
-    pub const SS_PATHELLIPSIS: DWORD = 0x00008000;
-    pub const SS_WORDELLIPSIS: DWORD = 0x0000C000;
-    pub const SS_ELLIPSISMASK: DWORD = 0x0000C000;
+    pub const SS_LEFT: DWORD = 0x0000_0000;
+    pub const SS_CENTER: DWORD = 0x000_0001;
+    pub const SS_RIGHT: DWORD = 0x0000_0002;
+    pub const SS_ICON: DWORD = 0x0000_0003;
+    pub const SS_BLACKRECT: DWORD = 0x0000_0004;
+    pub const SS_GRAYRECT: DWORD = 0x0000_0005;
+    pub const SS_WHITERECT: DWORD = 0x0000_0006;
+    pub const SS_BLACKFRAME: DWORD = 0x0000_0007;
+    pub const SS_GRAYFRAME: DWORD = 0x0000_0008;
+    pub const SS_WHITEFRAME: DWORD = 0x0000_0009;
+    pub const SS_USERITEM: DWORD = 0x0000_000A;
+    pub const SS_SIMPLE: DWORD = 0x0000_000B;
+    pub const SS_LEFTNOWORDWRAP: DWORD = 0x0000_000C;
+    pub const SS_OWNERDRAW: DWORD = 0x0000_000D;
+    pub const SS_BITMAP: DWORD = 0x0000_000E;
+    pub const SS_ENHMETAFILE: DWORD = 0x0000_000F;
+    pub const SS_ETCHEDHORZ: DWORD = 0x0000_0010;
+    pub const SS_ETCHEDVERT: DWORD = 0x0000_0011;
+    pub const SS_ETCHEDFRAME: DWORD = 0x0000_0012;
+    pub const SS_TYPEMASK: DWORD = 0x0000_001F;
+    pub const SS_REALSIZECONTROL: DWORD = 0x0000_0040;
+    pub const SS_NOPREFIX: DWORD = 0x0000_0080;
+    pub const SS_NOTIFY: DWORD = 0x0000_0100;
+    pub const SS_CENTERIMAGE: DWORD = 0x0000_0200;
+    pub const SS_RIGHTJUST: DWORD = 0x0000_0400;
+    pub const SS_REALSIZEIMAGE: DWORD = 0x0000_0800;
+    pub const SS_SUNKEN: DWORD = 0x0000_1000;
+    pub const SS_EDITCONTROL: DWORD = 0x0000_2000;
+    pub const SS_ENDELLIPSIS: DWORD = 0x0000_4000;
+    pub const SS_PATHELLIPSIS: DWORD = 0x0000_8000;
+    pub const SS_WORDELLIPSIS: DWORD = 0x0000_C000;
+    pub const SS_ELLIPSISMASK: DWORD = 0x0000_C000;
 
     pub const ID_EDITCHILD: HMENU = 100 as HMENU;
 }
@@ -86,7 +86,7 @@ pub fn set_edit_selection(h_wnd: winapi::HWND, celec: &Range<usize>) -> winapi::
     unsafe {
         user32::SendMessageW(
             h_wnd,
-            winapi::EM_SETSEL as winapi::UINT,
+            winapi::UINT::from(winapi::EM_SETSEL),
             celec.start as winapi::WPARAM,
             celec.end as winapi::LPARAM,
         )
@@ -97,7 +97,7 @@ pub fn set_edit_scroll_caret(h_wnd: winapi::HWND) -> winapi::LRESULT {
     unsafe {
         user32::SendMessageW(
             h_wnd,
-            winapi::EM_SCROLLCARET as winapi::UINT,
+            winapi::UINT::from(winapi::EM_SCROLLCARET),
             0 as winapi::WPARAM,
             0 as winapi::LPARAM,
         )
