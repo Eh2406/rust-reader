@@ -1,5 +1,5 @@
-use preferences::{Preferences, AppInfo, prefs_base_dir};
-use winapi::{VK_OEM_2, VK_ESCAPE, VK_OEM_PERIOD, VK_OEM_MINUS, VK_OEM_PLUS};
+use preferences::{prefs_base_dir, AppInfo, Preferences};
+use winapi::{VK_OEM_2, VK_ESCAPE, VK_OEM_MINUS, VK_OEM_PERIOD, VK_OEM_PLUS};
 use clean_text::RegexCleanerPair;
 
 const APP_INFO: AppInfo = AppInfo {
@@ -19,31 +19,29 @@ impl Settings {
         Settings {
             rate: 6,
             hotkeys: [
-                (2, VK_OEM_2 as u32), // ctrl-? key
-                (7, VK_ESCAPE as u32), // ctrl-alt-shift-esk
-                (7, 0x52 as u32), // ctrl-alt-shift-r
-                (7, 0x53 as u32), // ctrl-alt-shift-s
-                (3, VK_OEM_2 as u32), // ctrl-alt-?
+                (2, VK_OEM_2 as u32),      // ctrl-? key
+                (7, VK_ESCAPE as u32),     // ctrl-alt-shift-esk
+                (7, 0x52 as u32),          // ctrl-alt-shift-r
+                (7, 0x53 as u32),          // ctrl-alt-shift-s
+                (3, VK_OEM_2 as u32),      // ctrl-alt-?
                 (2, VK_OEM_PERIOD as u32), // ctrl-.
-                (3, VK_OEM_MINUS as u32), // ctrl-alt--
-                (3, VK_OEM_PLUS as u32), // ctrl-alt-=
+                (3, VK_OEM_MINUS as u32),  // ctrl-alt--
+                (3, VK_OEM_PLUS as u32),   // ctrl-alt-=
             ],
-            cleaners: RegexCleanerPair::prep_list(
-                &[
-                    (r"\s+", " "),
-                    (
-                        concat!(
-                            r"(https?://)?(?P<a>[-a-zA-Z0-9@:%._\+~#=]{2,256}",
-                            r"\.[a-z]{2,6})\b[-a-zA-Z0-9@:%_\+.~#?&//=]{10,}"
-                        ),
-                        "link to $a",
+            cleaners: RegexCleanerPair::prep_list(&[
+                (r"\s+", " "),
+                (
+                    concat!(
+                        r"(https?://)?(?P<a>[-a-zA-Z0-9@:%._\+~#=]{2,256}",
+                        r"\.[a-z]{2,6})\b[-a-zA-Z0-9@:%_\+.~#?&//=]{10,}"
                     ),
-                    (
-                        r"(?P<s>[0-9a-f]{6})([0-9]+[a-f]|[a-f]+[0-9])[0-9a-f]*",
-                        "hash $s",
-                    ),
-                ],
-            ).unwrap(),
+                    "link to $a",
+                ),
+                (
+                    r"(?P<s>[0-9a-f]{6})([0-9]+[a-f]|[a-f]+[0-9])[0-9a-f]*",
+                    "hash $s",
+                ),
+            ]).unwrap(),
         }
     }
     pub fn get_dir(&self) -> ::std::path::PathBuf {

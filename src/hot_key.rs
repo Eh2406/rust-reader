@@ -55,10 +55,13 @@ impl HotKey {
         println!("new for HotKey: {} {}", new_hot, id);
         // https://msdn.microsoft.com/en-us/library/windows/desktop/ms646309.aspx
         let hr = unsafe { user32::RegisterHotKey(null_mut(), id, modifiers, vk) };
-        if hr == 0 { None } else { Some(new_hot) }
+        if hr == 0 {
+            None
+        } else {
+            Some(new_hot)
+        }
     }
 }
-
 
 impl ::std::fmt::Display for HotKey {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {

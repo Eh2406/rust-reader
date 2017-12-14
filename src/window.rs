@@ -10,7 +10,7 @@ pub use wide_string::*;
 // waiting for winapi
 pub mod winapi_stub {
     #![allow(dead_code, non_snake_case)]
-    use winapi::{HMENU, DWORD};
+    use winapi::{DWORD, HMENU};
 
     // Static Control Constants
     //

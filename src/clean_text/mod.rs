@@ -144,24 +144,20 @@ where
 {
     let (reg, mut r) = reg.to_parts();
     if r.no_expansion().is_some() {
-        FlatPair::new_box(raw, move |orig| {
-            RegexSubstitute {
-                text: orig,
-                last_match: 0,
-                captures_iter: reg.find_iter(orig),
-                cap: None,
-                rep: r,
-            }
+        FlatPair::new_box(raw, move |orig| RegexSubstitute {
+            text: orig,
+            last_match: 0,
+            captures_iter: reg.find_iter(orig),
+            cap: None,
+            rep: r,
         })
     } else {
-        FlatPair::new_box(raw, move |orig| {
-            RegexReplace {
-                text: orig,
-                last_match: 0,
-                captures_iter: reg.captures_iter(orig),
-                cap: None,
-                rep: r,
-            }
+        FlatPair::new_box(raw, move |orig| RegexReplace {
+            text: orig,
+            last_match: 0,
+            captures_iter: reg.captures_iter(orig),
+            cap: None,
+            rep: r,
         })
     }
 }
@@ -186,7 +182,7 @@ fn graphemes_pair<'a, I: 'a + Iterator<Item = Pair<'a>>>(
     i: I,
 ) -> Box<Iterator<Item = Pair<'a>> + 'a> {
     FlatPair::new_box(i, move |orig: &'a str| {
-        orig.graphemes(true).scan(("".into(), 0), running_count)
+        orig.graphemes(true).scan(("", 0), running_count)
     })
 }
 

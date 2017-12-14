@@ -1,6 +1,6 @@
 use regex::*;
-use serde::{Serialize, Serializer, Deserializer};
-use serde::de::{self, Deserialize, Visitor, SeqAccess};
+use serde::{Deserializer, Serialize, Serializer};
+use serde::de::{self, Deserialize, SeqAccess, Visitor};
 
 #[derive(Debug)]
 pub struct RegexCleanerPair {
@@ -75,9 +75,7 @@ impl<'de> Deserialize<'de> for RegexCleanerPair {
                 };
                 Ok(RegexCleanerPair {
                     regex: Regex::new(&regex)
-                        .map_err(|_| {
-                            de::Error::invalid_value(de::Unexpected::Str(&regex), &self)
-                        })?,
+                        .map_err(|_| de::Error::invalid_value(de::Unexpected::Str(&regex), &self))?,
                     rep: rep,
                 })
             }

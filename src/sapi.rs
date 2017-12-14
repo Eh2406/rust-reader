@@ -1,10 +1,10 @@
 use winapi;
 use ole32;
 use user32;
-use average::{Variance, Estimate};
+use average::{Estimate, Variance};
 use chrono;
 
-use std::cmp::{min, max};
+use std::cmp::{max, min};
 use std::mem;
 use std::ptr::null_mut;
 use std::time::Instant;
@@ -73,8 +73,7 @@ impl<'a> SpVoice<'a> {
                 winapi::CLSCTX_ALL,
                 &winapi::UuidOfISpVoice,
                 &mut voice as *mut *mut winapi::ISpVoice as *mut *mut winapi::c_void,
-            ))
-            {
+            )) {
                 panic!("failed for SpVoice at CoCreateInstance");
             }
             let mut out = Box::new(SpVoice {
@@ -122,10 +121,10 @@ impl<'a> SpVoice<'a> {
                 winapi::WS_EX_CLIENTEDGE,
                 wide_edit.as_ptr(),
                 &0u16,
-                winapi::WS_CHILD | winapi::WS_VISIBLE | winapi::WS_VSCROLL |
-                    winapi::WS_BORDER | winapi::ES_LEFT | winapi::ES_MULTILINE |
-                    winapi::ES_AUTOVSCROLL |
-                    winapi::ES_NOHIDESEL | winapi::ES_AUTOVSCROLL,
+                winapi::WS_CHILD | winapi::WS_VISIBLE | winapi::WS_VSCROLL | winapi::WS_BORDER
+                    | winapi::ES_LEFT | winapi::ES_MULTILINE
+                    | winapi::ES_AUTOVSCROLL | winapi::ES_NOHIDESEL
+                    | winapi::ES_AUTOVSCROLL,
                 0,
                 0,
                 0,
@@ -140,8 +139,8 @@ impl<'a> SpVoice<'a> {
                 0,
                 wide_static.as_ptr(),
                 &0u16,
-                winapi::WS_CHILD | winapi::WS_VISIBLE | winapi_stub::SS_CENTER |
-                    winapi_stub::SS_NOPREFIX,
+                winapi::WS_CHILD | winapi::WS_VISIBLE | winapi_stub::SS_CENTER
+                    | winapi_stub::SS_NOPREFIX,
                 0,
                 0,
                 0,
@@ -157,8 +156,8 @@ impl<'a> SpVoice<'a> {
                 0,
                 wide_button.as_ptr(),
                 wide_settings.as_ptr(),
-                winapi::WS_TABSTOP | winapi::WS_VISIBLE | winapi::WS_CHILD |
-                    winapi::BS_DEFPUSHBUTTON,
+                winapi::WS_TABSTOP | winapi::WS_VISIBLE | winapi::WS_CHILD
+                    | winapi::BS_DEFPUSHBUTTON,
                 10,
                 10,
                 20,
@@ -282,24 +281,20 @@ impl<'a> SpVoice<'a> {
 
     fn set_notify_window_message(&mut self) {
         unsafe {
-            self.voice.SetNotifyWindowMessage(
-                self.window,
-                WM_SAPI_EVENT,
-                0,
-                0,
-            )
+            self.voice
+                .SetNotifyWindowMessage(self.window, WM_SAPI_EVENT, 0, 0)
         };
     }
 
     pub fn set_interest(&mut self, event: &[u64], queued: &[u64]) {
-        let queued = queued.iter().map(|&x| winapi::SPFEI(x)).fold(
-            0u64,
-            |acc, x| acc | x,
-        );
-        let event = event.iter().map(|&x| winapi::SPFEI(x)).fold(
-            queued,
-            |acc, x| acc | x,
-        );
+        let queued = queued
+            .iter()
+            .map(|&x| winapi::SPFEI(x))
+            .fold(0u64, |acc, x| acc | x);
+        let event = event
+            .iter()
+            .map(|&x| winapi::SPFEI(x))
+            .fold(queued, |acc, x| acc | x);
         unsafe { self.voice.SetInterest(event, queued) };
     }
 }
@@ -312,17 +307,19 @@ impl<'a> Windowed for SpVoice<'a> {
         l_param: winapi::LPARAM,
     ) -> Option<winapi::LRESULT> {
         match msg {
-            winapi::WM_DESTROY |
-            winapi::WM_QUERYENDSESSION |
-            winapi::WM_ENDSESSION => close(),
+            winapi::WM_DESTROY | winapi::WM_QUERYENDSESSION | winapi::WM_ENDSESSION => close(),
             WM_SAPI_EVENT => {
                 let word_range = self.get_status().word_range();
                 if let Some((ref old_time, ref old_word_range)) = self.last_update {
                     if old_word_range.start == word_range.start {
                         return Some(0);
                     }
-                    let elapsed = chrono::Duration::from_std(old_time.elapsed()).expect("bad time diffrence.").num_microseconds().expect("bad time diffrence.");
-                    let new_rate = (elapsed as f64) / ((word_range.start - old_word_range.start) as f64);
+                    let elapsed = chrono::Duration::from_std(old_time.elapsed())
+                        .expect("bad time diffrence.")
+                        .num_microseconds()
+                        .expect("bad time diffrence.");
+                    let new_rate =
+                        (elapsed as f64) / ((word_range.start - old_word_range.start) as f64);
                     self.us_per_utf16.add(new_rate);
                 }
                 self.last_update = Some((Instant::now(), word_range.clone()));
@@ -330,9 +327,9 @@ impl<'a> Windowed for SpVoice<'a> {
                 let ms_left = len_left * self.us_per_utf16.mean();
                 let std_ms_left = (len_left * self.us_per_utf16.sample_variance()).sqrt();
                 let window_title = format!(
-                    "{:.1}% {}s \"{}\" rust_reader",
+                    "{:.1}% {:.1}s \"{}\" rust_reader",
                     100.0 * ((word_range.end + 2) as f64) / (self.last_read.len() as f64),
-                    chrono::Duration::microseconds((ms_left + std_ms_left) as i64).num_seconds(),
+                    1e-6 * (ms_left + std_ms_left),
                     self.last_read.get_slice(word_range.clone())
                 ).into();
                 set_console_title(&window_title);

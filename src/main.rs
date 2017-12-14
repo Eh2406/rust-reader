@@ -1,25 +1,25 @@
 #![cfg_attr(not(test), windows_subsystem = "windows")]
 
-extern crate winapi;
-extern crate ole32;
-extern crate user32;
-extern crate kernel32;
-extern crate clipboard_win;
-extern crate unicode_segmentation;
 extern crate average;
 extern crate chrono;
+extern crate clipboard_win;
+extern crate kernel32;
+extern crate ole32;
+extern crate unicode_segmentation;
+extern crate user32;
+extern crate winapi;
 
-#[macro_use]
-extern crate serde_derive; //To write rust objects to json
-extern crate serde;
-extern crate preferences; //save objects in app data folder
-extern crate regex;
 extern crate itertools;
 #[cfg(test)]
 #[macro_use]
 extern crate lazy_static;
+extern crate preferences; //save objects in app data folder
 #[cfg(test)]
 extern crate quickcheck;
+extern crate regex;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive; //To write rust objects to json
 
 mod wide_string;
 mod window;
@@ -54,10 +54,8 @@ impl<'a> State<'a> {
     fn read(&mut self) {
         self.voice.resume();
         match get_text() {
-            Ok(x) => {
-                self.voice
-                    .speak(clean_text::<WideString>(&x, &self.settings.cleaners))
-            }
+            Ok(x) => self.voice
+                .speak(clean_text::<WideString>(&x, &self.settings.cleaners)),
             Err(x) => {
                 self.voice.speak("oops. error.");
                 println!("{:?}", x);
