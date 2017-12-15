@@ -299,6 +299,20 @@ impl<'a> SpVoice<'a> {
     }
 }
 
+fn format_duration(d: chrono::Duration) -> String {
+    let h = d.num_hours();
+    let m = d.num_minutes() - d.num_hours() * 60;
+    let s = d.num_seconds() - d.num_minutes() * 60;
+    let ms = d.num_milliseconds() - d.num_seconds() * 1000;
+    if d.num_minutes() == 0 {
+        format!("{}.{}s", s, ms / 100)
+    } else if d.num_hours() == 0 {
+        format!("{}m:{:0>#2}.{}s", m, s, ms / 100)
+    } else {
+        format!("{}h:{:0>#2}m:{:0>#2}.{}s", h, m, s, ms / 100)
+    }
+}
+
 impl<'a> Windowed for SpVoice<'a> {
     fn window_proc(
         &mut self,
@@ -338,12 +352,12 @@ impl<'a> Windowed for SpVoice<'a> {
                 }
                 self.last_update = Some((Instant::now(), word_range.clone()));
                 let len_left = (self.last_read.len() - word_range.end) as f64;
-                let ms_left = len_left * self.us_per_utf16.mean();
-                let std_ms_left = (len_left * self.us_per_utf16.sample_variance()).sqrt();
+                let ms_left = len_left * self.us_per_utf16.mean()
+                    + (len_left * self.us_per_utf16.sample_variance()).sqrt();
                 let window_title = format!(
-                    "{:.1}% {:.1}s \"{}\" rust_reader",
+                    "{:.1}% {} \"{}\" rust_reader",
                     100.0 * (word_range.start as f64) / (self.last_read.len() as f64),
-                    1e-6 * (ms_left + std_ms_left),
+                    format_duration(chrono::Duration::microseconds(ms_left as i64)),
                     self.last_read.get_slice(word_range.clone())
                 ).into();
                 set_console_title(&window_title);
