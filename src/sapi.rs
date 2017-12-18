@@ -1,6 +1,4 @@
 use winapi;
-use ole32;
-use user32;
 use average::{Estimate, Variance};
 use chrono;
 
@@ -12,17 +10,17 @@ use std::ops::Range;
 
 use window::*;
 
-pub const WM_SAPI_EVENT: winapi::UINT = winapi::WM_APP + 15;
+pub const WM_SAPI_EVENT: winapi::shared::minwindef::UINT = winapi::um::winuser::WM_APP + 15;
 
 pub struct Com {
-    hr: winapi::HRESULT,
+    hr: winapi::um::winnt::HRESULT,
 }
 
 impl Com {
     pub fn new() -> Com {
         println!("new for Com");
         // https://msdn.microsoft.com/en-us/library/windows/desktop/ms678543.aspx
-        let hr = unsafe { ole32::CoInitialize(null_mut()) };
+        let hr = unsafe { winapi::um::objbase::CoInitialize(null_mut()) };
         if failed(hr) {
             panic!("failed for Com");
         }
@@ -33,23 +31,22 @@ impl Com {
 impl Drop for Com {
     fn drop(&mut self) {
         // https://msdn.microsoft.com/en-us/library/windows/desktop/ms688715.aspx
-        if self.hr != winapi::RPC_E_CHANGED_MODE {
-            unsafe { ole32::CoUninitialize() };
+        if self.hr != winapi::shared::winerror::RPC_E_CHANGED_MODE {
+            unsafe { winapi::um::combaseapi::CoUninitialize() };
         }
         println!("drop for Com");
     }
 }
 
-const SETTING_BUTTON: winapi::WPARAM = 101;
+const SETTING_BUTTON: winapi::shared::minwindef::WPARAM = 101;
 
-#[derive(Debug)]
 pub struct SpVoice<'a> {
     // https://msdn.microsoft.com/en-us/library/ms723602.aspx
-    voice: &'a mut winapi::ISpVoice,
-    window: winapi::HWND,
-    edit: winapi::HWND,
-    rate: winapi::HWND,
-    reload_settings: winapi::HWND,
+    voice: &'a mut winapi::um::sapi51::ISpVoice,
+    window: winapi::shared::windef::HWND,
+    edit: winapi::shared::windef::HWND,
+    rate: winapi::shared::windef::HWND,
+    reload_settings: winapi::shared::windef::HWND,
     last_read: WideString,
     last_update: Option<(Instant, Range<usize>)>,
     us_per_utf16: Variance,
@@ -58,21 +55,26 @@ pub struct SpVoice<'a> {
 impl<'a> SpVoice<'a> {
     pub fn new<'c: 'a>(_con: &'c Com) -> Box<SpVoice<'a>> {
         println!("new for SpVoice");
-        let mut voice: *mut winapi::ISpVoice = null_mut();
-        let mut clsid_spvoice: winapi::CLSID = unsafe { mem::zeroed() };
+        use winapi::Interface;
+        let mut voice: *mut winapi::um::sapi51::ISpVoice = null_mut();
+        let mut clsid_spvoice: winapi::shared::guiddef::CLSID = unsafe { mem::zeroed() };
         let sapi_id: WideString = "SAPI.SpVoice".into();
 
         unsafe {
-            if failed(ole32::CLSIDFromProgID(sapi_id.as_ptr(), &mut clsid_spvoice)) {
+            if failed(winapi::um::combaseapi::CLSIDFromProgID(
+                sapi_id.as_ptr(),
+                &mut clsid_spvoice,
+            )) {
                 panic!("failed for SpVoice at CLSIDFromProgID");
             }
 
-            if failed(ole32::CoCreateInstance(
+            if failed(winapi::um::combaseapi::CoCreateInstance(
                 &clsid_spvoice,
                 null_mut(),
-                winapi::CLSCTX_ALL,
-                &winapi::UuidOfISpVoice,
-                &mut voice as *mut *mut winapi::ISpVoice as *mut *mut winapi::c_void,
+                winapi::um::combaseapi::CLSCTX_ALL,
+                &winapi::um::sapi51::ISpVoice::uuidof(),
+                &mut voice as *mut *mut winapi::um::sapi51::ISpVoice
+                    as *mut *mut winapi::ctypes::c_void,
             )) {
                 panic!("failed for SpVoice at CoCreateInstance");
             }
@@ -88,109 +90,119 @@ impl<'a> SpVoice<'a> {
             });
 
             let window_class_name: WideString = "SAPI_event_window_class_name".into();
-            user32::RegisterClassW(&winapi::WNDCLASSW {
+            winapi::um::winuser::RegisterClassW(&winapi::um::winuser::WNDCLASSW {
                 style: 0,
                 lpfnWndProc: Some(window_proc_generic::<SpVoice>),
                 cbClsExtra: 0,
                 cbWndExtra: 0,
-                hInstance: 0 as winapi::HINSTANCE,
-                hIcon: user32::LoadIconW(0 as winapi::HINSTANCE, winapi::IDI_APPLICATION),
-                hCursor: user32::LoadCursorW(0 as winapi::HINSTANCE, winapi::IDI_APPLICATION),
-                hbrBackground: 16 as winapi::HBRUSH,
-                lpszMenuName: 0 as winapi::LPCWSTR,
+                hInstance: 0 as winapi::shared::minwindef::HINSTANCE,
+                hIcon: winapi::um::winuser::LoadIconW(
+                    0 as winapi::shared::minwindef::HINSTANCE,
+                    winapi::um::winuser::IDI_APPLICATION,
+                ),
+                hCursor: winapi::um::winuser::LoadCursorW(
+                    0 as winapi::shared::minwindef::HINSTANCE,
+                    winapi::um::winuser::IDI_APPLICATION,
+                ),
+                hbrBackground: 16 as winapi::shared::windef::HBRUSH,
+                lpszMenuName: 0 as winapi::um::winnt::LPCWSTR,
                 lpszClassName: window_class_name.as_ptr(),
             });
-            out.window = user32::CreateWindowExW(
+            out.window = winapi::um::winuser::CreateWindowExW(
                 0,
                 window_class_name.as_ptr(),
                 &0u16,
-                winapi::WS_OVERLAPPEDWINDOW,
+                winapi::um::winuser::WS_OVERLAPPEDWINDOW,
                 0,
                 0,
                 0,
                 0,
-                user32::GetDesktopWindow(),
-                0 as winapi::HMENU,
-                0 as winapi::HINSTANCE,
-                &mut *out as *mut _ as winapi::LPVOID,
+                winapi::um::winuser::GetDesktopWindow(),
+                0 as winapi::shared::windef::HMENU,
+                0 as winapi::shared::minwindef::HINSTANCE,
+                &mut *out as *mut _ as winapi::shared::minwindef::LPVOID,
             );
 
             // https://msdn.microsoft.com/en-us/library/windows/desktop/hh298433.aspx
             let wide_edit: WideString = "EDIT".into();
-            out.edit = user32::CreateWindowExW(
-                winapi::WS_EX_CLIENTEDGE,
+            out.edit = winapi::um::winuser::CreateWindowExW(
+                winapi::um::winuser::WS_EX_CLIENTEDGE,
                 wide_edit.as_ptr(),
                 &0u16,
-                winapi::WS_CHILD | winapi::WS_VISIBLE | winapi::WS_VSCROLL | winapi::WS_BORDER
-                    | winapi::ES_LEFT | winapi::ES_MULTILINE
-                    | winapi::ES_AUTOVSCROLL | winapi::ES_NOHIDESEL
-                    | winapi::ES_AUTOVSCROLL,
+                winapi::um::winuser::WS_CHILD | winapi::um::winuser::WS_VISIBLE
+                    | winapi::um::winuser::WS_VSCROLL
+                    | winapi::um::winuser::WS_BORDER | winapi::um::winuser::ES_LEFT
+                    | winapi::um::winuser::ES_MULTILINE
+                    | winapi::um::winuser::ES_AUTOVSCROLL
+                    | winapi::um::winuser::ES_NOHIDESEL
+                    | winapi::um::winuser::ES_AUTOVSCROLL,
                 0,
                 0,
                 0,
                 0,
                 out.window,
                 winapi_stub::ID_EDITCHILD,
-                0 as winapi::HINSTANCE,
+                0 as winapi::shared::minwindef::HINSTANCE,
                 null_mut(),
             );
             let wide_static: WideString = "STATIC".into();
-            out.rate = user32::CreateWindowExW(
+            out.rate = winapi::um::winuser::CreateWindowExW(
                 0,
                 wide_static.as_ptr(),
                 &0u16,
-                winapi::WS_CHILD | winapi::WS_VISIBLE | winapi_stub::SS_CENTER
-                    | winapi_stub::SS_NOPREFIX,
+                winapi::um::winuser::WS_CHILD | winapi::um::winuser::WS_VISIBLE
+                    | winapi::um::winuser::SS_CENTER | winapi::um::winuser::SS_NOPREFIX,
                 0,
                 0,
                 0,
                 0,
                 out.window,
-                0 as winapi::HMENU,
-                0 as winapi::HINSTANCE,
+                0 as winapi::shared::windef::HMENU,
+                0 as winapi::shared::minwindef::HINSTANCE,
                 null_mut(),
             );
             let wide_button: WideString = "BUTTON".into();
             let wide_settings: WideString = "Reload Settings".into();
-            out.reload_settings = user32::CreateWindowExW(
+            out.reload_settings = winapi::um::winuser::CreateWindowExW(
                 0,
                 wide_button.as_ptr(),
                 wide_settings.as_ptr(),
-                winapi::WS_TABSTOP | winapi::WS_VISIBLE | winapi::WS_CHILD
-                    | winapi::BS_DEFPUSHBUTTON,
+                winapi::um::winuser::WS_TABSTOP | winapi::um::winuser::WS_VISIBLE
+                    | winapi::um::winuser::WS_CHILD
+                    | winapi::um::winuser::BS_DEFPUSHBUTTON,
                 10,
                 10,
                 20,
                 20,
                 out.window,
-                SETTING_BUTTON as winapi::HMENU,
-                0 as winapi::HINSTANCE,
+                SETTING_BUTTON as winapi::shared::windef::HMENU,
+                0 as winapi::shared::minwindef::HINSTANCE,
                 null_mut(),
             );
             move_window(
                 out.window,
-                &winapi::RECT {
+                &winapi::shared::windef::RECT {
                     left: 0,
                     top: 0,
                     right: 400,
                     bottom: 400,
                 },
             );
-            show_window(out.window, winapi::SW_SHOWNORMAL);
+            show_window(out.window, winapi::um::winuser::SW_SHOWNORMAL);
             out.set_notify_window_message();
             out.set_volume(100);
-            out.set_alert_boundary(winapi::SPEI_PHONEME);
+            out.set_alert_boundary(winapi::um::sapi51::SPEI_PHONEME);
             out.set_interest(&[5, 1, 2], &[]);
             out
         }
     }
 
     #[allow(dead_code)]
-    pub fn get_window_handle(&mut self) -> winapi::HWND {
+    pub fn get_window_handle(&mut self) -> winapi::shared::windef::HWND {
         self.window
     }
 
-    pub fn toggle_window_visible(&self) -> winapi::BOOL {
+    pub fn toggle_window_visible(&self) -> winapi::shared::minwindef::BOOL {
         toggle_window_visible(self.window)
     }
 
@@ -214,7 +226,7 @@ impl<'a> SpVoice<'a> {
     }
 
     pub fn wait(&mut self) {
-        unsafe { self.voice.WaitUntilDone(winapi::INFINITE) };
+        unsafe { self.voice.WaitUntilDone(winapi::um::winbase::INFINITE) };
     }
 
     pub fn speak_wait<T: Into<WideString>>(&mut self, string: T) {
@@ -262,19 +274,19 @@ impl<'a> SpVoice<'a> {
         volume
     }
 
-    pub fn set_alert_boundary(&mut self, boundary: winapi::SPEVENTENUM) {
+    pub fn set_alert_boundary(&mut self, boundary: winapi::um::sapi51::SPEVENTENUM) {
         unsafe { self.voice.SetAlertBoundary(boundary) };
     }
 
     #[allow(dead_code)]
-    pub fn get_alert_boundary(&mut self) -> winapi::SPEVENTENUM {
-        let mut boundary = winapi::SPEVENTENUM(0);
+    pub fn get_alert_boundary(&mut self) -> winapi::um::sapi51::SPEVENTENUM {
+        let mut boundary = 0;
         unsafe { self.voice.GetAlertBoundary(&mut boundary) };
         boundary
     }
 
-    pub fn get_status(&mut self) -> winapi::SPVOICESTATUS {
-        let mut status: winapi::SPVOICESTATUS = unsafe { mem::zeroed() };
+    pub fn get_status(&mut self) -> winapi::um::sapi51::SPVOICESTATUS {
+        let mut status: winapi::um::sapi51::SPVOICESTATUS = unsafe { mem::zeroed() };
         unsafe { self.voice.GetStatus(&mut status, null_mut()) };
         status
     }
@@ -286,14 +298,14 @@ impl<'a> SpVoice<'a> {
         };
     }
 
-    pub fn set_interest(&mut self, event: &[u64], queued: &[u64]) {
+    pub fn set_interest(&mut self, event: &[u32], queued: &[u32]) {
         let queued = queued
             .iter()
-            .map(|&x| winapi::SPFEI(x))
+            .map(|&x| winapi::um::sapi51::SPFEI(x))
             .fold(0u64, |acc, x| acc | x);
         let event = event
             .iter()
-            .map(|&x| winapi::SPFEI(x))
+            .map(|&x| winapi::um::sapi51::SPFEI(x))
             .fold(queued, |acc, x| acc | x);
         unsafe { self.voice.SetInterest(event, queued) };
     }
@@ -316,12 +328,14 @@ fn format_duration(d: chrono::Duration) -> String {
 impl<'a> Windowed for SpVoice<'a> {
     fn window_proc(
         &mut self,
-        msg: winapi::UINT,
-        w_param: winapi::WPARAM,
-        l_param: winapi::LPARAM,
-    ) -> Option<winapi::LRESULT> {
+        msg: winapi::shared::minwindef::UINT,
+        w_param: winapi::shared::minwindef::WPARAM,
+        l_param: winapi::shared::minwindef::LPARAM,
+    ) -> Option<winapi::shared::minwindef::LRESULT> {
         match msg {
-            winapi::WM_DESTROY | winapi::WM_QUERYENDSESSION | winapi::WM_ENDSESSION => close(),
+            winapi::um::winuser::WM_DESTROY
+            | winapi::um::winuser::WM_QUERYENDSESSION
+            | winapi::um::winuser::WM_ENDSESSION => close(),
             WM_SAPI_EVENT => {
                 let status = self.get_status();
                 let word_range = status.word_range();
@@ -366,7 +380,7 @@ impl<'a> Windowed for SpVoice<'a> {
                 set_edit_scroll_caret(self.edit);
                 return Some(0);
             }
-            winapi::WM_SIZE => {
+            winapi::um::winuser::WM_SIZE => {
                 let mut rect = get_client_rect(self.window);
                 if (w_param <= 2) && rect.right > 0 && rect.bottom > 0 {
                     rect.inset(3);
@@ -382,13 +396,14 @@ impl<'a> Windowed for SpVoice<'a> {
                     return Some(0);
                 }
             }
-            winapi::WM_GETMINMAXINFO => {
-                let data = unsafe { &mut *(l_param as *mut winapi::MINMAXINFO) };
+            winapi::um::winuser::WM_GETMINMAXINFO => {
+                let data =
+                    unsafe { &mut *(l_param as *mut winapi::um::winuser::MINMAXINFO) };
                 data.ptMinTrackSize.x = 300;
                 data.ptMinTrackSize.y = 110;
                 return Some(0);
             }
-            winapi::WM_COMMAND => {
+            winapi::um::winuser::WM_COMMAND => {
                 use press_hotkey;
                 use Action;
                 match w_param {
@@ -417,7 +432,7 @@ pub trait StatusUtil {
     fn sent_range(&self) -> Range<usize>;
 }
 
-impl StatusUtil for winapi::SPVOICESTATUS {
+impl StatusUtil for winapi::um::sapi51::SPVOICESTATUS {
     fn word_range(&self) -> Range<usize> {
         self.ulInputWordPos as usize..(self.ulInputWordPos + self.ulInputWordLen) as usize
     }

@@ -3,10 +3,7 @@
 extern crate average;
 extern crate chrono;
 extern crate clipboard_win;
-extern crate kernel32;
-extern crate ole32;
 extern crate unicode_segmentation;
-extern crate user32;
 extern crate winapi;
 
 extern crate itertools;
@@ -43,7 +40,6 @@ use settings::*;
 mod clean_text;
 use clean_text::*;
 
-#[derive(Debug)]
 struct State<'a> {
     voice: Box<SpVoice<'a>>,
     settings: Settings,
@@ -140,10 +136,10 @@ fn setup_hotkeys(settings: &mut Settings) -> Vec<HotKey> {
 
 fn press_hotkey(id: Action) {
     unsafe {
-        user32::PostThreadMessageW(
-            kernel32::GetCurrentThreadId(),
-            winapi::WM_HOTKEY,
-            id as winapi::WPARAM,
+        winapi::um::winuser::PostThreadMessageW(
+            winapi::um::processthreadsapi::GetCurrentThreadId(),
+            winapi::um::winuser::WM_HOTKEY,
+            id as winapi::shared::minwindef::WPARAM,
             0,
         )
     };
@@ -183,14 +179,14 @@ fn main() {
 
     while let Some(msg) = get_message() {
         match msg.message {
-            winapi::WM_HOTKEY if (msg.wParam as usize) < state.hk.len() => {
+            winapi::um::winuser::WM_HOTKEY if (msg.wParam as usize) < state.hk.len() => {
                 state.match_hotkey_id(ACTION_LIST[msg.wParam as usize])
             }
             _ => {
                 // println!("{:?}", msg);
                 unsafe {
-                    user32::TranslateMessage(&msg);
-                    user32::DispatchMessageW(&msg);
+                    winapi::um::winuser::TranslateMessage(&msg);
+                    winapi::um::winuser::DispatchMessageW(&msg);
                 }
             }
         }

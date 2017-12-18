@@ -1,5 +1,5 @@
-use user32;
-use winapi::VK_ESCAPE;
+use winapi::um::winuser;
+use winapi::um::winuser::VK_ESCAPE;
 use itertools::Itertools;
 
 use std::ptr::null_mut;
@@ -54,7 +54,7 @@ impl HotKey {
         };
         println!("new for HotKey: {} {}", new_hot, id);
         // https://msdn.microsoft.com/en-us/library/windows/desktop/ms646309.aspx
-        let hr = unsafe { user32::RegisterHotKey(null_mut(), id, modifiers, vk) };
+        let hr = unsafe { winuser::RegisterHotKey(null_mut(), id, modifiers, vk) };
         if hr == 0 {
             None
         } else {
@@ -73,7 +73,7 @@ impl ::std::fmt::Display for HotKey {
             write!(
                 f,
                 "{}",
-                char::from_u32(unsafe { user32::MapVirtualKeyW(self.vk, 2) }).unwrap()
+                char::from_u32(unsafe { winuser::MapVirtualKeyW(self.vk, 2) }).unwrap()
             )
         }
     }
@@ -81,7 +81,7 @@ impl ::std::fmt::Display for HotKey {
 
 impl Drop for HotKey {
     fn drop(&mut self) {
-        unsafe { user32::UnregisterHotKey(null_mut(), self.id) };
+        unsafe { winuser::UnregisterHotKey(null_mut(), self.id) };
         println!("drop for HotKey");
     }
 }

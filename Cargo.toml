@@ -4,10 +4,7 @@ version = "0.1.0"
 authors = ["Eh2406 <YeomanYaacov@gmail.com>"]
 
 [dependencies]
-winapi = "*"
-ole32-sys = "*"
-user32-sys = "*"
-kernel32-sys = "*"
+winapi = { version = "*", features = ["std", "winerror", "processthreadsapi", "combaseapi", "objbase", "wincon", "winuser", "sapi", "sapi51", "sapi53"] }
 clipboard-win = "*"
 serde_derive = "*"
 serde = "*"

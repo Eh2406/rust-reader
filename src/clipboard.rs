@@ -1,5 +1,4 @@
 use winapi;
-use user32;
 use clipboard_win::{get_clipboard_string, set_clipboard_string, Clipboard};
 use std::mem;
 use std::thread::sleep;
@@ -21,34 +20,11 @@ pub fn clipboard_setup() {
     }
 }
 
-pub trait NewINPUT {
-    fn new() -> winapi::INPUT;
-}
-
-#[cfg(target_arch = "x86")]
-impl NewINPUT for winapi::INPUT {
-    fn new() -> winapi::INPUT {
-        winapi::INPUT {
-            type_: winapi::INPUT_KEYBOARD,
-            u: [0u32; 6],
-        }
-    }
-}
-
-#[cfg(target_arch = "x86_64")]
-impl NewINPUT for winapi::INPUT {
-    fn new() -> winapi::INPUT {
-        winapi::INPUT {
-            type_: winapi::INPUT_KEYBOARD,
-            u: [0u64; 4],
-        }
-    }
-}
-
 pub fn send_key_event(vk: u16, flags: u32) {
-    let mut input = winapi::INPUT::new();
+    let mut input: winapi::um::winuser::INPUT = unsafe { mem::zeroed() };
     unsafe {
-        *input.ki_mut() = winapi::KEYBDINPUT {
+        input.type_ = winapi::um::winuser::INPUT_KEYBOARD;
+        *input.u.ki_mut() = winapi::um::winuser::KEYBDINPUT {
             wVk: vk,
             wScan: 0,
             dwFlags: flags,
@@ -56,7 +32,7 @@ pub fn send_key_event(vk: u16, flags: u32) {
             dwExtraInfo: 0,
         };
         let b = &mut input;
-        user32::SendInput(1, b, mem::size_of::<winapi::INPUT>() as i32);
+        winapi::um::winuser::SendInput(1, b, mem::size_of::<winapi::um::winuser::INPUT>() as i32);
     }
 }
 
@@ -66,13 +42,13 @@ pub fn press_key(vk: &[u16]) {
     }
     sleep(Duration::from_millis(1));
     for &v in vk.iter().rev() {
-        send_key_event(v, winapi::KEYEVENTF_KEYUP);
+        send_key_event(v, winapi::um::winuser::KEYEVENTF_KEYUP);
     }
 }
 
 pub fn press_ctrl_c() {
     println!("sending ctrl-c");
-    press_key(&[winapi::VK_CONTROL as u16, 67]); //ascii for "c"
+    press_key(&[winapi::um::winuser::VK_CONTROL as u16, 67]); //ascii for "c"
 }
 
 pub fn what_on_clipboard_seq_num(clip_num: u32, n: u8) -> bool {

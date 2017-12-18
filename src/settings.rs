@@ -1,5 +1,5 @@
 use preferences::{prefs_base_dir, AppInfo, Preferences};
-use winapi::{VK_OEM_2, VK_ESCAPE, VK_OEM_MINUS, VK_OEM_PERIOD, VK_OEM_PLUS};
+use winapi::um::winuser::{VK_OEM_2, VK_ESCAPE, VK_OEM_MINUS, VK_OEM_PERIOD, VK_OEM_PLUS};
 use clean_text::RegexCleanerPair;
 
 const APP_INFO: AppInfo = AppInfo {
