@@ -76,13 +76,21 @@ impl<'a> State<'a> {
     }
 
     fn open_settings(&self) {
-        use std::process::Command;
-        println!(
-            "{:?}",
-            Command::new(r"C:\Windows\System32\notepad.exe")
-                .arg(self.settings.get_dir())
-                .spawn()
-        );
+        use winapi::um::shellapi::ShellExecuteW;
+        use std::ptr::null_mut;
+        let open: WideString = "open".into();
+        let path = self.settings.get_dir();
+        let path = path.to_str().unwrap();
+        let path: WideString = path.into();
+        unsafe {
+            ShellExecuteW(
+                null_mut(),
+                open.as_ptr(),
+                path.as_ptr(),
+                null_mut(),
+                null_mut(),
+                5);
+        }
     }
 
     fn toggle_window_visible(&mut self) {
