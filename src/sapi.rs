@@ -195,6 +195,14 @@ impl<'a> SpVoice<'a> {
         self.window
     }
 
+    pub fn set_time_estimater(&mut self, t: Variance) {
+        self.us_per_utf16 = t;
+    }
+
+    pub fn get_time_estimater(&self) -> Variance {
+        self.us_per_utf16.clone()
+    }
+
     pub fn toggle_window_visible(&self) -> minwindef::BOOL {
         toggle_window_visible(self.window)
     }

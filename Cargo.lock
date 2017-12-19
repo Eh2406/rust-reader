@@ -20,10 +20,11 @@ dependencies = [
 [[package]]
 name = "average"
 version = "0.6.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/Eh2406/average#e41ae320ac16a1a5bdf47bf0941a8fadfbf097ff"
 dependencies = [
  "conv 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "quickersort 3.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.24 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -257,7 +258,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "rust_reader"
 version = "0.1.0"
 dependencies = [
- "average 0.6.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "average 0.6.3 (git+https://github.com/Eh2406/average)",
  "chrono 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "clipboard-win 2.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "itertools 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -275,6 +276,9 @@ dependencies = [
 name = "serde"
 version = "1.0.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "serde_derive 1.0.24 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "serde_derive"
@@ -426,7 +430,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [metadata]
 "checksum aho-corasick 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)" = "d6531d44de723825aa81398a6415283229725a00fa30713812ab9323faa82fc4"
 "checksum app_dirs 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "b7d1c0d48a81bbb13043847f957971f4d87c81542d80ece5e84ba3cba4058fd4"
-"checksum average 0.6.3 (registry+https://github.com/rust-lang/crates.io-index)" = "b243e3042094effb7a2e490fae5a08e0a98c744a91e47eb2952578383d0421eb"
+"checksum average 0.6.3 (git+https://github.com/Eh2406/average)" = "<none>"
 "checksum bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "aad18937a628ec6abcd26d1489012cc0e18c21798210f491af69ded9b881106d"
 "checksum chrono 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "7c20ebe0b2b08b0aeddba49c609fe7957ba2e33449882cb186a180bc60682fa9"
 "checksum clipboard-win 2.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "14cc3e6c075926b96490d5f90d4a5af7be8012a4d8a8698e619655085a7641a3"

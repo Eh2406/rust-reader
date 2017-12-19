@@ -65,6 +65,7 @@ impl<'a> State<'a> {
             self.hk.clear();
             self.hk = setup_hotkeys(&mut self.settings);
             self.settings.rate = self.voice.set_rate(self.settings.rate);
+            self.voice.set_time_estimater(self.settings.time_estimater.clone());
             self.settings.to_file();
             speech += "reloaded settings.\r\n";
         } else {
@@ -106,12 +107,14 @@ impl<'a> State<'a> {
 
     fn rate_down(&mut self) {
         self.settings.rate = self.voice.change_rate(-1);
+        self.settings.time_estimater = self.voice.get_time_estimater();
         self.settings.to_file();
         println!("rate :{:?}", self.settings.rate);
     }
 
     fn rate_up(&mut self) {
         self.settings.rate = self.voice.change_rate(1);
+        self.settings.time_estimater = self.voice.get_time_estimater();
         self.settings.to_file();
         println!("rate :{:?}", self.settings.rate);
     }
@@ -174,6 +177,7 @@ fn main() {
     let mut voice = SpVoice::new(&com);
     let mut settings = Settings::from_file();
     voice.set_rate(settings.rate);
+    voice.set_time_estimater(settings.time_estimater.clone());
     let hk = setup_hotkeys(&mut settings);
     clipboard_setup();
 
@@ -201,5 +205,6 @@ fn main() {
     }
     state.voice.resume();
     state.voice.speak_wait("bye!");
+    state.settings.time_estimater = state.voice.get_time_estimater();
     state.settings.to_file();
 }

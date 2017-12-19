@@ -1,6 +1,7 @@
 use preferences::{prefs_base_dir, AppInfo, Preferences};
 use winapi::um::winuser::{VK_OEM_2, VK_ESCAPE, VK_OEM_MINUS, VK_OEM_PERIOD, VK_OEM_PLUS};
 use clean_text::RegexCleanerPair;
+use average::Variance;
 
 const APP_INFO: AppInfo = AppInfo {
     name: "rust_reader",
@@ -12,6 +13,8 @@ pub struct Settings {
     pub rate: i32,
     pub hotkeys: [(u32, u32); 8],
     pub cleaners: Vec<RegexCleanerPair>,
+    #[serde(default)]
+    pub time_estimater: Variance,
 }
 
 impl Settings {
@@ -42,6 +45,7 @@ impl Settings {
                     "hash $s",
                 ),
             ]).unwrap(),
+            time_estimater: Variance::new(),
         }
     }
     pub fn get_dir(&self) -> ::std::path::PathBuf {

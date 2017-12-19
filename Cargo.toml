@@ -12,7 +12,7 @@ preferences = { git = "https://github.com/Eh2406/preferences-rs", branch = "patc
 unicode-segmentation = "*"
 regex = "*"
 itertools = "*"
-average = "*"
+average = { git = "https://github.com/Eh2406/average", branch = "master", features = ["serde"]}
 chrono = { version = "0.4", features = ["serde"] }
 
 [dev-dependencies]
