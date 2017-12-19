@@ -213,7 +213,7 @@ pub fn set_window_wrapper(
         winapi::um::winuser::SetWindowLongW(
             h_wnd,
             winapi::um::winuser::GWLP_USERDATA,
-            data.lpCreateParams as winapi::LONG,
+            data.lpCreateParams as winapi::um::winnt::LONG,
         );
     }
 }
