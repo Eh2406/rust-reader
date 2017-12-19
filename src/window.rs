@@ -1,4 +1,8 @@
 use winapi;
+use winapi::um::winnt;
+use winapi::um::winuser;
+use winapi::shared::minwindef;
+use winapi::shared::windef;
 
 use std::ops::Range;
 use std::mem;
@@ -14,20 +18,20 @@ pub mod winapi_stub {
 }
 
 #[inline]
-pub fn failed(hr: winapi::um::winnt::HRESULT) -> bool {
+pub fn failed(hr: winnt::HRESULT) -> bool {
     hr < 0
 }
 
 #[inline]
 #[allow(dead_code)]
-pub fn succeeded(hr: winapi::um::winnt::HRESULT) -> bool {
+pub fn succeeded(hr: winnt::HRESULT) -> bool {
     !failed(hr)
 }
 
-pub fn get_message() -> Option<winapi::um::winuser::MSG> {
+pub fn get_message() -> Option<winuser::MSG> {
     use std::ptr::null_mut;
-    let mut msg: winapi::um::winuser::MSG = unsafe { mem::zeroed() };
-    if unsafe { winapi::um::winuser::GetMessageW(&mut msg, null_mut(), 0, 0) } <= 0 {
+    let mut msg: winuser::MSG = unsafe { mem::zeroed() };
+    if unsafe { winuser::GetMessageW(&mut msg, null_mut(), 0, 0) } <= 0 {
         return None;
     }
     Some(msg)
@@ -37,85 +41,68 @@ pub fn set_console_title(title: &WideString) -> i32 {
     unsafe { winapi::um::wincon::SetConsoleTitleW(title.as_ptr()) }
 }
 
-pub fn set_window_text(
-    h_wnd: winapi::shared::windef::HWND,
-    wide: &WideString,
-) -> winapi::shared::minwindef::BOOL {
-    unsafe { winapi::um::winuser::SetWindowTextW(h_wnd, wide.as_ptr()) }
+pub fn set_window_text(h_wnd: windef::HWND, wide: &WideString) -> minwindef::BOOL {
+    unsafe { winuser::SetWindowTextW(h_wnd, wide.as_ptr()) }
 }
 
 pub fn close() {
-    unsafe { winapi::um::winuser::PostQuitMessage(0) }
+    unsafe { winuser::PostQuitMessage(0) }
 }
 
-pub fn set_edit_selection(
-    h_wnd: winapi::shared::windef::HWND,
-    celec: &Range<usize>,
-) -> winapi::shared::minwindef::LRESULT {
+pub fn set_edit_selection(h_wnd: windef::HWND, celec: &Range<usize>) -> minwindef::LRESULT {
     unsafe {
-        winapi::um::winuser::SendMessageW(
+        winuser::SendMessageW(
             h_wnd,
-            winapi::shared::minwindef::UINT::from(winapi::um::winuser::EM_SETSEL),
-            celec.start as winapi::shared::minwindef::WPARAM,
-            celec.end as winapi::shared::minwindef::LPARAM,
+            minwindef::UINT::from(winuser::EM_SETSEL),
+            celec.start as minwindef::WPARAM,
+            celec.end as minwindef::LPARAM,
         )
     }
 }
 
-pub fn set_edit_scroll_caret(
-    h_wnd: winapi::shared::windef::HWND,
-) -> winapi::shared::minwindef::LRESULT {
+pub fn set_edit_scroll_caret(h_wnd: windef::HWND) -> minwindef::LRESULT {
     unsafe {
-        winapi::um::winuser::SendMessageW(
+        winuser::SendMessageW(
             h_wnd,
-            winapi::shared::minwindef::UINT::from(winapi::um::winuser::EM_SCROLLCARET),
-            0 as winapi::shared::minwindef::WPARAM,
-            0 as winapi::shared::minwindef::LPARAM,
+            minwindef::UINT::from(winuser::EM_SCROLLCARET),
+            0 as minwindef::WPARAM,
+            0 as minwindef::LPARAM,
         )
     }
 }
 
-pub fn get_client_rect(h_wnd: winapi::shared::windef::HWND) -> winapi::shared::windef::RECT {
-    let mut rec: winapi::shared::windef::RECT = unsafe { mem::zeroed() };
-    unsafe { winapi::um::winuser::GetClientRect(h_wnd, &mut rec) };
+pub fn get_client_rect(h_wnd: windef::HWND) -> windef::RECT {
+    let mut rec: windef::RECT = unsafe { mem::zeroed() };
+    unsafe { winuser::GetClientRect(h_wnd, &mut rec) };
     rec
 }
 
-pub fn move_window(
-    h_wnd: winapi::shared::windef::HWND,
-    rect: &winapi::shared::windef::RECT,
-) -> winapi::shared::minwindef::BOOL {
+pub fn move_window(h_wnd: windef::HWND, rect: &windef::RECT) -> minwindef::BOOL {
     unsafe {
-        winapi::um::winuser::MoveWindow(
+        winuser::MoveWindow(
             h_wnd,
             rect.left,
             rect.top,
             rect.right,
             rect.bottom,
-            winapi::shared::minwindef::TRUE,
+            minwindef::TRUE,
         )
     }
 }
 
-pub fn is_window_visible(h_wnd: winapi::shared::windef::HWND) -> winapi::shared::minwindef::BOOL {
-    unsafe { winapi::um::winuser::IsWindowVisible(h_wnd) }
+pub fn is_window_visible(h_wnd: windef::HWND) -> minwindef::BOOL {
+    unsafe { winuser::IsWindowVisible(h_wnd) }
 }
 
-pub fn show_window(
-    h_wnd: winapi::shared::windef::HWND,
-    n_cmd_show: winapi::ctypes::c_int,
-) -> winapi::shared::minwindef::BOOL {
-    unsafe { winapi::um::winuser::ShowWindow(h_wnd, n_cmd_show) }
+pub fn show_window(h_wnd: windef::HWND, n_cmd_show: winapi::ctypes::c_int) -> minwindef::BOOL {
+    unsafe { winuser::ShowWindow(h_wnd, n_cmd_show) }
 }
 
-pub fn toggle_window_visible(
-    h_wnd: winapi::shared::windef::HWND,
-) -> winapi::shared::minwindef::BOOL {
-    use winapi::um::winuser::{SW_HIDE, SW_SHOW};
+pub fn toggle_window_visible(h_wnd: windef::HWND) -> minwindef::BOOL {
     if 1 == is_window_visible(h_wnd) {
-        show_window(h_wnd, SW_HIDE)
+        show_window(h_wnd, winuser::SW_HIDE)
     } else {
-        show_window(h_wnd, SW_SHOW)
+        show_window(h_wnd, winuser::SW_SHOW)
     }
 }
 
@@ -131,7 +118,7 @@ where
     fn split_rows(&self, at: i32) -> (Self, Self);
 }
 
-impl RectUtil for winapi::shared::windef::RECT {
+impl RectUtil for windef::RECT {
     fn inset(&mut self, delta: i32) {
         self.left += delta;
         self.top += delta;
@@ -165,10 +152,8 @@ impl RectUtil for winapi::shared::windef::RECT {
 // window's proc related function
 
 #[cfg(target_arch = "x86_64")]
-pub fn get_window_wrapper<'a, T>(h_wnd: winapi::shared::windef::HWND) -> Option<&'a mut T> {
-    let ptr = unsafe {
-        winapi::um::winuser::GetWindowLongPtrW(h_wnd, winapi::um::winuser::GWLP_USERDATA)
-    };
+pub fn get_window_wrapper<'a, T>(h_wnd: windef::HWND) -> Option<&'a mut T> {
+    let ptr = unsafe { winuser::GetWindowLongPtrW(h_wnd, winuser::GWLP_USERDATA) };
     if ptr > 0 {
         Some(unsafe { &mut *(ptr as *mut T) })
     } else {
@@ -177,10 +162,8 @@ pub fn get_window_wrapper<'a, T>(h_wnd: winapi::shared::windef::HWND) -> Option<
 }
 
 #[cfg(target_arch = "x86")]
-pub fn get_window_wrapper<'a, T>(h_wnd: winapi::shared::windef::HWND) -> Option<&'a mut T> {
-    let ptr = unsafe {
-        winapi::um::winuser::GetWindowLongW(h_wnd, winapi::um::winuser::GWLP_USERDATA)
-    };
+pub fn get_window_wrapper<'a, T>(h_wnd: windef::HWND) -> Option<&'a mut T> {
+    let ptr = unsafe { winuser::GetWindowLongW(h_wnd, winuser::GWLP_USERDATA) };
     if ptr > 0 {
         Some(unsafe { &mut *(ptr as *mut T) })
     } else {
@@ -189,31 +172,25 @@ pub fn get_window_wrapper<'a, T>(h_wnd: winapi::shared::windef::HWND) -> Option<
 }
 
 #[cfg(target_arch = "x86_64")]
-pub fn set_window_wrapper(
-    h_wnd: winapi::shared::windef::HWND,
-    l_param: winapi::shared::minwindef::LPARAM,
-) {
-    let data = unsafe { &mut *(l_param as *mut winapi::um::winuser::CREATESTRUCTW) };
+pub fn set_window_wrapper(h_wnd: windef::HWND, l_param: minwindef::LPARAM) {
+    let data = unsafe { &mut *(l_param as *mut winuser::CREATESTRUCTW) };
     unsafe {
-        winapi::um::winuser::SetWindowLongPtrW(
+        winuser::SetWindowLongPtrW(
             h_wnd,
-            winapi::um::winuser::GWLP_USERDATA,
+            winuser::GWLP_USERDATA,
             data.lpCreateParams as winapi::shared::basetsd::LONG_PTR,
         );
     }
 }
 
 #[cfg(target_arch = "x86")]
-pub fn set_window_wrapper(
-    h_wnd: winapi::shared::windef::HWND,
-    l_param: winapi::shared::minwindef::LPARAM,
-) {
-    let data = unsafe { &mut *(l_param as *mut winapi::um::winuser::CREATESTRUCTW) };
+pub fn set_window_wrapper(h_wnd: windef::HWND, l_param: minwindef::LPARAM) {
+    let data = unsafe { &mut *(l_param as *mut winuser::CREATESTRUCTW) };
     unsafe {
-        winapi::um::winuser::SetWindowLongW(
+        winuser::SetWindowLongW(
             h_wnd,
-            winapi::um::winuser::GWLP_USERDATA,
-            data.lpCreateParams as winapi::um::winnt::LONG,
+            winuser::GWLP_USERDATA,
+            data.lpCreateParams as winnt::LONG,
         );
     }
 }
@@ -221,19 +198,19 @@ pub fn set_window_wrapper(
 pub trait Windowed {
     fn window_proc(
         &mut self,
-        msg: winapi::shared::minwindef::UINT,
-        w_param: winapi::shared::minwindef::WPARAM,
-        l_param: winapi::shared::minwindef::LPARAM,
-    ) -> Option<winapi::shared::minwindef::LRESULT>;
+        msg: minwindef::UINT,
+        w_param: minwindef::WPARAM,
+        l_param: minwindef::LPARAM,
+    ) -> Option<minwindef::LRESULT>;
 }
 
 pub unsafe extern "system" fn window_proc_generic<T: Windowed>(
-    h_wnd: winapi::shared::windef::HWND,
-    msg: winapi::shared::minwindef::UINT,
-    w_param: winapi::shared::minwindef::WPARAM,
-    l_param: winapi::shared::minwindef::LPARAM,
-) -> winapi::shared::minwindef::LRESULT {
-    if msg == winapi::um::winuser::WM_CREATE {
+    h_wnd: windef::HWND,
+    msg: minwindef::UINT,
+    w_param: minwindef::WPARAM,
+    l_param: minwindef::LPARAM,
+) -> minwindef::LRESULT {
+    if msg == winuser::WM_CREATE {
         set_window_wrapper(h_wnd, l_param);
     }
     // println!("sinproc: msg:{:?} w_param:{:?} l_param:{:?}", msg, w_param, l_param);
@@ -242,5 +219,5 @@ pub unsafe extern "system" fn window_proc_generic<T: Windowed>(
             return out;
         }
     }
-    winapi::um::winuser::DefWindowProcW(h_wnd, msg, w_param, l_param)
+    winuser::DefWindowProcW(h_wnd, msg, w_param, l_param)
 }

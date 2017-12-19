@@ -1,4 +1,8 @@
 use winapi;
+use winapi::um::winnt;
+use winapi::um::winuser;
+use winapi::shared::minwindef;
+use winapi::shared::windef;
 use average::{Estimate, Variance};
 use chrono;
 
@@ -10,10 +14,10 @@ use std::ops::Range;
 
 use window::*;
 
-pub const WM_SAPI_EVENT: winapi::shared::minwindef::UINT = winapi::um::winuser::WM_APP + 15;
+pub const WM_SAPI_EVENT: minwindef::UINT = winuser::WM_APP + 15;
 
 pub struct Com {
-    hr: winapi::um::winnt::HRESULT,
+    hr: winnt::HRESULT,
 }
 
 impl Com {
@@ -38,15 +42,15 @@ impl Drop for Com {
     }
 }
 
-const SETTING_BUTTON: winapi::shared::minwindef::WPARAM = 101;
+const SETTING_BUTTON: minwindef::WPARAM = 101;
 
 pub struct SpVoice<'a> {
     // https://msdn.microsoft.com/en-us/library/ms723602.aspx
     voice: &'a mut winapi::um::sapi51::ISpVoice,
-    window: winapi::shared::windef::HWND,
-    edit: winapi::shared::windef::HWND,
-    rate: winapi::shared::windef::HWND,
-    reload_settings: winapi::shared::windef::HWND,
+    window: windef::HWND,
+    edit: windef::HWND,
+    rate: windef::HWND,
+    reload_settings: windef::HWND,
     last_read: WideString,
     last_update: Option<(Instant, Range<usize>)>,
     us_per_utf16: Variance,
@@ -90,105 +94,94 @@ impl<'a> SpVoice<'a> {
             });
 
             let window_class_name: WideString = "SAPI_event_window_class_name".into();
-            winapi::um::winuser::RegisterClassW(&winapi::um::winuser::WNDCLASSW {
+            winuser::RegisterClassW(&winuser::WNDCLASSW {
                 style: 0,
                 lpfnWndProc: Some(window_proc_generic::<SpVoice>),
                 cbClsExtra: 0,
                 cbWndExtra: 0,
-                hInstance: 0 as winapi::shared::minwindef::HINSTANCE,
-                hIcon: winapi::um::winuser::LoadIconW(
-                    0 as winapi::shared::minwindef::HINSTANCE,
-                    winapi::um::winuser::IDI_APPLICATION,
-                ),
-                hCursor: winapi::um::winuser::LoadCursorW(
-                    0 as winapi::shared::minwindef::HINSTANCE,
-                    winapi::um::winuser::IDI_APPLICATION,
-                ),
-                hbrBackground: 16 as winapi::shared::windef::HBRUSH,
-                lpszMenuName: 0 as winapi::um::winnt::LPCWSTR,
+                hInstance: 0 as minwindef::HINSTANCE,
+                hIcon: winuser::LoadIconW(0 as minwindef::HINSTANCE, winuser::IDI_APPLICATION),
+                hCursor: winuser::LoadCursorW(0 as minwindef::HINSTANCE, winuser::IDI_APPLICATION),
+                hbrBackground: 16 as windef::HBRUSH,
+                lpszMenuName: 0 as winnt::LPCWSTR,
                 lpszClassName: window_class_name.as_ptr(),
             });
-            out.window = winapi::um::winuser::CreateWindowExW(
+            out.window = winuser::CreateWindowExW(
                 0,
                 window_class_name.as_ptr(),
                 &0u16,
-                winapi::um::winuser::WS_OVERLAPPEDWINDOW,
+                winuser::WS_OVERLAPPEDWINDOW,
                 0,
                 0,
                 0,
                 0,
-                winapi::um::winuser::GetDesktopWindow(),
-                0 as winapi::shared::windef::HMENU,
-                0 as winapi::shared::minwindef::HINSTANCE,
-                &mut *out as *mut _ as winapi::shared::minwindef::LPVOID,
+                winuser::GetDesktopWindow(),
+                0 as windef::HMENU,
+                0 as minwindef::HINSTANCE,
+                &mut *out as *mut _ as minwindef::LPVOID,
             );
 
             // https://msdn.microsoft.com/en-us/library/windows/desktop/hh298433.aspx
             let wide_edit: WideString = "EDIT".into();
-            out.edit = winapi::um::winuser::CreateWindowExW(
-                winapi::um::winuser::WS_EX_CLIENTEDGE,
+            out.edit = winuser::CreateWindowExW(
+                winuser::WS_EX_CLIENTEDGE,
                 wide_edit.as_ptr(),
                 &0u16,
-                winapi::um::winuser::WS_CHILD | winapi::um::winuser::WS_VISIBLE
-                    | winapi::um::winuser::WS_VSCROLL
-                    | winapi::um::winuser::WS_BORDER | winapi::um::winuser::ES_LEFT
-                    | winapi::um::winuser::ES_MULTILINE
-                    | winapi::um::winuser::ES_AUTOVSCROLL
-                    | winapi::um::winuser::ES_NOHIDESEL
-                    | winapi::um::winuser::ES_AUTOVSCROLL,
+                winuser::WS_CHILD | winuser::WS_VISIBLE | winuser::WS_VSCROLL | winuser::WS_BORDER
+                    | winuser::ES_LEFT | winuser::ES_MULTILINE
+                    | winuser::ES_AUTOVSCROLL | winuser::ES_NOHIDESEL
+                    | winuser::ES_AUTOVSCROLL,
                 0,
                 0,
                 0,
                 0,
                 out.window,
                 winapi_stub::ID_EDITCHILD,
-                0 as winapi::shared::minwindef::HINSTANCE,
+                0 as minwindef::HINSTANCE,
                 null_mut(),
             );
             let wide_static: WideString = "STATIC".into();
-            out.rate = winapi::um::winuser::CreateWindowExW(
+            out.rate = winuser::CreateWindowExW(
                 0,
                 wide_static.as_ptr(),
                 &0u16,
-                winapi::um::winuser::WS_CHILD | winapi::um::winuser::WS_VISIBLE
-                    | winapi::um::winuser::SS_CENTER | winapi::um::winuser::SS_NOPREFIX,
+                winuser::WS_CHILD | winuser::WS_VISIBLE | winuser::SS_CENTER | winuser::SS_NOPREFIX,
                 0,
                 0,
                 0,
                 0,
                 out.window,
-                0 as winapi::shared::windef::HMENU,
-                0 as winapi::shared::minwindef::HINSTANCE,
+                0 as windef::HMENU,
+                0 as minwindef::HINSTANCE,
                 null_mut(),
             );
             let wide_button: WideString = "BUTTON".into();
             let wide_settings: WideString = "Reload Settings".into();
-            out.reload_settings = winapi::um::winuser::CreateWindowExW(
+            out.reload_settings = winuser::CreateWindowExW(
                 0,
                 wide_button.as_ptr(),
                 wide_settings.as_ptr(),
-                winapi::um::winuser::WS_TABSTOP | winapi::um::winuser::WS_VISIBLE
-                    | winapi::um::winuser::WS_CHILD
-                    | winapi::um::winuser::BS_DEFPUSHBUTTON,
+                winuser::WS_TABSTOP | winuser::WS_VISIBLE | winuser::WS_CHILD
+                    | winuser::BS_DEFPUSHBUTTON,
                 10,
                 10,
                 20,
                 20,
                 out.window,
-                SETTING_BUTTON as winapi::shared::windef::HMENU,
-                0 as winapi::shared::minwindef::HINSTANCE,
+                SETTING_BUTTON as windef::HMENU,
+                0 as minwindef::HINSTANCE,
                 null_mut(),
             );
             move_window(
                 out.window,
-                &winapi::shared::windef::RECT {
+                &windef::RECT {
                     left: 0,
                     top: 0,
                     right: 400,
                     bottom: 400,
                 },
             );
-            show_window(out.window, winapi::um::winuser::SW_SHOWNORMAL);
+            show_window(out.window, winuser::SW_SHOWNORMAL);
             out.set_notify_window_message();
             out.set_volume(100);
             out.set_alert_boundary(winapi::um::sapi51::SPEI_PHONEME);
@@ -198,11 +191,11 @@ impl<'a> SpVoice<'a> {
     }
 
     #[allow(dead_code)]
-    pub fn get_window_handle(&mut self) -> winapi::shared::windef::HWND {
+    pub fn get_window_handle(&mut self) -> windef::HWND {
         self.window
     }
 
-    pub fn toggle_window_visible(&self) -> winapi::shared::minwindef::BOOL {
+    pub fn toggle_window_visible(&self) -> minwindef::BOOL {
         toggle_window_visible(self.window)
     }
 
@@ -328,14 +321,12 @@ fn format_duration(d: chrono::Duration) -> String {
 impl<'a> Windowed for SpVoice<'a> {
     fn window_proc(
         &mut self,
-        msg: winapi::shared::minwindef::UINT,
-        w_param: winapi::shared::minwindef::WPARAM,
-        l_param: winapi::shared::minwindef::LPARAM,
-    ) -> Option<winapi::shared::minwindef::LRESULT> {
+        msg: minwindef::UINT,
+        w_param: minwindef::WPARAM,
+        l_param: minwindef::LPARAM,
+    ) -> Option<minwindef::LRESULT> {
         match msg {
-            winapi::um::winuser::WM_DESTROY
-            | winapi::um::winuser::WM_QUERYENDSESSION
-            | winapi::um::winuser::WM_ENDSESSION => close(),
+            winuser::WM_DESTROY | winuser::WM_QUERYENDSESSION | winuser::WM_ENDSESSION => close(),
             WM_SAPI_EVENT => {
                 let status = self.get_status();
                 let word_range = status.word_range();
@@ -380,7 +371,7 @@ impl<'a> Windowed for SpVoice<'a> {
                 set_edit_scroll_caret(self.edit);
                 return Some(0);
             }
-            winapi::um::winuser::WM_SIZE => {
+            winuser::WM_SIZE => {
                 let mut rect = get_client_rect(self.window);
                 if (w_param <= 2) && rect.right > 0 && rect.bottom > 0 {
                     rect.inset(3);
@@ -396,14 +387,13 @@ impl<'a> Windowed for SpVoice<'a> {
                     return Some(0);
                 }
             }
-            winapi::um::winuser::WM_GETMINMAXINFO => {
-                let data =
-                    unsafe { &mut *(l_param as *mut winapi::um::winuser::MINMAXINFO) };
+            winuser::WM_GETMINMAXINFO => {
+                let data = unsafe { &mut *(l_param as *mut winuser::MINMAXINFO) };
                 data.ptMinTrackSize.x = 300;
                 data.ptMinTrackSize.y = 110;
                 return Some(0);
             }
-            winapi::um::winuser::WM_COMMAND => {
+            winuser::WM_COMMAND => {
                 use press_hotkey;
                 use Action;
                 match w_param {
