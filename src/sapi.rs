@@ -53,7 +53,7 @@ pub struct SpVoice<'a> {
     reload_settings: windef::HWND,
     last_read: WideString,
     last_update: Option<(Instant, Range<usize>)>,
-    us_per_utf16: Variance,
+    us_per_utf16: [Variance; 21],
 }
 
 impl<'a> SpVoice<'a> {
@@ -90,7 +90,7 @@ impl<'a> SpVoice<'a> {
                 reload_settings: null_mut(),
                 last_read: WideString::new(),
                 last_update: None,
-                us_per_utf16: Variance::new(),
+                us_per_utf16: Default::default(),
             });
 
             let window_class_name: WideString = "SAPI_event_window_class_name".into();
@@ -195,11 +195,11 @@ impl<'a> SpVoice<'a> {
         self.window
     }
 
-    pub fn set_time_estimater(&mut self, t: Variance) {
+    pub fn set_time_estimater(&mut self, t: [Variance; 21]) {
         self.us_per_utf16 = t;
     }
 
-    pub fn get_time_estimater(&self) -> Variance {
+    pub fn get_time_estimater(&self) -> [Variance; 21] {
         self.us_per_utf16.clone()
     }
 
@@ -338,6 +338,7 @@ impl<'a> Windowed for SpVoice<'a> {
             WM_SAPI_EVENT => {
                 let status = self.get_status();
                 let word_range = status.word_range();
+                let rate = self.get_rate();
                 if word_range.end == 0 {
                     // called before start of reading.
                     self.last_update = None;
@@ -361,12 +362,12 @@ impl<'a> Windowed for SpVoice<'a> {
                         .expect("bad time diffrence.");
                     let new_rate =
                         (elapsed as f64) / ((word_range.start - old_word_range.start) as f64);
-                    self.us_per_utf16.add(new_rate);
+                    self.us_per_utf16[rate as usize + 10].add(new_rate);
                 }
                 self.last_update = Some((Instant::now(), word_range.clone()));
                 let len_left = (self.last_read.len() - word_range.end) as f64;
-                let ms_left = len_left * self.us_per_utf16.mean()
-                    + (len_left * self.us_per_utf16.sample_variance()).sqrt();
+                let ms_left = len_left * self.us_per_utf16[rate as usize + 10].mean()
+                    + (len_left * self.us_per_utf16[rate as usize + 10].sample_variance()).sqrt();
                 let window_title = format!(
                     "{:.1}% {} \"{}\" rust_reader",
                     100.0 * (word_range.start as f64) / (self.last_read.len() as f64),

@@ -14,7 +14,7 @@ pub struct Settings {
     pub hotkeys: [(u32, u32); 8],
     pub cleaners: Vec<RegexCleanerPair>,
     #[serde(default)]
-    pub time_estimater: Variance,
+    pub time_estimater: [Variance; 21],
 }
 
 impl Settings {
@@ -45,7 +45,7 @@ impl Settings {
                     "hash $s",
                 ),
             ]).unwrap(),
-            time_estimater: Variance::new(),
+            time_estimater: Default::default(),
         }
     }
     pub fn get_dir(&self) -> ::std::path::PathBuf {
