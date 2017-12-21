@@ -102,15 +102,19 @@ pub fn convert_range<T>(v: &[T], r: &Range<T>) -> Range<usize>
 where
     T: Ord,
 {
-    let mut s = v.binary_search(&r.start).unwrap_or_else(|x| x);
-    while s > 0 && v[s - 1] == r.start {
-        s -= 1;
-    }
-    let mut e = v[s..].binary_search(&r.end).unwrap_or_else(|x| x) + s;
-    while e < v.len() - 1 && v[e + 1] == r.end {
-        e += 1;
-    }
-    s..e
+    use ordslice::Ext;
+    use std::cmp::Ordering;
+    let mut out = v.equal_range_by(|probe| {
+        if probe < &r.start {
+            Ordering::Less
+        } else if probe > &r.end {
+            Ordering::Greater
+        } else {
+            Ordering::Equal
+        }
+    });
+    out.end -= 1;
+    out
 }
 
 #[allow(dead_code)]

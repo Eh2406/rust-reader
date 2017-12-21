@@ -3,6 +3,7 @@
 extern crate average;
 extern crate chrono;
 extern crate clipboard_win;
+extern crate ordslice;
 extern crate unicode_segmentation;
 extern crate winapi;
 
@@ -65,7 +66,8 @@ impl<'a> State<'a> {
             self.hk.clear();
             self.hk = setup_hotkeys(&mut self.settings);
             self.settings.rate = self.voice.set_rate(self.settings.rate);
-            self.voice.set_time_estimater(self.settings.time_estimater.clone());
+            self.voice
+                .set_time_estimater(self.settings.time_estimater.clone());
             self.settings.to_file();
             speech += "reloaded settings.\r\n";
         } else {
@@ -90,7 +92,8 @@ impl<'a> State<'a> {
                 path.as_ptr(),
                 null_mut(),
                 null_mut(),
-                5);
+                5,
+            );
         }
     }
 

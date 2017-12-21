@@ -13,8 +13,7 @@ pub struct Settings {
     pub rate: i32,
     pub hotkeys: [(u32, u32); 8],
     pub cleaners: Vec<RegexCleanerPair>,
-    #[serde(default)]
-    pub time_estimater: [Variance; 21],
+    #[serde(default)] pub time_estimater: [Variance; 21],
 }
 
 impl Settings {

@@ -190,6 +190,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "ordslice"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "preferences"
 version = "2.0.0"
 source = "git+https://github.com/Eh2406/preferences-rs?branch=patch-1#4f426cf52da97d3b8914e10d4492f953d4304238"
@@ -263,6 +268,7 @@ dependencies = [
  "clipboard-win 2.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "itertools 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ordslice 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "preferences 2.0.0 (git+https://github.com/Eh2406/preferences-rs?branch=patch-1)",
  "quickcheck 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -454,6 +460,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum num-iter 0.1.34 (registry+https://github.com/rust-lang/crates.io-index)" = "7485fcc84f85b4ecd0ea527b14189281cf27d60e583ae65ebc9c088b13dffe01"
 "checksum num-traits 0.1.41 (registry+https://github.com/rust-lang/crates.io-index)" = "cacfcab5eb48250ee7d0c7896b51a2c5eec99c1feea5f32025635f5ae4b00070"
 "checksum ole32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "5d2c49021782e5233cd243168edfa8037574afed4eba4bbaf538b3d8d1789d8c"
+"checksum ordslice 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "04e5e6135238d22741190949333b38dbde73662e9849ca0e4420b3ab50380274"
 "checksum preferences 2.0.0 (git+https://github.com/Eh2406/preferences-rs?branch=patch-1)" = "<none>"
 "checksum quickcheck 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "cd532ab58d22171f7168ef5a751133566f8fd88d362d12b07a91d8e59e0ff5cb"
 "checksum quickersort 3.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "1739799b005663fb1c902601f8c9d331ec9e778b115f3fb155034d5624243f94"
