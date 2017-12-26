@@ -43,7 +43,7 @@ use clean_text::*;
 
 struct State<'a> {
     voice: Box<SpVoice<'a>>,
-    settings: Settings,
+    settings: Box<SettingsWindow>,
     hk: Vec<HotKey>,
 }
 
@@ -51,8 +51,10 @@ impl<'a> State<'a> {
     fn read(&mut self) {
         self.voice.resume();
         match get_text() {
-            Ok(x) => self.voice
-                .speak(clean_text::<WideString>(&x, &self.settings.cleaners)),
+            Ok(x) => self.voice.speak(clean_text::<WideString>(
+                &x,
+                &self.settings.get_inner_settings().cleaners,
+            )),
             Err(x) => {
                 self.voice.speak("oops. error.");
                 println!("{:?}", x);
@@ -62,39 +64,27 @@ impl<'a> State<'a> {
 
     fn reload_settings(&mut self) {
         let mut speech = String::new();
-        if self.settings.reload_from_file() {
+        if self.settings.get_mut_inner_settings().reload_from_file() {
             self.hk.clear();
-            self.hk = setup_hotkeys(&mut self.settings);
-            self.settings.rate = self.voice.set_rate(self.settings.rate);
+            self.hk = setup_hotkeys(self.settings.get_mut_inner_settings());
+            self.settings.get_mut_inner_settings().rate =
+                self.voice.set_rate(self.settings.get_inner_settings().rate);
             self.voice
-                .set_time_estimater(self.settings.time_estimater.clone());
-            self.settings.to_file();
+                .set_time_estimater(self.settings.get_inner_settings().time_estimater.clone());
+            self.settings.inner_to_file();
             speech += "reloaded settings.\r\n";
         } else {
             speech += "failed to reload settings.\r\n";
         }
-        speech += &make_speech(&self.settings, &self.hk);
+        speech += &make_speech(&self.settings.get_inner_settings(), &self.hk);
         self.voice.resume();
         self.voice.speak(speech);
     }
 
-    fn open_settings(&self) {
-        use winapi::um::shellapi::ShellExecuteW;
-        use std::ptr::null_mut;
-        let open: WideString = "open".into();
-        let path = self.settings.get_dir();
-        let path = path.to_str().unwrap();
-        let path: WideString = path.into();
-        unsafe {
-            ShellExecuteW(
-                null_mut(),
-                open.as_ptr(),
-                path.as_ptr(),
-                null_mut(),
-                null_mut(),
-                5,
-            );
-        }
+    fn show_settings(&mut self) {
+        self.settings.get_mut_inner_settings().time_estimater = self.voice.get_time_estimater();
+        self.settings.inner_to_file();
+        self.settings.show_window();
     }
 
     fn toggle_window_visible(&mut self) {
@@ -109,17 +99,17 @@ impl<'a> State<'a> {
     }
 
     fn rate_down(&mut self) {
-        self.settings.rate = self.voice.change_rate(-1);
-        self.settings.time_estimater = self.voice.get_time_estimater();
-        self.settings.to_file();
-        println!("rate :{:?}", self.settings.rate);
+        self.settings.get_mut_inner_settings().rate = self.voice.change_rate(-1);
+        self.settings.get_mut_inner_settings().time_estimater = self.voice.get_time_estimater();
+        self.settings.inner_to_file();
+        println!("rate: {:?}", self.settings.get_inner_settings().rate);
     }
 
     fn rate_up(&mut self) {
-        self.settings.rate = self.voice.change_rate(1);
-        self.settings.time_estimater = self.voice.get_time_estimater();
-        self.settings.to_file();
-        println!("rate :{:?}", self.settings.rate);
+        self.settings.get_mut_inner_settings().rate = self.voice.change_rate(1);
+        self.settings.get_mut_inner_settings().time_estimater = self.voice.get_time_estimater();
+        self.settings.inner_to_file();
+        println!("rate: {:?}", self.settings.get_inner_settings().rate);
     }
 
     fn match_hotkey_id(&mut self, act: Action) {
@@ -128,7 +118,7 @@ impl<'a> State<'a> {
             Read => self.read(),
             Close => close(),
             ReloadSettings => self.reload_settings(),
-            OpenSettings => self.open_settings(),
+            ShowSettings => self.show_settings(),
             ToggleWindowVisible => self.toggle_window_visible(),
             PlayPause => self.play_pause(),
             RateDown => self.rate_down(),
@@ -186,11 +176,13 @@ fn main() {
 
     let mut state = State {
         voice: voice,
-        settings: settings,
+        settings: SettingsWindow::new(settings),
         hk: hk,
     };
 
-    state.voice.speak(make_speech(&state.settings, &state.hk));
+    state
+        .voice
+        .speak(make_speech(&state.settings.get_inner_settings(), &state.hk));
 
     while let Some(msg) = get_message() {
         match msg.message {
@@ -208,6 +200,6 @@ fn main() {
     }
     state.voice.resume();
     state.voice.speak_wait("bye!");
-    state.settings.time_estimater = state.voice.get_time_estimater();
-    state.settings.to_file();
+    state.settings.get_mut_inner_settings().time_estimater = state.voice.get_time_estimater();
+    state.settings.inner_to_file();
 }

@@ -38,6 +38,18 @@ fn test_modifiers_altctrsht() {
     assert_eq!(&convert_modifiers(7), "Alt+Ctr+Sht");
 }
 
+pub fn convert_mod(modifiers: u8) -> u8 {
+    // the Modifiers is different between RegisterHotKey and HKM_SETHOTKEY
+    let mut to_modifiers = modifiers & !(5);
+    if (modifiers & 1) > 0 {
+        to_modifiers |= 4;
+    }
+    if (modifiers & 4) > 0 {
+        to_modifiers |= 1;
+    }
+    to_modifiers
+}
+
 #[derive(Debug)]
 pub struct HotKey {
     vk: u32,
@@ -54,9 +66,13 @@ impl HotKey {
         };
         println!("new for HotKey: {} {}", new_hot, id);
         // https://msdn.microsoft.com/en-us/library/windows/desktop/ms646309.aspx
-        let hr = unsafe { winuser::RegisterHotKey(null_mut(), id, modifiers, vk) };
-        if hr == 0 {
-            None
+        if modifiers > 0 && vk > 0 {
+            let hr = unsafe { winuser::RegisterHotKey(null_mut(), id, modifiers, vk) };
+            if hr == 0 {
+                None
+            } else {
+                Some(new_hot)
+            }
         } else {
             Some(new_hot)
         }
@@ -66,22 +82,28 @@ impl HotKey {
 impl ::std::fmt::Display for HotKey {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         use std::char;
-        write!(f, "{}+", convert_modifiers(self.modifiers))?;
-        if self.vk == VK_ESCAPE as u32 {
-            write!(f, "Esc")
+        if self.modifiers > 0 && self.vk > 0 {
+            write!(f, "{}+", convert_modifiers(self.modifiers))?;
+            if self.vk == VK_ESCAPE as u32 {
+                write!(f, "Esc")
+            } else {
+                write!(
+                    f,
+                    "{}",
+                    char::from_u32(unsafe { winuser::MapVirtualKeyW(self.vk, 2) }).unwrap()
+                )
+            }
         } else {
-            write!(
-                f,
-                "{}",
-                char::from_u32(unsafe { winuser::MapVirtualKeyW(self.vk, 2) }).unwrap()
-            )
+            write!(f, "None")
         }
     }
 }
 
 impl Drop for HotKey {
     fn drop(&mut self) {
-        unsafe { winuser::UnregisterHotKey(null_mut(), self.id) };
+        if self.modifiers > 0 && self.vk > 0 {
+            unsafe { winuser::UnregisterHotKey(null_mut(), self.id) };
+        }
         println!("drop for HotKey");
     }
 }

@@ -110,7 +110,7 @@ impl<'a> SpVoice<'a> {
                 0,
                 window_class_name.as_ptr(),
                 &0u16,
-                winuser::WS_OVERLAPPEDWINDOW,
+                winuser::WS_OVERLAPPEDWINDOW | winuser::WS_CLIPSIBLINGS | winuser::WS_CLIPCHILDREN,
                 0,
                 0,
                 0,
@@ -156,7 +156,7 @@ impl<'a> SpVoice<'a> {
                 null_mut(),
             );
             let wide_button: WideString = "BUTTON".into();
-            let wide_settings: WideString = "Reload Settings".into();
+            let wide_settings: WideString = "Show Settings".into();
             out.reload_settings = winuser::CreateWindowExW(
                 0,
                 wide_button.as_ptr(),
@@ -392,7 +392,9 @@ impl<'a> Windowed for SpVoice<'a> {
                     right.inset(3);
                     move_window(self.reload_settings, &left);
                     move_window(self.rate, &right);
-                    self.get_rate(); //force repaint of text
+                    unsafe {
+                        winuser::InvalidateRect(self.rate, null_mut(), minwindef::TRUE);
+                    }
                     return Some(0);
                 }
             }
@@ -407,7 +409,7 @@ impl<'a> Windowed for SpVoice<'a> {
                 use Action;
                 match w_param {
                     SETTING_BUTTON => {
-                        press_hotkey(Action::ReloadSettings);
+                        press_hotkey(Action::ShowSettings);
                         return Some(0);
                     }
                     _ => return None,

@@ -2,14 +2,14 @@ use regex::*;
 use serde::{Deserializer, Serialize, Serializer};
 use serde::de::{self, Deserialize, SeqAccess, Visitor};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RegexCleanerPair {
     regex: Regex,
     rep: String,
 }
 
 impl RegexCleanerPair {
-    fn new<T: AsRef<str>>(regex: T, rep: String) -> Result<RegexCleanerPair, Error> {
+    pub fn new<T: AsRef<str>>(regex: T, rep: String) -> Result<RegexCleanerPair, Error> {
         Ok(RegexCleanerPair {
             regex: Regex::new(regex.as_ref())?,
             rep: rep,

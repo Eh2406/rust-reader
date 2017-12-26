@@ -7,7 +7,11 @@ pub struct WideString(Vec<u16>);
 
 impl WideString {
     pub fn new() -> WideString {
-        WideString(vec![])
+        WideString(vec![0])
+    }
+    pub fn from_raw(r: Vec<u16>) -> WideString {
+        assert_eq!(r.last(), Some(&0));
+        WideString(r)
     }
     pub fn len(&self) -> usize {
         self.0.len()
@@ -23,6 +27,9 @@ impl WideString {
     pub fn as_ptr(&self) -> *const u16 {
         self.0.as_ptr()
     }
+    pub fn as_string(&self) -> String {
+        self.get_slice(0..(self.0.len() - 1))
+    }
     pub fn get_slice(&self, range: Range<usize>) -> String {
         String::from_utf16_lossy(&self.0[range])
     }
@@ -33,7 +40,7 @@ impl<T: ::std::borrow::Borrow<str>> From<T> for WideString {
         let osstr: &OsStr = instring.borrow().as_ref();
         let mut out: Vec<u16> = osstr.encode_wide().collect();
         out.push(0);
-        WideString(out)
+        WideString::from_raw(out)
     }
 }
 
@@ -45,7 +52,7 @@ impl<T: ::std::borrow::Borrow<str>> ::std::iter::FromIterator<T> for WideString 
             out.extend(instr.encode_wide());
         }
         out.push(0);
-        WideString(out)
+        WideString::from_raw(out)
     }
 }
 

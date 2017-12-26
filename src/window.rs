@@ -37,12 +37,27 @@ pub fn get_message() -> Option<winuser::MSG> {
     Some(msg)
 }
 
+pub fn enable_window(h_wnd: windef::HWND, enable: bool) -> minwindef::BOOL {
+    unsafe { winuser::EnableWindow(h_wnd, enable as minwindef::BOOL) }
+}
+
 pub fn set_console_title(title: &WideString) -> i32 {
     unsafe { winapi::um::wincon::SetConsoleTitleW(title.as_ptr()) }
 }
 
 pub fn set_window_text(h_wnd: windef::HWND, wide: &WideString) -> minwindef::BOOL {
     unsafe { winuser::SetWindowTextW(h_wnd, wide.as_ptr()) }
+}
+
+pub fn get_window_text_length(h_wnd: windef::HWND) -> minwindef::INT {
+    unsafe { winuser::GetWindowTextLengthW(h_wnd) }
+}
+
+pub fn get_window_text(h_wnd: windef::HWND) -> WideString {
+    let mut buf = vec![0u16; get_window_text_length(h_wnd) as usize + 1];
+    let len = unsafe { winuser::GetWindowTextW(h_wnd, buf.as_mut_ptr(), buf.len() as i32) };
+    buf.truncate(len as usize + 1);
+    WideString::from_raw(buf)
 }
 
 pub fn close() {
