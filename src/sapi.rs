@@ -42,8 +42,6 @@ impl Drop for Com {
     }
 }
 
-const SETTING_BUTTON: minwindef::WPARAM = 101;
-
 pub struct SpVoice<'a> {
     // https://msdn.microsoft.com/en-us/library/ms723602.aspx
     voice: &'a mut winapi::um::sapi51::ISpVoice,
@@ -168,7 +166,7 @@ impl<'a> SpVoice<'a> {
                 20,
                 20,
                 out.window,
-                SETTING_BUTTON as windef::HMENU,
+                0 as windef::HMENU,
                 0 as minwindef::HINSTANCE,
                 null_mut(),
             );
@@ -407,12 +405,10 @@ impl<'a> Windowed for SpVoice<'a> {
             winuser::WM_COMMAND => {
                 use press_hotkey;
                 use Action;
-                match w_param {
-                    SETTING_BUTTON => {
-                        press_hotkey(Action::ShowSettings);
-                        return Some(0);
-                    }
-                    _ => return None,
+                if self.reload_settings as isize == l_param
+                    && minwindef::HIWORD(w_param as u32) == winuser::BN_CLICKED {
+                    press_hotkey(Action::ShowSettings);
+                    return Some(0);
                 }
             }
             _ => {}

@@ -110,7 +110,7 @@ impl SettingsWindow {
                 0,
                 out.window,
                 0 as windef::HMENU,
-                0 as minwindef::HINSTANCE, //g_hInst
+                0 as minwindef::HINSTANCE,
                 null_mut(),
             );
             let wide_button: WideString = "BUTTON".into();
@@ -127,7 +127,7 @@ impl SettingsWindow {
                 0,
                 out.window,
                 0 as windef::HMENU,
-                0 as minwindef::HINSTANCE, //g_hInst
+                0 as minwindef::HINSTANCE,
                 null_mut(),
             );
 
