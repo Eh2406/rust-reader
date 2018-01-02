@@ -76,14 +76,7 @@ pub fn set_edit_selection(h_wnd: windef::HWND, celec: &Range<usize>) -> minwinde
 }
 
 pub fn set_edit_scroll_caret(h_wnd: windef::HWND) -> minwindef::LRESULT {
-    unsafe {
-        winuser::SendMessageW(
-            h_wnd,
-            minwindef::UINT::from(winuser::EM_SCROLLCARET),
-            0 as minwindef::WPARAM,
-            0 as minwindef::LPARAM,
-        )
-    }
+    unsafe { winuser::SendMessageW(h_wnd, minwindef::UINT::from(winuser::EM_SCROLLCARET), 0, 0) }
 }
 
 pub fn get_client_rect(h_wnd: windef::HWND) -> windef::RECT {

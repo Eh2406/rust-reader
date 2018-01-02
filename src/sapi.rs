@@ -97,11 +97,11 @@ impl<'a> SpVoice<'a> {
                 lpfnWndProc: Some(window_proc_generic::<SpVoice>),
                 cbClsExtra: 0,
                 cbWndExtra: 0,
-                hInstance: 0 as minwindef::HINSTANCE,
-                hIcon: winuser::LoadIconW(0 as minwindef::HINSTANCE, winuser::IDI_APPLICATION),
-                hCursor: winuser::LoadCursorW(0 as minwindef::HINSTANCE, winuser::IDI_APPLICATION),
+                hInstance: null_mut(),
+                hIcon: winuser::LoadIconW(null_mut(), winuser::IDI_APPLICATION),
+                hCursor: winuser::LoadCursorW(null_mut(), winuser::IDI_APPLICATION),
                 hbrBackground: 16 as windef::HBRUSH,
-                lpszMenuName: 0 as winnt::LPCWSTR,
+                lpszMenuName: null_mut(),
                 lpszClassName: window_class_name.as_ptr(),
             });
             out.window = winuser::CreateWindowExW(
@@ -114,8 +114,8 @@ impl<'a> SpVoice<'a> {
                 0,
                 0,
                 winuser::GetDesktopWindow(),
-                0 as windef::HMENU,
-                0 as minwindef::HINSTANCE,
+                null_mut(),
+                null_mut(),
                 &mut *out as *mut _ as minwindef::LPVOID,
             );
 
@@ -135,7 +135,7 @@ impl<'a> SpVoice<'a> {
                 0,
                 out.window,
                 winapi_stub::ID_EDITCHILD,
-                0 as minwindef::HINSTANCE,
+                null_mut(),
                 null_mut(),
             );
             let wide_static: WideString = "STATIC".into();
@@ -149,8 +149,8 @@ impl<'a> SpVoice<'a> {
                 0,
                 0,
                 out.window,
-                0 as windef::HMENU,
-                0 as minwindef::HINSTANCE,
+                null_mut(),
+                null_mut(),
                 null_mut(),
             );
             let wide_button: WideString = "BUTTON".into();
@@ -166,8 +166,8 @@ impl<'a> SpVoice<'a> {
                 20,
                 20,
                 out.window,
-                0 as windef::HMENU,
-                0 as minwindef::HINSTANCE,
+                null_mut(),
+                null_mut(),
                 null_mut(),
             );
             move_window(

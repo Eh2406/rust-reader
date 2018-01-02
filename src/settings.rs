@@ -1,7 +1,6 @@
 use preferences::{prefs_base_dir, AppInfo, Preferences};
 use winapi::um::winuser::{VK_OEM_2, VK_ESCAPE, VK_OEM_MINUS, VK_OEM_PERIOD, VK_OEM_PLUS};
 use winapi::shared::windef;
-use winapi::um::winnt;
 use winapi::um::winuser;
 use winapi::um::commctrl;
 use winapi::shared::minwindef;
@@ -53,11 +52,11 @@ impl SettingsWindow {
                 lpfnWndProc: Some(window_proc_generic::<SettingsWindow>),
                 cbClsExtra: 0,
                 cbWndExtra: 0,
-                hInstance: 0 as minwindef::HINSTANCE,
-                hIcon: winuser::LoadIconW(0 as minwindef::HINSTANCE, winuser::IDI_APPLICATION),
-                hCursor: winuser::LoadCursorW(0 as minwindef::HINSTANCE, winuser::IDI_APPLICATION),
+                hInstance: null_mut(),
+                hIcon: winuser::LoadIconW(null_mut(), winuser::IDI_APPLICATION),
+                hCursor: winuser::LoadCursorW(null_mut(), winuser::IDI_APPLICATION),
                 hbrBackground: 16 as windef::HBRUSH,
-                lpszMenuName: 0 as winnt::LPCWSTR,
+                lpszMenuName: null_mut(),
                 lpszClassName: window_class_name.as_ptr(),
             });
             out.window = winuser::CreateWindowExW(
@@ -70,8 +69,8 @@ impl SettingsWindow {
                 0,
                 0,
                 winuser::GetDesktopWindow(),
-                0 as windef::HMENU,
-                0 as minwindef::HINSTANCE,
+                null_mut(),
+                null_mut(),
                 &mut *out as *mut _ as minwindef::LPVOID,
             );
             let wide_static: WideString = "STATIC".into();
@@ -88,8 +87,8 @@ impl SettingsWindow {
                 0,
                 0,
                 out.window,
-                0 as windef::HMENU,
-                0 as minwindef::HINSTANCE,
+                null_mut(),
+                null_mut(),
                 null_mut(),
             );
             winuser::SendMessageW(
@@ -109,8 +108,8 @@ impl SettingsWindow {
                 0,
                 0,
                 out.window,
-                0 as windef::HMENU,
-                0 as minwindef::HINSTANCE,
+                null_mut(),
+                null_mut(),
                 null_mut(),
             );
             let wide_button: WideString = "BUTTON".into();
@@ -126,8 +125,8 @@ impl SettingsWindow {
                 0,
                 0,
                 out.window,
-                0 as windef::HMENU,
-                0 as minwindef::HINSTANCE,
+                null_mut(),
+                null_mut(),
                 null_mut(),
             );
 
@@ -152,8 +151,8 @@ impl SettingsWindow {
                     0,
                     0,
                     window,
-                    0 as windef::HMENU,
-                    0 as minwindef::HINSTANCE,
+                    null_mut(),
+                    null_mut(),
                     null_mut(),
                 );
                 ht.1 = winuser::CreateWindowExW(
@@ -166,8 +165,8 @@ impl SettingsWindow {
                     0,
                     0,
                     window,
-                    0 as windef::HMENU,
-                    0 as minwindef::HINSTANCE,
+                    null_mut(),
+                    null_mut(),
                     null_mut(),
                 );
                 winuser::SendMessageW(
@@ -211,8 +210,8 @@ impl SettingsWindow {
                     0,
                     0,
                     self.window,
-                    0 as windef::HMENU,
-                    0 as minwindef::HINSTANCE,
+                    null_mut(),
+                    null_mut(),
                     null_mut(),
                 ),
                 winuser::CreateWindowExW(
@@ -226,8 +225,8 @@ impl SettingsWindow {
                     0,
                     0,
                     self.window,
-                    0 as windef::HMENU,
-                    0 as minwindef::HINSTANCE,
+                    null_mut(),
+                    null_mut(),
                     null_mut(),
                 ),
             )
