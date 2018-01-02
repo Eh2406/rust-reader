@@ -246,6 +246,7 @@ impl Windowed for SettingsWindow {
         w_param: minwindef::WPARAM,
         l_param: minwindef::LPARAM,
     ) -> Option<minwindef::LRESULT> {
+        use itertools::EitherOrBoth::{Both, Left, Right};
         match msg {
             winuser::WM_CLOSE => {
                 show_window(self.window, winuser::SW_HIDE);
@@ -334,21 +335,36 @@ impl Windowed for SettingsWindow {
                     .any(|x| x.1 as isize == l_param || x.2 as isize == l_param)
                 {
                     // cleaners change
-                    for (cl, rexpar) in self.cleaners.iter_mut().zip(self.settings.cleaners.iter())
+                    for mat in self.cleaners
+                        .iter_mut()
+                        .zip_longest(self.settings.cleaners.iter())
                     {
-                        let (re, pal) = rexpar.to_parts();
-                        let new_a = get_window_text(cl.1).as_string();
-                        let new_b = get_window_text(cl.2).as_string();
-                        if !new_a.is_empty() || !new_b.is_empty() {
-                            if (new_a != re.as_str()) || (new_b != pal) {
-                                cl.0 = Some(RegexCleanerPair::new(new_a, new_b).is_ok());
-                            } else {
-                                cl.0 = None;
+                        match mat {
+                            Both(cl, rexpar) => {
+                                let (re, pal) = rexpar.to_parts();
+                                let new_a = get_window_text(cl.1).as_string();
+                                let new_b = get_window_text(cl.2).as_string();
+                                if !new_a.is_empty() || !new_b.is_empty() {
+                                    if (new_a != re.as_str()) || (new_b != pal) {
+                                        cl.0 = Some(RegexCleanerPair::new(new_a, new_b).is_ok());
+                                    } else {
+                                        cl.0 = None;
+                                    }
+                                }
+                            }
+                            Right(_) => (),
+                            Left(cl) => {
+                                let new_a = get_window_text(cl.1).as_string();
+                                let new_b = get_window_text(cl.2).as_string();
+                                if !new_a.is_empty() || !new_b.is_empty() {
+                                    cl.0 = Some(RegexCleanerPair::new(new_a, new_b).is_ok());
+                                }
                             }
                         }
                     }
                 }
-                changed = changed || self.cleaners.iter().any(|x| x.0.is_some());
+                changed = changed || self.settings.cleaners.len() != self.cleaners.len()
+                    || self.cleaners.iter().any(|x| x.0.is_some());
                 invalid = invalid || self.cleaners.iter().any(|x| x.0 == Some(false));
                 enable_window(self.reset, changed);
                 enable_window(self.save, changed && !invalid);
