@@ -31,6 +31,7 @@ pub struct SettingsWindow {
     rate: (windef::HWND, windef::HWND),
     hotkeys: [(windef::HWND, windef::HWND); 8],
     cleaners: Vec<(Option<bool>, windef::HWND, windef::HWND)>,
+    reset: windef::HWND,
     save: windef::HWND,
 }
 
@@ -42,6 +43,7 @@ impl SettingsWindow {
             rate: (null_mut(), null_mut()),
             hotkeys: [(null_mut(), null_mut()); 8],
             cleaners: Vec::new(),
+            reset: null_mut(),
             save: null_mut(),
         });
 
@@ -100,6 +102,7 @@ impl SettingsWindow {
             out.rate.0 = create_static_window(out.window, None);
 
             out.save = create_button_window(out.window, Some(&"save".into()));
+            out.reset = create_button_window(out.window, Some(&"reset".into()));
             let window = out.window;
             let wide_hotkey_class: WideString = "msctls_hotkey32".into();
 
@@ -253,7 +256,9 @@ impl Windowed for SettingsWindow {
                 if (w_param <= 2) && rect.right > 0 && rect.bottom > 0 {
                     rect.inset(3);
                     let mut rect = rect.split_rows(rect.bottom - 25);
-                    move_window(self.save, &rect.1);
+                    let (l, r) = rect.1.split_columns(rect.1.right / 2);
+                    move_window(self.reset, &l);
+                    move_window(self.save, &r);
                     rect = rect.0.split_rows(25);
                     let (l, r) = rect.0.split_columns(160);
                     move_window(self.rate.0, &l);
@@ -295,6 +300,13 @@ impl Windowed for SettingsWindow {
             winuser::WM_COMMAND | winuser::WM_HSCROLL => {
                 let mut changed = false;
                 let mut invalid = false;
+
+                if self.reset as isize == l_param
+                    && minwindef::HIWORD(w_param as u32) == winuser::BN_CLICKED
+                {
+                    self.get_inner_all();
+                    return Some(0);
+                }
 
                 let saving = self.save as isize == l_param
                     && minwindef::HIWORD(w_param as u32) == winuser::BN_CLICKED;
@@ -338,6 +350,7 @@ impl Windowed for SettingsWindow {
                 }
                 changed = changed || self.cleaners.iter().any(|x| x.0.is_some());
                 invalid = invalid || self.cleaners.iter().any(|x| x.0 == Some(false));
+                enable_window(self.reset, changed);
                 enable_window(self.save, changed && !invalid);
                 if saving && changed && !invalid {
                     use press_hotkey;
@@ -369,7 +382,6 @@ impl Windowed for SettingsWindow {
             // TODO: add CLeaner button
             // TODO: remove CLeaner button
             // TODO: reorder CLeaner button
-            // TODO: Reset botton
             _ => {}
         }
         None
