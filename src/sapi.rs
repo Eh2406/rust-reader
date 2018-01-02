@@ -406,7 +406,8 @@ impl<'a> Windowed for SpVoice<'a> {
                 use press_hotkey;
                 use Action;
                 if self.reload_settings as isize == l_param
-                    && minwindef::HIWORD(w_param as u32) == winuser::BN_CLICKED {
+                    && minwindef::HIWORD(w_param as u32) == winuser::BN_CLICKED
+                {
                     press_hotkey(Action::ShowSettings);
                     return Some(0);
                 }

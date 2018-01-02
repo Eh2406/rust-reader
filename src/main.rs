@@ -76,7 +76,7 @@ impl<'a> State<'a> {
         } else {
             speech += "failed to reload settings.\r\n";
         }
-        speech += &make_speech(&self.settings.get_inner_settings(), &self.hk);
+        speech += &make_speech(self.settings.get_inner_settings(), &self.hk);
         self.voice.resume();
         self.voice.speak(speech);
     }
@@ -182,7 +182,7 @@ fn main() {
 
     state
         .voice
-        .speak(make_speech(&state.settings.get_inner_settings(), &state.hk));
+        .speak(make_speech(state.settings.get_inner_settings(), &state.hk));
 
     while let Some(msg) = get_message() {
         match msg.message {

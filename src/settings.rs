@@ -334,7 +334,7 @@ impl Windowed for SettingsWindow {
                     let (l, r) = rect.0.split_columns(160);
                     move_window(self.rate.0, &l);
                     move_window(self.rate.1, &r);
-                    for &ht in self.hotkeys.iter() {
+                    for &ht in &self.hotkeys {
                         rect = rect.1.split_rows(25);
                         let (l, r) = rect.0.split_columns(160);
                         move_window(ht.0, &l);
@@ -352,7 +352,7 @@ impl Windowed for SettingsWindow {
                         .max()
                         .unwrap_or(0) + 1;
                     let split_at = rect.1.right * mll / (mll + mlr);
-                    for ref ht in self.cleaners.iter() {
+                    for &ht in &self.cleaners {
                         rect = rect.1.split_rows(25);
                         let (l, r) = rect.0.split_columns(split_at);
                         move_window(ht.1, &l);
@@ -386,8 +386,8 @@ impl Windowed for SettingsWindow {
                     let set_to =
                         unsafe { winuser::SendMessageW(ht, commctrl::HKM_GETHOTKEY, 0, 0) };
                     let new = (
-                        convert_mod(minwindef::HIBYTE(set_to as u16)) as u32,
-                        minwindef::LOBYTE(set_to as u16) as u32,
+                        u32::from(convert_mod(minwindef::HIBYTE(set_to as u16))),
+                        u32::from(minwindef::LOBYTE(set_to as u16)),
                     );
                     if *hkt != new {
                         changed = true;
@@ -395,7 +395,7 @@ impl Windowed for SettingsWindow {
                 }
                 if self.cleaners
                     .iter()
-                    .any(|ref x| x.1 as isize == l_param || x.2 as isize == l_param)
+                    .any(|x| x.1 as isize == l_param || x.2 as isize == l_param)
                 {
                     // cleaners change
                     for (cl, rexpar) in self.cleaners.iter_mut().zip(self.settings.cleaners.iter())
@@ -403,8 +403,8 @@ impl Windowed for SettingsWindow {
                         let (re, pal) = rexpar.to_parts();
                         let new_a = get_window_text(cl.1).as_string();
                         let new_b = get_window_text(cl.2).as_string();
-                        if new_a.len() > 0 || new_b.len() > 0 {
-                            if (&new_a != re.as_str()) || (&new_b != pal) {
+                        if !new_a.is_empty() || !new_b.is_empty() {
+                            if (new_a != re.as_str()) || (new_b != pal) {
                                 cl.0 = Some(RegexCleanerPair::new(new_a, new_b).is_ok());
                             } else {
                                 cl.0 = None;
@@ -412,8 +412,8 @@ impl Windowed for SettingsWindow {
                         }
                     }
                 }
-                changed = changed || self.cleaners.iter().any(|ref x| x.0.is_some());
-                invalid = invalid || self.cleaners.iter().any(|ref x| x.0 == Some(false));
+                changed = changed || self.cleaners.iter().any(|x| x.0.is_some());
+                invalid = invalid || self.cleaners.iter().any(|x| x.0 == Some(false));
                 enable_window(self.save, changed && !invalid);
                 if saving && changed && !invalid {
                     use press_hotkey;
@@ -425,8 +425,8 @@ impl Windowed for SettingsWindow {
                         let set_to =
                             unsafe { winuser::SendMessageW(ht, commctrl::HKM_GETHOTKEY, 0, 0) };
                         *hkt = (
-                            convert_mod(minwindef::HIBYTE(set_to as u16)) as u32,
-                            minwindef::LOBYTE(set_to as u16) as u32,
+                            u32::from(convert_mod(minwindef::HIBYTE(set_to as u16))),
+                            u32::from(minwindef::LOBYTE(set_to as u16)),
                         );
                     }
                     self.settings.cleaners = self.cleaners
