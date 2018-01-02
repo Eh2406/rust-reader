@@ -73,7 +73,6 @@ impl SettingsWindow {
                 null_mut(),
                 &mut *out as *mut _ as minwindef::LPVOID,
             );
-            let wide_static: WideString = "STATIC".into();
             commctrl::InitCommonControls();
             let wide_trackbar: WideString = "msctls_trackbar32".into();
             out.rate.1 = winuser::CreateWindowExW(
@@ -98,38 +97,9 @@ impl SettingsWindow {
                 minwindef::MAKELONG(0, 20) as isize,
             );
             winuser::SendMessageW(out.rate.1, commctrl::TBM_SETPAGESIZE, 0, 1);
-            out.rate.0 = winuser::CreateWindowExW(
-                0,
-                wide_static.as_ptr(),
-                &0u16,
-                winuser::WS_CHILD | winuser::WS_VISIBLE | winuser::SS_CENTER | winuser::SS_NOPREFIX,
-                0,
-                0,
-                0,
-                0,
-                out.window,
-                null_mut(),
-                null_mut(),
-                null_mut(),
-            );
-            let wide_button: WideString = "BUTTON".into();
-            let wide_save: WideString = "save".into();
-            out.save = winuser::CreateWindowExW(
-                0,
-                wide_button.as_ptr(),
-                wide_save.as_ptr(),
-                winuser::WS_CHILD | winuser::WS_VISIBLE | winuser::BS_CENTER
-                    | winuser::BS_DEFPUSHBUTTON,
-                0,
-                0,
-                0,
-                0,
-                out.window,
-                null_mut(),
-                null_mut(),
-                null_mut(),
-            );
+            out.rate.0 = create_static_window(out.window, None);
 
+            out.save = create_button_window(out.window, Some(&"save".into()));
             let window = out.window;
             let wide_hotkey_class: WideString = "msctls_hotkey32".into();
 
@@ -140,21 +110,7 @@ impl SettingsWindow {
 
             for (act, ht) in ::actions::ACTION_LIST.iter().zip(out.hotkeys.iter_mut()) {
                 let wide_hotkey_name: WideString = format!("{}", act).into();
-                ht.0 = winuser::CreateWindowExW(
-                    0,
-                    wide_static.as_ptr(),
-                    wide_hotkey_name.as_ptr(),
-                    winuser::WS_CHILD | winuser::WS_VISIBLE | winuser::SS_CENTER
-                        | winuser::SS_NOPREFIX,
-                    0,
-                    0,
-                    0,
-                    0,
-                    window,
-                    null_mut(),
-                    null_mut(),
-                    null_mut(),
-                );
+                ht.0 = create_static_window(window, Some(&wide_hotkey_name));
                 ht.1 = winuser::CreateWindowExW(
                     0,
                     wide_hotkey_class.as_ptr(),
@@ -173,7 +129,7 @@ impl SettingsWindow {
                     ht.1,
                     commctrl::HKM_SETRULES,
                     (commctrl::HKCOMB_NONE | commctrl::HKCOMB_S) as usize,
-                    commctrl::HOTKEYF_ALT as isize,
+                    commctrl::HOTKEYF_CONTROL as isize,
                 );
             }
         }
@@ -195,42 +151,11 @@ impl SettingsWindow {
     }
 
     fn add_cleaner(&mut self) {
-        let wide_edit: WideString = "EDIT".into();
-        self.cleaners.push(unsafe {
-            (
-                None,
-                winuser::CreateWindowExW(
-                    winuser::WS_EX_CLIENTEDGE,
-                    wide_edit.as_ptr(),
-                    &0u16,
-                    winuser::WS_CHILD | winuser::WS_VISIBLE | winuser::WS_BORDER | winuser::ES_LEFT
-                        | winuser::ES_NOHIDESEL,
-                    0,
-                    0,
-                    0,
-                    0,
-                    self.window,
-                    null_mut(),
-                    null_mut(),
-                    null_mut(),
-                ),
-                winuser::CreateWindowExW(
-                    winuser::WS_EX_CLIENTEDGE,
-                    wide_edit.as_ptr(),
-                    &0u16,
-                    winuser::WS_CHILD | winuser::WS_VISIBLE | winuser::WS_BORDER | winuser::ES_LEFT
-                        | winuser::ES_NOHIDESEL,
-                    0,
-                    0,
-                    0,
-                    0,
-                    self.window,
-                    null_mut(),
-                    null_mut(),
-                    null_mut(),
-                ),
-            )
-        })
+        self.cleaners.push((
+            None,
+            create_edit_window(self.window, 0),
+            create_edit_window(self.window, 0),
+        ))
     }
 
     pub fn get_inner_settings(&self) -> &Settings {

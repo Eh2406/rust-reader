@@ -6,15 +6,71 @@ use winapi::shared::windef;
 
 use std::ops::Range;
 use std::mem;
+use std::ptr::null_mut;
 
 pub use wide_string::*;
 
-// waiting for winapi
-pub mod winapi_stub {
-    #![allow(dead_code, non_snake_case)]
-    use winapi::shared::windef::HMENU;
+pub fn create_static_window(window_wnd: windef::HWND, name: Option<&WideString>) -> windef::HWND {
+    let wide_static: WideString = "STATIC".into();
+    unsafe {
+        winuser::CreateWindowExW(
+            0,
+            wide_static.as_ptr(),
+            name.map(WideString::as_ptr).unwrap_or(&0u16),
+            winuser::WS_CHILD | winuser::WS_VISIBLE | winuser::SS_CENTER | winuser::SS_NOPREFIX,
+            0,
+            0,
+            0,
+            0,
+            window_wnd,
+            null_mut(),
+            null_mut(),
+            null_mut(),
+        )
+    }
+}
 
-    pub const ID_EDITCHILD: HMENU = 100 as HMENU;
+pub fn create_button_window(window_wnd: windef::HWND, name: Option<&WideString>) -> windef::HWND {
+    let wide_button: WideString = "BUTTON".into();
+    unsafe {
+        winuser::CreateWindowExW(
+            0,
+            wide_button.as_ptr(),
+            name.map(WideString::as_ptr).unwrap_or(&0u16),
+            winuser::WS_TABSTOP | winuser::BS_CENTER | winuser::WS_VISIBLE | winuser::WS_CHILD
+                | winuser::BS_DEFPUSHBUTTON,
+            0,
+            0,
+            0,
+            0,
+            window_wnd,
+            null_mut(),
+            null_mut(),
+            null_mut(),
+        )
+    }
+}
+
+pub fn create_edit_window(window_wnd: windef::HWND, style: minwindef::DWORD) -> windef::HWND {
+    // https://msdn.microsoft.com/en-us/library/windows/desktop/hh298433.aspx
+    let wide_edit: WideString = "EDIT".into();
+    unsafe {
+        winuser::CreateWindowExW(
+            winuser::WS_EX_CLIENTEDGE,
+            wide_edit.as_ptr(),
+            &0u16,
+            winuser::WS_TABSTOP | winuser::WS_CHILD | winuser::WS_VISIBLE | winuser::WS_BORDER
+                | winuser::ES_LEFT | winuser::ES_NOHIDESEL | style,
+            0,
+            0,
+            0,
+            0,
+            window_wnd,
+            null_mut(),
+            null_mut(),
+            null_mut(),
+        )
+    }
 }
 
 #[inline]

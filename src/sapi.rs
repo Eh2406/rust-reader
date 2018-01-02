@@ -119,57 +119,12 @@ impl<'a> SpVoice<'a> {
                 &mut *out as *mut _ as minwindef::LPVOID,
             );
 
-            // https://msdn.microsoft.com/en-us/library/windows/desktop/hh298433.aspx
-            let wide_edit: WideString = "EDIT".into();
-            out.edit = winuser::CreateWindowExW(
-                winuser::WS_EX_CLIENTEDGE,
-                wide_edit.as_ptr(),
-                &0u16,
-                winuser::WS_CHILD | winuser::WS_VISIBLE | winuser::WS_VSCROLL | winuser::WS_BORDER
-                    | winuser::ES_LEFT | winuser::ES_MULTILINE
-                    | winuser::ES_AUTOVSCROLL | winuser::ES_NOHIDESEL
-                    | winuser::ES_AUTOVSCROLL,
-                0,
-                0,
-                0,
-                0,
+            out.edit = create_edit_window(
                 out.window,
-                winapi_stub::ID_EDITCHILD,
-                null_mut(),
-                null_mut(),
+                winuser::WS_VSCROLL | winuser::ES_MULTILINE | winuser::ES_AUTOVSCROLL,
             );
-            let wide_static: WideString = "STATIC".into();
-            out.rate = winuser::CreateWindowExW(
-                0,
-                wide_static.as_ptr(),
-                &0u16,
-                winuser::WS_CHILD | winuser::WS_VISIBLE | winuser::SS_CENTER | winuser::SS_NOPREFIX,
-                0,
-                0,
-                0,
-                0,
-                out.window,
-                null_mut(),
-                null_mut(),
-                null_mut(),
-            );
-            let wide_button: WideString = "BUTTON".into();
-            let wide_settings: WideString = "Show Settings".into();
-            out.reload_settings = winuser::CreateWindowExW(
-                0,
-                wide_button.as_ptr(),
-                wide_settings.as_ptr(),
-                winuser::WS_TABSTOP | winuser::WS_VISIBLE | winuser::WS_CHILD
-                    | winuser::BS_DEFPUSHBUTTON,
-                10,
-                10,
-                20,
-                20,
-                out.window,
-                null_mut(),
-                null_mut(),
-                null_mut(),
-            );
+            out.rate = create_static_window(out.window, None);
+            out.reload_settings = create_button_window(out.window, Some(&"Show Settings".into()));
             move_window(
                 out.window,
                 &windef::RECT {
