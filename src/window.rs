@@ -116,6 +116,12 @@ pub fn get_window_text(h_wnd: windef::HWND) -> WideString {
     WideString::from_raw(buf)
 }
 
+pub fn destroy_window(h_wnd: windef::HWND) {
+    unsafe {
+        winuser::DestroyWindow(h_wnd);
+    }
+}
+
 pub fn close() {
     unsafe { winuser::PostQuitMessage(0) }
 }

@@ -30,7 +30,16 @@ pub struct SettingsWindow {
     window: windef::HWND,
     rate: (windef::HWND, windef::HWND),
     hotkeys: [(windef::HWND, windef::HWND); 8],
-    cleaners: Vec<(Option<bool>, windef::HWND, windef::HWND)>,
+    cleaners: Vec<
+        (
+            Option<bool>,
+            windef::HWND,
+            windef::HWND,
+            windef::HWND,
+            windef::HWND,
+        ),
+    >,
+    add_cleaner: windef::HWND,
     reset: windef::HWND,
     save: windef::HWND,
 }
@@ -43,6 +52,7 @@ impl SettingsWindow {
             rate: (null_mut(), null_mut()),
             hotkeys: [(null_mut(), null_mut()); 8],
             cleaners: Vec::new(),
+            add_cleaner: null_mut(),
             reset: null_mut(),
             save: null_mut(),
         });
@@ -101,6 +111,7 @@ impl SettingsWindow {
             winuser::SendMessageW(out.rate.1, commctrl::TBM_SETPAGESIZE, 0, 1);
             out.rate.0 = create_static_window(out.window, None);
 
+            out.add_cleaner = create_button_window(out.window, Some(&"add cleaner".into()));
             out.save = create_button_window(out.window, Some(&"save".into()));
             out.reset = create_button_window(out.window, Some(&"reset".into()));
             let window = out.window;
@@ -136,7 +147,6 @@ impl SettingsWindow {
                 );
             }
         }
-        enable_window(out.save, false);
         set_window_text(out.window, &"reader settings".into());
         out.get_inner_all();
         move_window(
@@ -158,7 +168,23 @@ impl SettingsWindow {
             None,
             create_edit_window(self.window, 0),
             create_edit_window(self.window, 0),
-        ))
+            create_button_window(self.window, Some(&"^".into())),
+            create_button_window(self.window, Some(&"X".into())),
+        ));
+    }
+
+    fn remove_cleaner(&mut self, index: usize) {
+        let hwnd = self.cleaners.remove(index);
+        destroy_window(hwnd.1);
+        destroy_window(hwnd.2);
+        destroy_window(hwnd.3);
+        destroy_window(hwnd.4);
+    }
+
+    fn swap_cleaner(&mut self, index: usize) {
+        if index >= 1 {
+            self.cleaners.swap(index - 1, index);
+        }
     }
 
     pub fn get_inner_settings(&self) -> &Settings {
@@ -201,28 +227,26 @@ impl SettingsWindow {
     }
 
     pub fn get_inner_cleaners(&mut self) -> &[RegexCleanerPair] {
-        use itertools::EitherOrBoth::{Both, Left, Right};
-        while self.cleaners.len() < self.settings.cleaners.len() {
-            self.add_cleaner();
-        }
-        for mat in self.cleaners
-            .iter_mut()
-            .zip_longest(self.settings.cleaners.iter())
-        {
-            match mat {
-                Both(cl, rexpar) => {
-                    let (re, pal) = rexpar.to_parts();
-                    cl.0 = None;
-                    set_window_text(cl.1, &re.as_str().into());
-                    set_window_text(cl.2, &pal.into());
-                }
-                Right(_) => panic!("oops"),
-                Left(cl) => {
-                    cl.0 = None;
-                    set_window_text(cl.1, &"".into());
-                    set_window_text(cl.2, &"".into());
-                }
+        if self.cleaners.len() != self.settings.cleaners.len() {
+            while self.cleaners.len() < self.settings.cleaners.len() {
+                self.add_cleaner();
             }
+            while self.cleaners.len() > self.settings.cleaners.len() {
+                let i = self.cleaners.len() - 1;
+                self.remove_cleaner(i);
+            }
+            unsafe {
+                winuser::SendMessageW(self.window, winuser::WM_SIZE, 0, 0);
+            }
+        }
+        for (cl, rexpar) in self.cleaners
+            .iter_mut()
+            .zip_eq(self.settings.cleaners.iter())
+        {
+            let (re, pal) = rexpar.to_parts();
+            cl.0 = None;
+            set_window_text(cl.1, &re.as_str().into());
+            set_window_text(cl.2, &pal.into());
         }
         &self.settings.cleaners
     }
@@ -256,8 +280,13 @@ impl Windowed for SettingsWindow {
                 let mut rect = get_client_rect(self.window);
                 if (w_param <= 2) && rect.right > 0 && rect.bottom > 0 {
                     rect.inset(3);
-                    let mut rect = rect.split_rows(rect.bottom - 25);
-                    let (l, r) = rect.1.split_columns(rect.1.right / 2);
+                    let mut rect = rect.split_rows(rect.bottom - 50);
+                    let mut bot = rect.1.split_rows(25);
+                    bot.0.inset(3);
+                    bot.0.shift_right(50);
+                    bot.0.right -= 50;
+                    move_window(self.add_cleaner, &bot.0);
+                    let (l, r) = bot.1.split_columns(bot.1.right / 2);
                     move_window(self.reset, &l);
                     move_window(self.save, &r);
                     rect = rect.0.split_rows(25);
@@ -273,18 +302,24 @@ impl Windowed for SettingsWindow {
                     rect.1.shift_down(5);
                     let mll = self.cleaners
                         .iter()
-                        .map(|&(_, a, _)| get_window_text_length(a))
+                        .map(|&(_, a, _, _, _)| get_window_text_length(a))
                         .max()
                         .unwrap_or(0) + 1;
                     let mlr = self.cleaners
                         .iter()
-                        .map(|&(_, _, b)| get_window_text_length(b))
+                        .map(|&(_, _, b, _, _)| get_window_text_length(b))
                         .max()
                         .unwrap_or(0) + 1;
-                    let split_at = rect.1.right * mll / (mll + mlr);
+                    let split_at = (rect.1.right - 50) * mll / (mll + mlr);
                     for &ht in &self.cleaners {
                         rect = rect.1.split_rows(25);
-                        let (l, r) = rect.0.split_columns(split_at);
+                        let (l, r) = rect.0.split_columns(rect.1.right - 50);
+                        let mut r = r.split_columns(25);
+                        r.0.inset(3);
+                        r.1.inset(3);
+                        move_window(ht.3, &r.0);
+                        move_window(ht.4, &r.1);
+                        let (l, r) = l.split_columns(split_at);
                         move_window(ht.1, &l);
                         move_window(ht.2, &r);
                     }
@@ -295,18 +330,39 @@ impl Windowed for SettingsWindow {
                 let data = unsafe { &mut *(l_param as *mut winuser::MINMAXINFO) };
                 data.ptMinTrackSize.x = 340;
                 data.ptMinTrackSize.y =
-                    (55 + 25 * (2 + self.hotkeys.len()) + 25 * self.cleaners.len()) as i32;
+                    (55 + 25 * (3 + self.hotkeys.len()) + 25 * self.cleaners.len()) as i32;
                 return Some(0);
             }
             winuser::WM_COMMAND | winuser::WM_HSCROLL => {
                 let mut changed = false;
                 let mut invalid = false;
+                let mut dirty_cleaners = false;
 
-                if self.reset as isize == l_param
-                    && minwindef::HIWORD(w_param as u32) == winuser::BN_CLICKED
-                {
-                    self.get_inner_all();
-                    return Some(0);
+                if minwindef::HIWORD(w_param as u32) == winuser::BN_CLICKED {
+                    if self.reset as isize == l_param {
+                        self.get_inner_all();
+                    }
+                    if self.add_cleaner as isize == l_param {
+                        self.add_cleaner();
+                        dirty_cleaners = true;
+                        unsafe {
+                            winuser::SendMessageW(self.window, winuser::WM_SIZE, 0, 0);
+                        }
+                    }
+                    if let Some(i) = self.cleaners.iter().position(|x| x.3 as isize == l_param) {
+                        self.swap_cleaner(i);
+                        dirty_cleaners = true;
+                        unsafe {
+                            winuser::SendMessageW(self.window, winuser::WM_SIZE, 0, 0);
+                        }
+                    }
+                    if let Some(i) = self.cleaners.iter().position(|x| x.4 as isize == l_param) {
+                        self.remove_cleaner(i);
+                        dirty_cleaners = true;
+                        unsafe {
+                            winuser::SendMessageW(self.window, winuser::WM_SIZE, 0, 0);
+                        }
+                    }
                 }
 
                 let saving = self.save as isize == l_param
@@ -333,6 +389,7 @@ impl Windowed for SettingsWindow {
                 if self.cleaners
                     .iter()
                     .any(|x| x.1 as isize == l_param || x.2 as isize == l_param)
+                    || dirty_cleaners
                 {
                     // cleaners change
                     for mat in self.cleaners
@@ -395,9 +452,6 @@ impl Windowed for SettingsWindow {
                     press_hotkey(Action::ReloadSettings);
                 }
             }
-            // TODO: add CLeaner button
-            // TODO: remove CLeaner button
-            // TODO: reorder CLeaner button
             _ => {}
         }
         None
