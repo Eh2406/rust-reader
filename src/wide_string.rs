@@ -143,12 +143,12 @@ where
 }
 
 #[allow(dead_code)]
-pub fn str_from_str_u16idx(s: &str, idx: Range<usize>) -> &str {
+pub fn str_from_str_u16idx<'a>(s: &'a str, idx: &Range<usize>) -> &'a str {
     &s[u8idx_from_u16idx(s, idx)]
 }
 
 #[allow(dead_code)]
-pub fn u8idx_from_u16idx(s: &str, idx: Range<usize>) -> Range<usize> {
+pub fn u8idx_from_u16idx(s: &str, idx: &Range<usize>) -> Range<usize> {
     let mut u16idx = 0;
     let mut out = 0..0;
     for c in s.chars() {
@@ -211,18 +211,18 @@ mod tests {
         assert_eq!(2..8, u16idx_from_u8idx(s, 4..14));
         assert_eq!(2..11, u16idx_from_u8idx(s, 4..19));
 
-        assert_eq!(0..9, u8idx_from_u16idx(s, u16idx_from_u8idx(s, 0..9)));
-        assert_eq!(4..9, u8idx_from_u16idx(s, u16idx_from_u8idx(s, 4..9)));
-        assert_eq!(4..14, u8idx_from_u16idx(s, u16idx_from_u8idx(s, 4..14)));
+        assert_eq!(0..9, u8idx_from_u16idx(s, &u16idx_from_u8idx(s, 0..9)));
+        assert_eq!(4..9, u8idx_from_u16idx(s, &u16idx_from_u8idx(s, 4..9)));
+        assert_eq!(4..14, u8idx_from_u16idx(s, &u16idx_from_u8idx(s, 4..14)));
 
-        assert_eq!(0..5, u16idx_from_u8idx(s, u8idx_from_u16idx(s, 0..5)));
-        assert_eq!(2..5, u16idx_from_u8idx(s, u8idx_from_u16idx(s, 2..5)));
-        assert_eq!(2..8, u16idx_from_u8idx(s, u8idx_from_u16idx(s, 2..8)));
+        assert_eq!(0..5, u16idx_from_u8idx(s, u8idx_from_u16idx(s, &(0..5))));
+        assert_eq!(2..5, u16idx_from_u8idx(s, u8idx_from_u16idx(s, &(2..5))));
+        assert_eq!(2..8, u16idx_from_u8idx(s, u8idx_from_u16idx(s, &(2..8))));
 
-        assert_eq!(&s[0..9], str_from_str_u16idx(s, 0..5));
-        assert_eq!(&s[4..9], str_from_str_u16idx(s, 2..5));
-        assert_eq!(&s[4..14], str_from_str_u16idx(s, 2..8));
-        assert_eq!(&s[4..19], str_from_str_u16idx(s, 2..11));
+        assert_eq!(&s[0..9], str_from_str_u16idx(s, &(0..5)));
+        assert_eq!(&s[4..9], str_from_str_u16idx(s, &(2..5)));
+        assert_eq!(&s[4..14], str_from_str_u16idx(s, &(2..8)));
+        assert_eq!(&s[4..19], str_from_str_u16idx(s, &(2..11)));
 
         let id8 = s.indices_utf8();
         let id16 = s.indices_utf16();
