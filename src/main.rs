@@ -104,21 +104,7 @@ impl<'a> State<'a> {
         self.settings.inner_to_file();
         println!("rate: {:?}", self.settings.get_inner_settings().rate);
     }
-
-//    fn rate_down(&mut self) {
-//        self.settings.get_mut_inner_settings().rate = self.voice.change_rate(-1);
-//        self.settings.get_mut_inner_settings().time_estimater = self.voice.get_time_estimater();
-//        self.settings.inner_to_file();
-//        println!("rate: {:?}", self.settings.get_inner_settings().rate);
-//    }
-
-//    fn rate_up(&mut self) {
-//        self.settings.get_mut_inner_settings().rate = self.voice.change_rate(1);
-//        self.settings.get_mut_inner_settings().time_estimater = self.voice.get_time_estimater();
-//        self.settings.inner_to_file();
-//        println!("rate: {:?}", self.settings.get_inner_settings().rate);
-//    }
-
+    
     fn match_hotkey_id(&mut self, act: Action) {
         use Action::*;
         match act {
