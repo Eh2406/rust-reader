@@ -279,6 +279,21 @@ fn format_duration(d: chrono::Duration) -> String {
     }
 }
 
+#[test] fn test_format_duration(){
+    let duration = chrono::Duration::hours(25);
+    assert_eq!(format_duration(duration),"25h:00m:00.0s");
+    let duration = chrono::Duration::hours(1) + chrono::Duration::seconds(1);
+    assert_eq!(format_duration(duration),"1h:00m:01.0s");
+    let duration = chrono::Duration::hours(1) - chrono::Duration::seconds(1);
+    assert_eq!(format_duration(duration),"59m:59.0s");
+    let duration = chrono::Duration::seconds(61);
+    assert_eq!(format_duration(duration),"1m:01.0s");
+    let duration = chrono::Duration::seconds(60);
+    assert_eq!(format_duration(duration),"1m:00.0s");
+    let duration = chrono::Duration::seconds(59);
+    assert_eq!(format_duration(duration),"59.0s");
+}
+
 impl<'a> Windowed for SpVoice<'a> {
     fn window_proc(
         &mut self,
