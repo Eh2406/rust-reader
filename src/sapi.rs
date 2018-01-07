@@ -269,13 +269,10 @@ fn format_duration(d: chrono::Duration) -> String {
     let h = d.num_hours();
     let m = d.num_minutes() - d.num_hours() * 60;
     let s = d.num_seconds() - d.num_minutes() * 60;
-    let ms = d.num_milliseconds() - d.num_seconds() * 1000;
-    if d.num_minutes() == 0 {
-        format!("{}.{}s", s, ms / 100)
-    } else if d.num_hours() == 0 {
-        format!("{}m:{:0>#2}.{}s", m, s, ms / 100)
+    if d.num_hours() == 0 {
+        format!("{}:{:0>#2}", m, s)
     } else {
-        format!("{}h:{:0>#2}m:{:0>#2}.{}s", h, m, s, ms / 100)
+        format!("{}:{:0>#2}:{:0>#2}", h, m, s)
     }
 }
 
