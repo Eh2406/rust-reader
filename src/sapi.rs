@@ -315,7 +315,7 @@ impl<'a> Windowed for SpVoice<'a> {
                 }
                 if status.dwRunningState == 3 {
                     // called before end of reading.
-                    let window_title = "100.0% 0.0s rust_reader".into();
+                    let window_title = "100.0% 0:00 rust_reader".into();
                     set_console_title(&window_title);
                     set_window_text(self.window, &window_title);
                     self.last_update = None;
