@@ -276,23 +276,24 @@ fn format_duration(d: chrono::Duration) -> String {
     }
 }
 
-#[test] fn test_format_duration(){
+#[test]
+fn test_format_duration() {
     let duration = chrono::Duration::hours(25);
-    assert_eq!(format_duration(duration),"25:00:00");
+    assert_eq!(format_duration(duration), "25:00:00");
     let duration = chrono::Duration::hours(1) + chrono::Duration::seconds(1);
-    assert_eq!(format_duration(duration),"1:00:01");
+    assert_eq!(format_duration(duration), "1:00:01");
     let duration = chrono::Duration::hours(1) - chrono::Duration::seconds(1);
-    assert_eq!(format_duration(duration),"59:59");
+    assert_eq!(format_duration(duration), "59:59");
     let duration = chrono::Duration::seconds(61);
-    assert_eq!(format_duration(duration),"1:01");
+    assert_eq!(format_duration(duration), "1:01");
     let duration = chrono::Duration::seconds(60);
-    assert_eq!(format_duration(duration),"1:00");
+    assert_eq!(format_duration(duration), "1:00");
     let duration = chrono::Duration::seconds(59);
-    assert_eq!(format_duration(duration),"0:59");
+    assert_eq!(format_duration(duration), "0:59");
     let duration = chrono::Duration::seconds(9);
-    assert_eq!(format_duration(duration),"0:09");
+    assert_eq!(format_duration(duration), "0:09");
     let duration = chrono::Duration::seconds(0);
-    assert_eq!(format_duration(duration),"0:00");
+    assert_eq!(format_duration(duration), "0:00");
 }
 
 impl<'a> Windowed for SpVoice<'a> {

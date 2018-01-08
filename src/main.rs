@@ -98,13 +98,13 @@ impl<'a> State<'a> {
         }
     }
 
-    fn rate_change(&mut self, val: i32){
+    fn rate_change(&mut self, val: i32) {
         self.settings.get_mut_inner_settings().rate = self.voice.change_rate(val);
         self.settings.get_mut_inner_settings().time_estimater = self.voice.get_time_estimater();
         self.settings.inner_to_file();
         println!("rate: {:?}", self.settings.get_inner_settings().rate);
     }
-    
+
     fn match_hotkey_id(&mut self, act: Action) {
         use Action::*;
         match act {
