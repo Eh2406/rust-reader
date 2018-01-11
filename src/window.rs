@@ -181,41 +181,40 @@ pub trait RectUtil
 where
     Self: Sized,
 {
-    fn inset(&mut self, i32);
-    fn shift_down(&mut self, delta: i32);
-    fn shift_right(&mut self, delta: i32);
-    fn split_columns(&self, at: i32) -> (Self, Self);
-    fn split_rows(&self, at: i32) -> (Self, Self);
+    fn inset(self, i32) -> Self;
+    fn shift_down(self, delta: i32) -> Self;
+    fn shift_right(self, delta: i32) -> Self;
+    fn split_columns(self, at: i32) -> (Self, Self);
+    fn split_rows(self, at: i32) -> (Self, Self);
 }
 
 impl RectUtil for windef::RECT {
-    fn inset(&mut self, delta: i32) {
+    fn inset(mut self, delta: i32) -> Self {
         self.left += delta;
         self.top += delta;
         self.right -= 2 * delta;
         self.bottom -= 2 * delta;
+        self
     }
-    fn shift_down(&mut self, delta: i32) {
+    fn shift_down(mut self, delta: i32) -> Self {
         self.top += delta;
         self.bottom -= delta;
+        self
     }
-    fn shift_right(&mut self, delta: i32) {
+    fn shift_right(mut self, delta: i32) -> Self {
         self.left += delta;
         self.right -= delta;
+        self
     }
-    fn split_columns(&self, at: i32) -> (Self, Self) {
-        let mut l = *self;
-        let mut r = *self;
-        l.right = at;
-        r.shift_right(at);
-        (l, r)
+    fn split_columns(mut self, at: i32) -> (Self, Self) {
+        let r = self.clone();
+        self.right = at;
+        (self, r.shift_right(at))
     }
-    fn split_rows(&self, at: i32) -> (Self, Self) {
-        let mut u = *self;
-        let mut b = *self;
-        u.bottom = at;
-        b.shift_down(at);
-        (u, b)
+    fn split_rows(mut self, at: i32) -> (Self, Self) {
+        let b = self.clone();
+        self.bottom = at;
+        (self, b.shift_down(at))
     }
 }
 

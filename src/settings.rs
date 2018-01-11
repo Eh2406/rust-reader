@@ -277,13 +277,11 @@ impl Windowed for SettingsWindow {
                 return Some(0);
             }
             winuser::WM_SIZE => {
-                let mut rect = get_client_rect(self.window);
+                let rect = get_client_rect(self.window).inset(3);
                 if (w_param <= 2) && rect.right > 0 && rect.bottom > 0 {
-                    rect.inset(3);
                     let mut rect = rect.split_rows(rect.bottom - 50);
                     let mut bot = rect.1.split_rows(25);
-                    bot.0.inset(3);
-                    bot.0.shift_right(50);
+                    bot.0 = bot.0.inset(3).shift_right(50);
                     bot.0.right -= 50;
                     move_window(self.add_cleaner, &bot.0);
                     let (l, r) = bot.1.split_columns(bot.1.right / 2);
@@ -299,7 +297,6 @@ impl Windowed for SettingsWindow {
                         move_window(ht.0, &l);
                         move_window(ht.1, &r);
                     }
-                    rect.1.shift_down(5);
                     let mll = self.cleaners
                         .iter()
                         .map(|&(_, a, _, _, _)| get_window_text_length(a))
@@ -310,15 +307,14 @@ impl Windowed for SettingsWindow {
                         .map(|&(_, _, b, _, _)| get_window_text_length(b))
                         .max()
                         .unwrap_or(0) + 1;
+                    rect.1 = rect.1.shift_down(5);
                     let split_at = (rect.1.right - 50) * mll / (mll + mlr);
                     for &ht in &self.cleaners {
                         rect = rect.1.split_rows(25);
                         let (l, r) = rect.0.split_columns(rect.1.right - 50);
-                        let mut r = r.split_columns(25);
-                        r.0.inset(3);
-                        r.1.inset(3);
-                        move_window(ht.3, &r.0);
-                        move_window(ht.4, &r.1);
+                        let r = r.split_columns(25);
+                        move_window(ht.3, &r.0.inset(3));
+                        move_window(ht.4, &r.1.inset(3));
                         let (l, r) = l.split_columns(split_at);
                         move_window(ht.1, &l);
                         move_window(ht.2, &r);

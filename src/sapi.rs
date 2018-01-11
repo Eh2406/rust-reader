@@ -351,17 +351,13 @@ impl<'a> Windowed for SpVoice<'a> {
                 return Some(0);
             }
             winuser::WM_SIZE => {
-                let mut rect = get_client_rect(self.window);
+                let rect = get_client_rect(self.window);
                 if (w_param <= 2) && rect.right > 0 && rect.bottom > 0 {
-                    rect.inset(3);
-                    let (up, mut down) = rect.split_rows(25);
-                    down.inset(3);
-                    move_window(self.edit, &down);
-                    let (mut left, mut right) = up.split_columns(120);
-                    left.inset(3);
-                    right.inset(3);
-                    move_window(self.reload_settings, &left);
-                    move_window(self.rate, &right);
+                    let (up, down) = rect.inset(3).split_rows(25);
+                    move_window(self.edit, &down.inset(3));
+                    let (left, right) = up.split_columns(120);
+                    move_window(self.reload_settings, &left.inset(3));
+                    move_window(self.rate, &right.inset(3));
                     unsafe {
                         winuser::InvalidateRect(self.rate, null_mut(), minwindef::TRUE);
                     }
