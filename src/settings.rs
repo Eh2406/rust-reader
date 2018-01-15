@@ -313,7 +313,13 @@ impl Windowed for SettingsWindow {
                         rect = rect.1.split_rows(25);
                         let (l, r) = rect.0.split_columns(rect.1.right - 50);
                         let r = r.split_columns(25);
+                        unsafe {
+                            winuser::InvalidateRect(ht.3, null_mut(), minwindef::TRUE);
+                        }
                         move_window(ht.3, &r.0.inset(3));
+                        unsafe {
+                            winuser::InvalidateRect(ht.4, null_mut(), minwindef::TRUE);
+                        }
                         move_window(ht.4, &r.1.inset(3));
                         let (l, r) = l.split_columns(split_at);
                         move_window(ht.1, &l);

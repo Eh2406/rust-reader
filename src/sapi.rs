@@ -357,10 +357,10 @@ impl<'a> Windowed for SpVoice<'a> {
                     move_window(self.edit, &down.inset(3));
                     let (left, right) = up.split_columns(120);
                     move_window(self.reload_settings, &left.inset(3));
-                    move_window(self.rate, &right.inset(3));
                     unsafe {
                         winuser::InvalidateRect(self.rate, null_mut(), minwindef::TRUE);
                     }
+                    move_window(self.rate, &right.inset(3));
                     return Some(0);
                 }
             }

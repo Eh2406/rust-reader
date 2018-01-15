@@ -38,7 +38,7 @@ pub fn create_button_window(window_wnd: windef::HWND, name: Option<&WideString>)
             wide_button.as_ptr(),
             name.map(WideString::as_ptr).unwrap_or(&0u16),
             winuser::WS_TABSTOP | winuser::BS_CENTER | winuser::WS_VISIBLE | winuser::WS_CHILD
-                | winuser::BS_DEFPUSHBUTTON,
+                | winuser::BS_PUSHBUTTON,
             0,
             0,
             0,
