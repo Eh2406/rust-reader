@@ -207,14 +207,14 @@ impl RectUtil for windef::RECT {
         self
     }
     fn split_columns(mut self, at: i32) -> (Self, Self) {
-        let r = self.clone();
+        let r = self.shift_right(at);
         self.right = at;
-        (self, r.shift_right(at))
+        (self, r)
     }
     fn split_rows(mut self, at: i32) -> (Self, Self) {
-        let b = self.clone();
+        let b = self.shift_down(at);
         self.bottom = at;
-        (self, b.shift_down(at))
+        (self, b)
     }
 }
 
