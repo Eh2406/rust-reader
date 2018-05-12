@@ -112,9 +112,9 @@ where
     use ordslice::Ext;
     use std::cmp::Ordering;
     let mut out = v.equal_range_by(|probe| {
-        if probe < &r.start {
+        if *probe < r.start {
             Ordering::Less
-        } else if probe > &r.end {
+        } else if *probe > r.end {
             Ordering::Greater
         } else {
             Ordering::Equal
