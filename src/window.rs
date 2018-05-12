@@ -218,6 +218,90 @@ impl RectUtil for windef::RECT {
     }
 }
 
+#[cfg(test)]
+mod rect_util_tests {
+    use super::*;
+
+    #[test]
+    fn inset() {
+        let start = windef::RECT {
+            bottom: 100,
+            left: 100,
+            right: 100,
+            top: 100,
+        }.inset(10);
+        assert_eq!(start.top, 110);
+        assert_eq!(start.bottom, 80);
+        assert_eq!(start.left, 110);
+        assert_eq!(start.right, 80);
+    }
+
+    #[test]
+    fn shift_down() {
+        let start = windef::RECT {
+            bottom: 100,
+            left: 100,
+            right: 100,
+            top: 100,
+        }.shift_down(10);
+        assert_eq!(start.top, 110);
+        assert_eq!(start.bottom, 90);
+        assert_eq!(start.left, 100);
+        assert_eq!(start.right, 100);
+    }
+
+    #[test]
+    fn shift_right() {
+        let start = windef::RECT {
+            bottom: 100,
+            left: 100,
+            right: 100,
+            top: 100,
+        }.shift_right(10);
+        assert_eq!(start.top, 100);
+        assert_eq!(start.bottom, 100);
+        assert_eq!(start.left, 110);
+        assert_eq!(start.right, 90);
+    }
+
+    #[test]
+    fn split_columns() {
+        let start = windef::RECT {
+            bottom: 100,
+            left: 100,
+            right: 100,
+            top: 100,
+        }.split_columns(10);
+        assert_eq!(start.0.top, 100);
+        assert_eq!(start.0.bottom, 100);
+        assert_eq!(start.0.left, 100);
+        assert_eq!(start.0.right, 10);
+        assert_eq!(start.1.top, 100);
+        assert_eq!(start.1.bottom, 100);
+        assert_eq!(start.1.left, 110);
+        assert_eq!(start.1.right, 90);
+    }
+
+    #[test]
+    fn split_rows() {
+        let start = windef::RECT {
+            bottom: 100,
+            left: 100,
+            right: 100,
+            top: 100,
+        }.split_rows(10);
+        assert_eq!(start.0.top, 100);
+        assert_eq!(start.0.bottom, 10);
+        assert_eq!(start.0.left, 100);
+        assert_eq!(start.0.right, 100);
+        assert_eq!(start.1.top, 110);
+        assert_eq!(start.1.bottom, 90);
+        assert_eq!(start.1.left, 100);
+        assert_eq!(start.1.right, 100);
+    }
+
+}
+
 // window's proc related function
 
 #[cfg(target_arch = "x86_64")]
