@@ -168,9 +168,9 @@ fn main() {
     clipboard_setup();
 
     let mut state = State {
-        voice: voice,
+        voice,
         settings: SettingsWindow::new(settings),
-        hk: hk,
+        hk,
     };
 
     state

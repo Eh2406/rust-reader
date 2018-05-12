@@ -12,7 +12,7 @@ impl RegexCleanerPair {
     pub fn new<T: AsRef<str>>(regex: T, rep: String) -> Result<RegexCleanerPair, Error> {
         Ok(RegexCleanerPair {
             regex: Regex::new(regex.as_ref())?,
-            rep: rep,
+            rep,
         })
     }
     pub fn prep_list(input: &[(&str, &str)]) -> Result<Vec<RegexCleanerPair>, Error> {
@@ -76,7 +76,7 @@ impl<'de> Deserialize<'de> for RegexCleanerPair {
                 Ok(RegexCleanerPair {
                     regex: Regex::new(&regex)
                         .map_err(|_| de::Error::invalid_value(de::Unexpected::Str(&regex), &self))?,
-                    rep: rep,
+                    rep,
                 })
             }
         }

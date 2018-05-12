@@ -28,7 +28,7 @@ impl Com {
         if failed(hr) {
             panic!("failed for Com");
         }
-        Com { hr: hr }
+        Com { hr }
     }
 }
 

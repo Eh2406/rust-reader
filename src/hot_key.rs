@@ -60,9 +60,9 @@ pub struct HotKey {
 impl HotKey {
     pub fn new(modifiers: u32, vk: u32, id: i32) -> Option<HotKey> {
         let new_hot = HotKey {
-            modifiers: modifiers,
-            vk: vk,
-            id: id,
+            modifiers,
+            vk,
+            id,
         };
         println!("new for HotKey: {} {}", new_hot, id);
         // https://msdn.microsoft.com/en-us/library/windows/desktop/ms646309.aspx
