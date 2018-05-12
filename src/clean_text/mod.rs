@@ -1,7 +1,7 @@
+use regex::*;
+use std::borrow::Cow;
 use unicode_segmentation::*;
 use wide_string::*;
-use std::borrow::Cow;
-use regex::*;
 
 mod regex_cleaner_pair;
 pub use self::regex_cleaner_pair::*;

@@ -1,11 +1,11 @@
 use winapi;
-use winapi::um::winnt;
-use winapi::um::winuser;
 use winapi::shared::minwindef;
 use winapi::shared::windef;
+use winapi::um::winnt;
+use winapi::um::winuser;
 
-use std::ops::Range;
 use std::mem;
+use std::ops::Range;
 use std::ptr::null_mut;
 
 pub use wide_string::*;

@@ -1,6 +1,6 @@
 use regex::*;
-use serde::{Deserializer, Serialize, Serializer};
 use serde::de::{self, Deserialize, SeqAccess, Visitor};
+use serde::{Deserializer, Serialize, Serializer};
 
 #[derive(Debug, Clone)]
 pub struct RegexCleanerPair {

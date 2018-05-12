@@ -1,16 +1,16 @@
-use winapi;
-use winapi::um::winnt;
-use winapi::um::winuser;
-use winapi::shared::minwindef;
-use winapi::shared::windef;
 use average::{Estimate, Variance};
 use chrono;
+use winapi;
+use winapi::shared::minwindef;
+use winapi::shared::windef;
+use winapi::um::winnt;
+use winapi::um::winuser;
 
 use std::cmp::{max, min};
 use std::mem;
+use std::ops::Range;
 use std::ptr::null_mut;
 use std::time::Instant;
-use std::ops::Range;
 
 use window::*;
 
@@ -371,8 +371,8 @@ impl<'a> Windowed for SpVoice<'a> {
                 return Some(0);
             }
             winuser::WM_COMMAND => {
-                use press_hotkey;
                 use Action;
+                use press_hotkey;
                 if self.reload_settings as isize == l_param
                     && minwindef::HIWORD(w_param as u32) == winuser::BN_CLICKED
                 {

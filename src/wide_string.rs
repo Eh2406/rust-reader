@@ -1,6 +1,6 @@
 use std::ffi::OsStr;
-use std::os::windows::ffi::OsStrExt;
 use std::ops::Range;
+use std::os::windows::ffi::OsStrExt;
 
 #[derive(Debug, PartialEq)]
 pub struct WideString(Vec<u16>);

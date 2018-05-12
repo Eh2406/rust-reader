@@ -1,16 +1,16 @@
-use preferences::{prefs_base_dir, AppInfo, Preferences};
-use winapi::um::winuser::{VK_OEM_2, VK_ESCAPE, VK_OEM_MINUS, VK_OEM_PERIOD, VK_OEM_PLUS};
-use winapi::shared::windef;
-use winapi::um::winuser;
-use winapi::um::commctrl;
-use winapi::shared::minwindef;
-use clean_text::RegexCleanerPair;
 use average::Variance;
-use std::ptr::null_mut;
-use wide_string::WideString;
-use window::*;
+use clean_text::RegexCleanerPair;
 use hot_key::*;
 use itertools::Itertools;
+use preferences::{prefs_base_dir, AppInfo, Preferences};
+use std::ptr::null_mut;
+use wide_string::WideString;
+use winapi::shared::minwindef;
+use winapi::shared::windef;
+use winapi::um::commctrl;
+use winapi::um::winuser;
+use winapi::um::winuser::{VK_OEM_2, VK_ESCAPE, VK_OEM_MINUS, VK_OEM_PERIOD, VK_OEM_PLUS};
+use window::*;
 
 const APP_INFO: AppInfo = AppInfo {
     name: "rust_reader",
@@ -22,7 +22,8 @@ pub struct Settings {
     pub rate: i32,
     pub hotkeys: [(u32, u32); 8],
     pub cleaners: Vec<RegexCleanerPair>,
-    #[serde(default)] pub time_estimater: [Variance; 21],
+    #[serde(default)]
+    pub time_estimater: [Variance; 21],
 }
 
 pub struct SettingsWindow {
@@ -30,15 +31,13 @@ pub struct SettingsWindow {
     window: windef::HWND,
     rate: (windef::HWND, windef::HWND),
     hotkeys: [(windef::HWND, windef::HWND); 8],
-    cleaners: Vec<
-        (
-            Option<bool>,
-            windef::HWND,
-            windef::HWND,
-            windef::HWND,
-            windef::HWND,
-        ),
-    >,
+    cleaners: Vec<(
+        Option<bool>,
+        windef::HWND,
+        windef::HWND,
+        windef::HWND,
+        windef::HWND,
+    )>,
     add_cleaner: windef::HWND,
     reset: windef::HWND,
     save: windef::HWND,
@@ -428,8 +427,8 @@ impl Windowed for SettingsWindow {
                 enable_window(self.reset, changed);
                 enable_window(self.save, changed && !invalid);
                 if saving && changed && !invalid {
-                    use press_hotkey;
                     use Action;
+                    use press_hotkey;
                     self.settings.rate = new_rate as i32;
                     for (&(_, ht), hkt) in
                         self.hotkeys.iter().zip_eq(self.settings.hotkeys.iter_mut())

@@ -1,6 +1,6 @@
+use itertools::Itertools;
 use winapi::um::winuser;
 use winapi::um::winuser::VK_ESCAPE;
-use itertools::Itertools;
 
 use std::ptr::null_mut;
 
@@ -59,11 +59,7 @@ pub struct HotKey {
 
 impl HotKey {
     pub fn new(modifiers: u32, vk: u32, id: i32) -> Option<HotKey> {
-        let new_hot = HotKey {
-            modifiers,
-            vk,
-            id,
-        };
+        let new_hot = HotKey { modifiers, vk, id };
         println!("new for HotKey: {} {}", new_hot, id);
         // https://msdn.microsoft.com/en-us/library/windows/desktop/ms646309.aspx
         if modifiers > 0 && vk > 0 {

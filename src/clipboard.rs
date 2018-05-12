@@ -1,9 +1,9 @@
-use winapi;
 use clipboard_win::{get_clipboard_string, set_clipboard_string, Clipboard};
+use std::io;
 use std::mem;
 use std::thread::sleep;
 use std::time::Duration;
-use std::io;
+use winapi;
 
 fn get_clipboard_seq_num() -> Option<u32> {
     Clipboard::seq_num()
