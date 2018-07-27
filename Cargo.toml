@@ -16,6 +16,9 @@ ordslice = "*"
 average = { git = "https://github.com/Eh2406/average", branch = "master", features = ["serde"]}
 chrono = { version = "0.4", features = ["serde"] }
 
+[target.'cfg(windows)'.build-dependencies]
+winres = "*"
+
 [dev-dependencies]
 quickcheck = "*"
 lazy_static = "*"
