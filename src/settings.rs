@@ -8,6 +8,7 @@ use wide_string::WideString;
 use winapi::shared::minwindef;
 use winapi::shared::windef;
 use winapi::um::commctrl;
+use winapi::um::libloaderapi;
 use winapi::um::winuser;
 use winapi::um::winuser::{VK_OEM_2, VK_ESCAPE, VK_OEM_MINUS, VK_OEM_PERIOD, VK_OEM_PLUS};
 use window::*;
@@ -64,7 +65,10 @@ impl SettingsWindow {
                 cbClsExtra: 0,
                 cbWndExtra: 0,
                 hInstance: null_mut(),
-                hIcon: winuser::LoadIconW(null_mut(), winuser::IDI_APPLICATION),
+                hIcon: winuser::LoadIconW(
+                    libloaderapi::GetModuleHandleW(null_mut()),
+                    winuser::MAKEINTRESOURCEW(1),
+                ),
                 hCursor: winuser::LoadCursorW(null_mut(), winuser::IDI_APPLICATION),
                 hbrBackground: 16 as windef::HBRUSH,
                 lpszMenuName: null_mut(),
@@ -90,7 +94,9 @@ impl SettingsWindow {
                 0,
                 wide_trackbar.as_ptr(),
                 &0u16,
-                winuser::WS_CHILD | winuser::WS_VISIBLE | commctrl::TBS_AUTOTICKS
+                winuser::WS_CHILD
+                    | winuser::WS_VISIBLE
+                    | commctrl::TBS_AUTOTICKS
                     | commctrl::TBS_BOTTOM,
                 0,
                 0,
@@ -238,7 +244,8 @@ impl SettingsWindow {
                 winuser::SendMessageW(self.window, winuser::WM_SIZE, 0, 0);
             }
         }
-        for (cl, rexpar) in self.cleaners
+        for (cl, rexpar) in self
+            .cleaners
             .iter_mut()
             .zip_eq(self.settings.cleaners.iter())
         {
@@ -296,12 +303,14 @@ impl Windowed for SettingsWindow {
                         move_window(ht.0, &l);
                         move_window(ht.1, &r);
                     }
-                    let mll = self.cleaners
+                    let mll = self
+                        .cleaners
                         .iter()
                         .map(|&(_, a, _, _, _)| get_window_text_length(a))
                         .max()
                         .unwrap_or(0) + 1;
-                    let mlr = self.cleaners
+                    let mlr = self
+                        .cleaners
                         .iter()
                         .map(|&(_, _, b, _, _)| get_window_text_length(b))
                         .max()
@@ -387,13 +396,15 @@ impl Windowed for SettingsWindow {
                         changed = true;
                     }
                 }
-                if self.cleaners
+                if self
+                    .cleaners
                     .iter()
                     .any(|x| x.1 as isize == l_param || x.2 as isize == l_param)
                     || dirty_cleaners
                 {
                     // cleaners change
-                    for mat in self.cleaners
+                    for mat in self
+                        .cleaners
                         .iter_mut()
                         .zip_longest(self.settings.cleaners.iter())
                     {
@@ -421,14 +432,15 @@ impl Windowed for SettingsWindow {
                         }
                     }
                 }
-                changed = changed || self.settings.cleaners.len() != self.cleaners.len()
+                changed = changed
+                    || self.settings.cleaners.len() != self.cleaners.len()
                     || self.cleaners.iter().any(|x| x.0.is_some());
                 invalid = invalid || self.cleaners.iter().any(|x| x.0 == Some(false));
                 enable_window(self.reset, changed);
                 enable_window(self.save, changed && !invalid);
                 if saving && changed && !invalid {
-                    use Action;
                     use press_hotkey;
+                    use Action;
                     self.settings.rate = new_rate as i32;
                     for (&(_, ht), hkt) in
                         self.hotkeys.iter().zip_eq(self.settings.hotkeys.iter_mut())
@@ -440,7 +452,8 @@ impl Windowed for SettingsWindow {
                             u32::from(minwindef::LOBYTE(set_to as u16)),
                         );
                     }
-                    self.settings.cleaners = self.cleaners
+                    self.settings.cleaners = self
+                        .cleaners
                         .iter()
                         .map(|cl| {
                             let new_a = get_window_text(cl.1).as_string();

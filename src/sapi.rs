@@ -3,6 +3,7 @@ use chrono;
 use winapi;
 use winapi::shared::minwindef;
 use winapi::shared::windef;
+use winapi::um::libloaderapi;
 use winapi::um::winnt;
 use winapi::um::winuser;
 
@@ -98,7 +99,10 @@ impl<'a> SpVoice<'a> {
                 cbClsExtra: 0,
                 cbWndExtra: 0,
                 hInstance: null_mut(),
-                hIcon: winuser::LoadIconW(null_mut(), winuser::IDI_APPLICATION),
+                hIcon: winuser::LoadIconW(
+                    libloaderapi::GetModuleHandleW(null_mut()),
+                    winuser::MAKEINTRESOURCEW(1),
+                ),
                 hCursor: winuser::LoadCursorW(null_mut(), winuser::IDI_APPLICATION),
                 hbrBackground: 16 as windef::HBRUSH,
                 lpszMenuName: null_mut(),
@@ -371,8 +375,8 @@ impl<'a> Windowed for SpVoice<'a> {
                 return Some(0);
             }
             winuser::WM_COMMAND => {
-                use Action;
                 use press_hotkey;
+                use Action;
                 if self.reload_settings as isize == l_param
                     && minwindef::HIWORD(w_param as u32) == winuser::BN_CLICKED
                 {
