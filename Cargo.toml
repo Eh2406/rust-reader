@@ -13,7 +13,7 @@ unicode-segmentation = "*"
 regex = "*"
 itertools = "*"
 ordslice = "*"
-average = { git = "https://github.com/Eh2406/average", branch = "master", features = ["serde"]}
+average = { version = "0.9.2", features = ["serde1"]}
 chrono = { version = "0.4", features = ["serde"] }
 
 [target.'cfg(windows)'.build-dependencies]
