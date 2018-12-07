@@ -13,7 +13,7 @@ use std::ops::Range;
 use std::ptr::null_mut;
 use std::time::Instant;
 
-use window::*;
+use crate::window::*;
 
 pub const WM_SAPI_EVENT: minwindef::UINT = winuser::WM_APP + 15;
 
@@ -375,8 +375,8 @@ impl<'a> Windowed for SpVoice<'a> {
                 return Some(0);
             }
             winuser::WM_COMMAND => {
-                use press_hotkey;
-                use Action;
+                use crate::press_hotkey;
+                use crate::Action;
                 if self.reload_settings as isize == l_param
                     && minwindef::HIWORD(w_param as u32) == winuser::BN_CLICKED
                 {

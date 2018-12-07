@@ -21,25 +21,25 @@ extern crate serde_derive; //To write rust objects to json
 
 mod wide_string;
 mod window;
-use window::*;
+use crate::window::*;
 
 mod sapi;
-use sapi::*;
+use crate::sapi::*;
 
 mod clipboard;
-use clipboard::*;
+use crate::clipboard::*;
 
 mod actions;
-use actions::*;
+use crate::actions::*;
 
 mod hot_key;
-use hot_key::*;
+use crate::hot_key::*;
 
 mod settings;
-use settings::*;
+use crate::settings::*;
 
 mod clean_text;
-use clean_text::*;
+use crate::clean_text::*;
 
 struct State<'a> {
     voice: Box<SpVoice<'a>>,
@@ -106,7 +106,7 @@ impl<'a> State<'a> {
     }
 
     fn match_hotkey_id(&mut self, act: Action) {
-        use Action::*;
+        use crate::Action::*;
         match act {
             Read => self.read(),
             Close => close(),

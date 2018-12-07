@@ -1,17 +1,17 @@
 use average::Variance;
-use clean_text::RegexCleanerPair;
-use hot_key::*;
+use crate::clean_text::RegexCleanerPair;
+use crate::hot_key::*;
 use itertools::Itertools;
 use preferences::{prefs_base_dir, AppInfo, Preferences};
 use std::ptr::null_mut;
-use wide_string::WideString;
+use crate::wide_string::WideString;
 use winapi::shared::minwindef;
 use winapi::shared::windef;
 use winapi::um::commctrl;
 use winapi::um::libloaderapi;
 use winapi::um::winuser;
 use winapi::um::winuser::{VK_OEM_2, VK_ESCAPE, VK_OEM_MINUS, VK_OEM_PERIOD, VK_OEM_PLUS};
-use window::*;
+use crate::window::*;
 
 const APP_INFO: AppInfo = AppInfo {
     name: "rust_reader",
@@ -127,7 +127,7 @@ impl SettingsWindow {
             icex.dwICC = commctrl::ICC_HOTKEY_CLASS;
             commctrl::InitCommonControlsEx(&icex);
 
-            for (act, ht) in ::actions::ACTION_LIST.iter().zip(out.hotkeys.iter_mut()) {
+            for (act, ht) in crate::actions::ACTION_LIST.iter().zip(out.hotkeys.iter_mut()) {
                 let wide_hotkey_name: WideString = format!("{}", act).into();
                 ht.0 = create_static_window(window, Some(&wide_hotkey_name));
                 ht.1 = winuser::CreateWindowExW(
@@ -439,8 +439,8 @@ impl Windowed for SettingsWindow {
                 enable_window(self.reset, changed);
                 enable_window(self.save, changed && !invalid);
                 if saving && changed && !invalid {
-                    use press_hotkey;
-                    use Action;
+                    use crate::press_hotkey;
+                    use crate::Action;
                     self.settings.rate = new_rate as i32;
                     for (&(_, ht), hkt) in
                         self.hotkeys.iter().zip_eq(self.settings.hotkeys.iter_mut())

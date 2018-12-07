@@ -8,7 +8,7 @@ use std::mem;
 use std::ops::Range;
 use std::ptr::null_mut;
 
-pub use wide_string::*;
+pub use crate::wide_string::*;
 
 pub fn create_static_window(window_wnd: windef::HWND, name: Option<&WideString>) -> windef::HWND {
     let wide_static: WideString = "STATIC".into();
@@ -181,7 +181,7 @@ pub trait RectUtil
 where
     Self: Sized,
 {
-    fn inset(self, i32) -> Self;
+    fn inset(self, _: i32) -> Self;
     fn shift_down(self, delta: i32) -> Self;
     fn shift_right(self, delta: i32) -> Self;
     fn split_columns(self, at: i32) -> (Self, Self);

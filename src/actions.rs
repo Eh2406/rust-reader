@@ -30,7 +30,7 @@ fn action_list_match_enum() {
 
 #[test]
 fn action_list_match_settings() {
-    assert_eq!(ACTION_LIST.len(), ::Settings::new().hotkeys.len());
+    assert_eq!(ACTION_LIST.len(), crate::Settings::new().hotkeys.len());
 }
 
 impl ::std::fmt::Display for Action {

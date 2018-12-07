@@ -2,6 +2,7 @@
 name = "rust_reader"
 version = "0.1.0"
 authors = ["Eh2406 <YeomanYaacov@gmail.com>"]
+edition = "2018"
 
 [dependencies]
 winapi = { version = "*", features = ["std", "winerror", "commctrl", "processthreadsapi", "combaseapi", "shellapi", "objbase", "wincon", "winuser", "sapi", "sapi51", "sapi53"] }
