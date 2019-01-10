@@ -1,9 +1,12 @@
 use average::{Estimate, Variance};
 use chrono;
+use std::mem::size_of;
+use std::mem::zeroed;
 use winapi;
 use winapi::shared::minwindef;
 use winapi::shared::windef;
 use winapi::um::libloaderapi;
+use winapi::um::shellapi;
 use winapi::um::winnt;
 use winapi::um::winuser;
 
@@ -16,6 +19,7 @@ use std::time::Instant;
 use crate::window::*;
 
 pub const WM_SAPI_EVENT: minwindef::UINT = winuser::WM_APP + 15;
+pub const WM_APP_NOTIFICATION_ICON: minwindef::UINT = winuser::WM_APP + 16;
 
 pub struct Com {
     hr: winnt::HRESULT,
@@ -50,6 +54,7 @@ pub struct SpVoice<'a> {
     edit: windef::HWND,
     rate: windef::HWND,
     reload_settings: windef::HWND,
+    nicon: shellapi::NOTIFYICONDATAW,
     last_read: WideString,
     last_update: Option<(Instant, Range<usize>)>,
     us_per_utf16: [Variance; 21],
@@ -87,6 +92,7 @@ impl<'a> SpVoice<'a> {
                 edit: null_mut(),
                 rate: null_mut(),
                 reload_settings: null_mut(),
+                nicon: zeroed(),
                 last_read: WideString::new(),
                 last_update: None,
                 us_per_utf16: Default::default(),
@@ -123,6 +129,27 @@ impl<'a> SpVoice<'a> {
                 &mut *out as *mut _ as minwindef::LPVOID,
             );
 
+            out.nicon.cbSize = size_of::<shellapi::NOTIFYICONDATAW>() as u32;
+            out.nicon.hWnd = out.window;
+            out.nicon.uCallbackMessage = WM_APP_NOTIFICATION_ICON;
+            out.nicon.uID = 1 as u32;
+            out.nicon.uFlags |= shellapi::NIF_ICON;
+            out.nicon.hIcon = winuser::LoadIconW(
+                libloaderapi::GetModuleHandleW(null_mut()),
+                winuser::MAKEINTRESOURCEW(1),
+            );
+            out.nicon.uFlags |= shellapi::NIF_MESSAGE;
+            *out.nicon.u.uVersion_mut() = shellapi::NOTIFYICON_VERSION_4;
+            let err = shellapi::Shell_NotifyIconW(shellapi::NIM_ADD, &mut out.nicon);
+            if err == 0 {
+                panic!("failed for Shell_NotifyIconW NIM_ADD");
+            }
+
+            let err = shellapi::Shell_NotifyIconW(shellapi::NIM_SETVERSION, &mut out.nicon);
+            if err == 0 {
+                panic!("failed for Shell_NotifyIconW ");
+            }
+
             out.edit = create_edit_window(
                 out.window,
                 winuser::WS_VSCROLL | winuser::ES_MULTILINE | winuser::ES_AUTOVSCROLL,
@@ -138,7 +165,6 @@ impl<'a> SpVoice<'a> {
                     bottom: 400,
                 },
             );
-            show_window(out.window, winuser::SW_SHOWNORMAL);
             out.set_notify_window_message();
             out.set_volume(100);
             out.set_alert_boundary(winapi::um::sapi51::SPEI_PHONEME);
@@ -347,7 +373,8 @@ impl<'a> Windowed for SpVoice<'a> {
                     100.0 * (word_range.start as f64) / (self.last_read.len() as f64),
                     format_duration(chrono::Duration::microseconds(ms_left as i64)),
                     self.last_read.get_slice(word_range.clone())
-                ).into();
+                )
+                .into();
                 set_console_title(&window_title);
                 set_window_text(self.window, &window_title);
                 set_edit_selection(self.edit, &word_range);
@@ -384,6 +411,12 @@ impl<'a> Windowed for SpVoice<'a> {
                     return Some(0);
                 }
             }
+            WM_APP_NOTIFICATION_ICON => {
+                if minwindef::LOWORD(l_param as u32) == (winuser::WM_LBUTTONUP as u16) {
+                    self.toggle_window_visible();
+                    return Some(0);
+                }
+            }
             _ => {}
         }
         None
@@ -393,6 +426,7 @@ impl<'a> Windowed for SpVoice<'a> {
 impl<'a> Drop for SpVoice<'a> {
     fn drop(&mut self) {
         unsafe { self.voice.Release() };
+        unsafe { shellapi::Shell_NotifyIconW(shellapi::NIM_DELETE, &mut self.nicon) };
         println!("drop for SpVoice");
     }
 }

@@ -124,7 +124,7 @@ fn setup_hotkeys(settings: &mut Settings) -> Vec<HotKey> {
     assert_eq!(ACTION_LIST.len(), settings.hotkeys.len());
     ACTION_LIST
         .iter()
-        .zip(settings.hotkeys.into_iter())
+        .zip(settings.hotkeys.iter())
         .map(|(&act, &(modifiers, vk))| {
             HotKey::new(modifiers, vk, act as i32).unwrap() // make HotKey
         })
