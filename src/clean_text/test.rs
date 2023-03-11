@@ -2,7 +2,7 @@ use super::*;
 use quickcheck::quickcheck;
 
 lazy_static! {
-    pub static ref RE_LIST: Vec<RegexCleanerPair> = { crate::settings::Settings::new().cleaners };
+    pub static ref RE_LIST: Vec<RegexCleanerPair> = crate::settings::Settings::new().cleaners;
 }
 
 pub fn clean_text_string<T: AsRef<str>>(raw: T, list: &[RegexCleanerPair]) -> String {
