@@ -85,7 +85,6 @@ pub fn succeeded(hr: winnt::HRESULT) -> bool {
 }
 
 pub fn get_message() -> Option<winuser::MSG> {
-    use std::ptr::null_mut;
     let mut msg: winuser::MSG = unsafe { mem::zeroed() };
     if unsafe { winuser::GetMessageW(&mut msg, null_mut(), 0, 0) } <= 0 {
         return None;
