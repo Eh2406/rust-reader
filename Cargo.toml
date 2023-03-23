@@ -7,7 +7,12 @@ edition = "2018"
 
 [dependencies]
 winapi = { version = "*", features = ["std", "winerror", "commctrl", "processthreadsapi", "combaseapi", "shellapi", "objbase", "wincon", "winuser", "sapi", "sapi51", "sapi53"] }
-windows = { version = "*", features = ["Win32_Foundation", "Win32_UI_Input_KeyboardAndMouse"] }
+windows = { version = "*", features = [
+    "Win32_Foundation",
+    "Win32_System_Threading",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_WindowsAndMessaging"
+] }
 clipboard-win = "*"
 serde_derive = "*"
 serde = "*"

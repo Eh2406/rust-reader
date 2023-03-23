@@ -3,6 +3,8 @@ use winapi::shared::minwindef;
 use winapi::shared::windef;
 use winapi::um::winnt;
 use winapi::um::winuser;
+use windows::Win32::Foundation::HWND;
+use windows::Win32::UI::WindowsAndMessaging;
 
 use std::mem;
 use std::ops::Range;
@@ -84,10 +86,10 @@ pub fn succeeded(hr: winnt::HRESULT) -> bool {
     !failed(hr)
 }
 
-pub fn get_message() -> Option<winuser::MSG> {
-    let mut msg: winuser::MSG = unsafe { mem::zeroed() };
-    if unsafe { winuser::GetMessageW(&mut msg, null_mut(), 0, 0) } <= 0 {
-        return None;
+pub fn get_message() -> Option<WindowsAndMessaging::MSG> {
+        let mut msg: WindowsAndMessaging::MSG = unsafe { mem::zeroed() };
+        if unsafe { WindowsAndMessaging::GetMessageW(&mut msg, HWND(0), 0, 0) } != true {
+            return None;
     }
     Some(msg)
 }

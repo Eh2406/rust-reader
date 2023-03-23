@@ -5,7 +5,11 @@ extern crate chrono;
 extern crate clipboard_win;
 extern crate ordslice;
 extern crate unicode_segmentation;
-extern crate winapi;
+use windows::Win32::{
+    Foundation::{WPARAM, LPARAM},
+    System::Threading::GetCurrentThreadId,
+    UI::WindowsAndMessaging,
+};
 
 extern crate itertools;
 #[cfg(test)]
@@ -133,11 +137,11 @@ fn setup_hotkeys(settings: &mut Settings) -> Vec<HotKey> {
 
 fn press_hotkey(id: Action) {
     unsafe {
-        winapi::um::winuser::PostThreadMessageW(
-            winapi::um::processthreadsapi::GetCurrentThreadId(),
-            winapi::um::winuser::WM_HOTKEY,
-            id as winapi::shared::minwindef::WPARAM,
-            0,
+        WindowsAndMessaging::PostThreadMessageW(
+            GetCurrentThreadId(),
+            WindowsAndMessaging::WM_HOTKEY,
+            WPARAM(id as usize),
+            LPARAM(0),
         )
     };
 }
@@ -179,14 +183,14 @@ fn main() {
 
     while let Some(msg) = get_message() {
         match msg.message {
-            winapi::um::winuser::WM_HOTKEY if (msg.wParam as usize) < state.hk.len() => {
-                state.match_hotkey_id(ACTION_LIST[msg.wParam as usize])
+            WindowsAndMessaging::WM_HOTKEY if msg.wParam.0 < state.hk.len() => {
+                state.match_hotkey_id(ACTION_LIST[msg.wParam.0])
             }
             _ => {
                 // println!("{:?}", msg);
                 unsafe {
-                    winapi::um::winuser::TranslateMessage(&msg);
-                    winapi::um::winuser::DispatchMessageW(&msg);
+                    WindowsAndMessaging::TranslateMessage(&msg);
+                    WindowsAndMessaging::DispatchMessageW(&msg);
                 }
             }
         }
