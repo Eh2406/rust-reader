@@ -1,8 +1,6 @@
 use itertools::Itertools;
-use winapi::um::winuser;
-use winapi::um::winuser::VK_ESCAPE;
-
-use std::ptr::null_mut;
+use windows::Win32::Foundation::HWND;
+use windows::Win32::UI::Input::KeyboardAndMouse;
 
 fn convert_modifiers(modifiers: u32) -> String {
     ["Alt", "Ctr", "Sht", "Win"]
@@ -63,8 +61,12 @@ impl HotKey {
         println!("new for HotKey: {} {}", new_hot, id);
         // https://msdn.microsoft.com/en-us/library/windows/desktop/ms646309.aspx
         if modifiers > 0 && vk > 0 {
-            let hr = unsafe { winuser::RegisterHotKey(null_mut(), id, modifiers, vk) };
-            if hr == 0 {
+            let hr = unsafe {
+                KeyboardAndMouse::RegisterHotKey(
+                    HWND(0), id, KeyboardAndMouse::HOT_KEY_MODIFIERS(modifiers), vk
+                )
+                };
+            if hr.0 == 0 {
                 None
             } else {
                 Some(new_hot)
@@ -80,13 +82,15 @@ impl ::std::fmt::Display for HotKey {
         use std::char;
         if self.modifiers > 0 && self.vk > 0 {
             write!(f, "{}+", convert_modifiers(self.modifiers))?;
-            if self.vk == VK_ESCAPE as u32 {
+            if self.vk as u16 == KeyboardAndMouse::VK_ESCAPE.0 {
                 write!(f, "Esc")
             } else {
                 write!(
                     f,
                     "{}",
-                    char::from_u32(unsafe { winuser::MapVirtualKeyW(self.vk, 2) }).unwrap()
+                    char::from_u32(unsafe { KeyboardAndMouse::MapVirtualKeyW(
+                        self.vk, KeyboardAndMouse::MAP_VIRTUAL_KEY_TYPE(2))
+                    }).unwrap()
                 )
             }
         } else {
@@ -98,7 +102,7 @@ impl ::std::fmt::Display for HotKey {
 impl Drop for HotKey {
     fn drop(&mut self) {
         if self.modifiers > 0 && self.vk > 0 {
-            unsafe { winuser::UnregisterHotKey(null_mut(), self.id) };
+            unsafe { KeyboardAndMouse::UnregisterHotKey(HWND(0), self.id) };
         }
         println!("drop for HotKey");
     }
