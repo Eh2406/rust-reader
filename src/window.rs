@@ -1,179 +1,184 @@
-use winapi;
-use winapi::shared::minwindef;
-use winapi::shared::windef;
-use winapi::um::winnt;
-use winapi::um::winuser;
-use windows::Win32::Foundation::HWND;
-use windows::Win32::UI::WindowsAndMessaging;
+use windows::core::{HRESULT, PCWSTR};
+use windows::Win32::{
+    Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, RECT, WPARAM},
+    System::Console,
+    UI::{Controls, Input::KeyboardAndMouse, WindowsAndMessaging},
+};
 
 use std::mem;
 use std::ops::Range;
-use std::ptr::null_mut;
 
 pub use crate::wide_string::*;
 
-pub fn create_static_window(window_wnd: windef::HWND, name: Option<&WideString>) -> windef::HWND {
+pub fn create_static_window(window_wnd: HWND, name: Option<&WideString>) -> HWND {
     let wide_static: WideString = "STATIC".into();
     unsafe {
-        winuser::CreateWindowExW(
-            0,
-            wide_static.as_ptr(),
-            name.map(WideString::as_ptr).unwrap_or(&0u16),
-            winuser::WS_CHILD | winuser::WS_VISIBLE | winuser::SS_CENTER | winuser::SS_NOPREFIX,
+        WindowsAndMessaging::CreateWindowExW(
+            WindowsAndMessaging::WINDOW_EX_STYLE(0),
+            PCWSTR::from_raw(wide_static.as_ptr()),
+            PCWSTR::from_raw(name.map(WideString::as_ptr).unwrap_or(&mut 0u16)),
+            WindowsAndMessaging::WS_CHILD | WindowsAndMessaging::WS_VISIBLE,
+            //FIXME | WindowsAndMessaging::SS_CENTER | WindowsAndMessaging::SS_NOPREFIX,
             0,
             0,
             0,
             0,
             window_wnd,
-            null_mut(),
-            null_mut(),
-            null_mut(),
+            WindowsAndMessaging::HMENU(0),
+            HINSTANCE(0),
+            None,
         )
     }
 }
 
-pub fn create_button_window(window_wnd: windef::HWND, name: Option<&WideString>) -> windef::HWND {
+pub fn create_button_window(window_wnd: HWND, name: Option<&WideString>) -> HWND {
     let wide_button: WideString = "BUTTON".into();
     unsafe {
-        winuser::CreateWindowExW(
-            0,
-            wide_button.as_ptr(),
-            name.map(WideString::as_ptr).unwrap_or(&0u16),
-            winuser::WS_TABSTOP | winuser::BS_CENTER | winuser::WS_VISIBLE | winuser::WS_CHILD
-                | winuser::BS_PUSHBUTTON,
+        WindowsAndMessaging::CreateWindowExW(
+            WindowsAndMessaging::WINDOW_EX_STYLE(0),
+            PCWSTR::from_raw(wide_button.as_ptr()),
+            PCWSTR::from_raw(name.map(WideString::as_ptr).unwrap_or(&mut 0u16)),
+            WindowsAndMessaging::WS_TABSTOP | WindowsAndMessaging::WS_VISIBLE | WindowsAndMessaging::WS_CHILD,
+            //FIXME | WindowsAndMessaging::BS_CENTER | WindowsAndMessaging::BS_PUSHBUTTON,
             0,
             0,
             0,
             0,
             window_wnd,
-            null_mut(),
-            null_mut(),
-            null_mut(),
+            WindowsAndMessaging::HMENU(0),
+            HINSTANCE(0),
+            None,
         )
     }
 }
 
-pub fn create_edit_window(window_wnd: windef::HWND, style: minwindef::DWORD) -> windef::HWND {
+pub fn create_edit_window(window_wnd: HWND, style: WindowsAndMessaging::WINDOW_STYLE) -> HWND {
     // https://msdn.microsoft.com/en-us/library/windows/desktop/hh298433.aspx
     let wide_edit: WideString = "EDIT".into();
     unsafe {
-        winuser::CreateWindowExW(
-            winuser::WS_EX_CLIENTEDGE,
-            wide_edit.as_ptr(),
-            &0u16,
-            winuser::WS_TABSTOP | winuser::WS_CHILD | winuser::WS_VISIBLE | winuser::WS_BORDER
-                | winuser::ES_LEFT | winuser::ES_NOHIDESEL | style,
+        WindowsAndMessaging::CreateWindowExW(
+            WindowsAndMessaging::WS_EX_CLIENTEDGE,
+            PCWSTR::from_raw(wide_edit.as_ptr()),
+            PCWSTR(&mut 0u16),
+            WindowsAndMessaging::WS_TABSTOP | WindowsAndMessaging::WS_CHILD | WindowsAndMessaging::WS_VISIBLE | WindowsAndMessaging::WS_BORDER
+                | style,
+            //FIXME    | WindowsAndMessaging::ES_LEFT | WindowsAndMessaging::ES_NOHIDESEL
             0,
             0,
             0,
             0,
             window_wnd,
-            null_mut(),
-            null_mut(),
-            null_mut(),
+            WindowsAndMessaging::HMENU(0),
+            HINSTANCE(0),
+            None,
         )
     }
 }
 
 #[inline]
-pub fn failed(hr: winnt::HRESULT) -> bool {
-    hr < 0
+pub fn failed(hr: HRESULT) -> bool {
+    hr.0 < 0
 }
 
 #[inline]
 #[allow(dead_code)]
-pub fn succeeded(hr: winnt::HRESULT) -> bool {
+pub fn succeeded(hr: HRESULT) -> bool {
     !failed(hr)
 }
 
 pub fn get_message() -> Option<WindowsAndMessaging::MSG> {
-        let mut msg: WindowsAndMessaging::MSG = unsafe { mem::zeroed() };
-        if unsafe { WindowsAndMessaging::GetMessageW(&mut msg, HWND(0), 0, 0) } != true {
-            return None;
+    let mut msg: WindowsAndMessaging::MSG = unsafe { mem::zeroed() };
+    if unsafe { WindowsAndMessaging::GetMessageW(&mut msg, HWND(0), 0, 0) } != true {
+        return None;
     }
     Some(msg)
 }
 
-pub fn enable_window(h_wnd: windef::HWND, enable: bool) -> minwindef::BOOL {
-    unsafe { winuser::EnableWindow(h_wnd, enable as minwindef::BOOL) }
+pub fn enable_window(h_wnd: HWND, enable: bool) -> bool {
+    unsafe { KeyboardAndMouse::EnableWindow(h_wnd, enable).into() }
 }
 
-pub fn set_console_title(title: &WideString) -> i32 {
-    unsafe { winapi::um::wincon::SetConsoleTitleW(title.as_ptr()) }
+pub fn set_console_title(title: &WideString) -> bool {
+    unsafe { Console::SetConsoleTitleW(PCWSTR::from_raw(title.as_ptr())).into() }
 }
 
-pub fn set_window_text(h_wnd: windef::HWND, wide: &WideString) -> minwindef::BOOL {
-    unsafe { winuser::SetWindowTextW(h_wnd, wide.as_ptr()) }
+pub fn set_window_text(h_wnd: HWND, wide: &WideString) -> bool {
+    unsafe { WindowsAndMessaging::SetWindowTextW(h_wnd, PCWSTR::from_raw(wide.as_ptr())).into() }
 }
 
-pub fn get_window_text_length(h_wnd: windef::HWND) -> minwindef::INT {
-    unsafe { winuser::GetWindowTextLengthW(h_wnd) }
+pub fn get_window_text_length(h_wnd: HWND) -> i32 {
+    unsafe { WindowsAndMessaging::GetWindowTextLengthW(h_wnd) }
 }
 
-pub fn get_window_text(h_wnd: windef::HWND) -> WideString {
+pub fn get_window_text(h_wnd: HWND) -> WideString {
     let mut buf = vec![0u16; get_window_text_length(h_wnd) as usize + 1];
-    let len = unsafe { winuser::GetWindowTextW(h_wnd, buf.as_mut_ptr(), buf.len() as i32) };
+    let len = unsafe { WindowsAndMessaging::GetWindowTextW(h_wnd, &mut buf) };
     buf.truncate(len as usize + 1);
     WideString::from_raw(buf)
 }
 
-pub fn destroy_window(h_wnd: windef::HWND) {
+pub fn destroy_window(h_wnd: HWND) {
     unsafe {
-        winuser::DestroyWindow(h_wnd);
+        WindowsAndMessaging::DestroyWindow(h_wnd);
     }
 }
 
 pub fn close() {
-    unsafe { winuser::PostQuitMessage(0) }
+    unsafe { WindowsAndMessaging::PostQuitMessage(0) }
 }
 
-pub fn set_edit_selection(h_wnd: windef::HWND, celec: &Range<usize>) -> minwindef::LRESULT {
+pub fn set_edit_selection(h_wnd: HWND, celec: &Range<usize>) -> LRESULT {
     unsafe {
-        winuser::SendMessageW(
+        WindowsAndMessaging::SendMessageW(
             h_wnd,
-            minwindef::UINT::from(winuser::EM_SETSEL),
-            celec.start as minwindef::WPARAM,
-            celec.end as minwindef::LPARAM,
+            Controls::EM_SETSEL,
+            WPARAM(celec.start),
+            LPARAM(celec.end.try_into().unwrap()),
         )
     }
 }
 
-pub fn set_edit_scroll_caret(h_wnd: windef::HWND) -> minwindef::LRESULT {
-    unsafe { winuser::SendMessageW(h_wnd, minwindef::UINT::from(winuser::EM_SCROLLCARET), 0, 0) }
+pub fn set_edit_scroll_caret(h_wnd: HWND) -> LRESULT {
+    unsafe { WindowsAndMessaging::SendMessageW(
+        h_wnd,
+        Controls::EM_SCROLLCARET,
+        WPARAM(0),
+        LPARAM(0)
+    )}
 }
 
-pub fn get_client_rect(h_wnd: windef::HWND) -> windef::RECT {
-    let mut rec: windef::RECT = unsafe { mem::zeroed() };
-    unsafe { winuser::GetClientRect(h_wnd, &mut rec) };
+pub fn get_client_rect(h_wnd: HWND) -> RECT {
+    let mut rec: RECT = unsafe { mem::zeroed() };
+    unsafe { WindowsAndMessaging::GetClientRect(h_wnd, &mut rec) };
     rec
 }
 
-pub fn move_window(h_wnd: windef::HWND, rect: &windef::RECT) -> minwindef::BOOL {
+pub fn move_window(h_wnd: HWND, rect: &RECT) -> bool {
     unsafe {
-        winuser::MoveWindow(
+        WindowsAndMessaging::MoveWindow(
             h_wnd,
             rect.left,
             rect.top,
             rect.right,
             rect.bottom,
-            minwindef::TRUE,
-        )
+            true,
+        ).into()
     }
 }
 
-pub fn is_window_visible(h_wnd: windef::HWND) -> minwindef::BOOL {
-    unsafe { winuser::IsWindowVisible(h_wnd) }
+pub fn is_window_visible(h_wnd: HWND) -> bool {
+    unsafe { WindowsAndMessaging::IsWindowVisible(h_wnd).into() }
 }
 
-pub fn show_window(h_wnd: windef::HWND, n_cmd_show: winapi::ctypes::c_int) -> minwindef::BOOL {
-    unsafe { winuser::ShowWindow(h_wnd, n_cmd_show) }
+pub fn show_window(h_wnd: HWND, n_cmd_show: WindowsAndMessaging::SHOW_WINDOW_CMD) -> bool {
+    unsafe { WindowsAndMessaging::ShowWindow(h_wnd, n_cmd_show).into() }
 }
 
-pub fn toggle_window_visible(h_wnd: windef::HWND) -> minwindef::BOOL {
-    if 1 == is_window_visible(h_wnd) {
-        show_window(h_wnd, winuser::SW_HIDE)
+pub fn toggle_window_visible(h_wnd: HWND) -> bool {
+    if is_window_visible(h_wnd) {
+        show_window(h_wnd, WindowsAndMessaging::SW_HIDE)
     } else {
-        show_window(h_wnd, winuser::SW_SHOW)
+        show_window(h_wnd, WindowsAndMessaging::SW_SHOW)
     }
 }
 
@@ -189,7 +194,7 @@ where
     fn split_rows(self, at: i32) -> (Self, Self);
 }
 
-impl RectUtil for windef::RECT {
+impl RectUtil for RECT {
     fn inset(mut self, delta: i32) -> Self {
         self.left += delta;
         self.top += delta;
@@ -225,7 +230,7 @@ mod rect_util_tests {
 
     #[test]
     fn inset() {
-        let start = windef::RECT {
+        let start = RECT {
             bottom: 100,
             left: 100,
             right: 100,
@@ -239,7 +244,7 @@ mod rect_util_tests {
 
     #[test]
     fn shift_down() {
-        let start = windef::RECT {
+        let start = RECT {
             bottom: 100,
             left: 100,
             right: 100,
@@ -253,7 +258,7 @@ mod rect_util_tests {
 
     #[test]
     fn shift_right() {
-        let start = windef::RECT {
+        let start = RECT {
             bottom: 100,
             left: 100,
             right: 100,
@@ -267,7 +272,7 @@ mod rect_util_tests {
 
     #[test]
     fn split_columns() {
-        let start = windef::RECT {
+        let start = RECT {
             bottom: 100,
             left: 100,
             right: 100,
@@ -285,7 +290,7 @@ mod rect_util_tests {
 
     #[test]
     fn split_rows() {
-        let start = windef::RECT {
+        let start = RECT {
             bottom: 100,
             left: 100,
             right: 100,
@@ -306,8 +311,8 @@ mod rect_util_tests {
 // window's proc related function
 
 #[cfg(target_arch = "x86_64")]
-pub fn get_window_wrapper<'a, T>(h_wnd: windef::HWND) -> Option<&'a mut T> {
-    let ptr = unsafe { winuser::GetWindowLongPtrW(h_wnd, winuser::GWLP_USERDATA) };
+pub fn get_window_wrapper<'a, T>(h_wnd: HWND) -> Option<&'a mut T> {
+    let ptr = unsafe { WindowsAndMessaging::GetWindowLongPtrW(h_wnd, WindowsAndMessaging::GWLP_USERDATA) };
     if ptr > 0 {
         Some(unsafe { &mut *(ptr as *mut T) })
     } else {
@@ -316,8 +321,8 @@ pub fn get_window_wrapper<'a, T>(h_wnd: windef::HWND) -> Option<&'a mut T> {
 }
 
 #[cfg(target_arch = "x86")]
-pub fn get_window_wrapper<'a, T>(h_wnd: windef::HWND) -> Option<&'a mut T> {
-    let ptr = unsafe { winuser::GetWindowLongW(h_wnd, winuser::GWLP_USERDATA) };
+pub fn get_window_wrapper<'a, T>(h_wnd: HWND) -> Option<&'a mut T> {
+    let ptr = unsafe { WindowsAndMessaging::GetWindowLongW(h_wnd, WindowsAndMessaging::GWLP_USERDATA) };
     if ptr > 0 {
         Some(unsafe { &mut *(ptr as *mut T) })
     } else {
@@ -326,25 +331,25 @@ pub fn get_window_wrapper<'a, T>(h_wnd: windef::HWND) -> Option<&'a mut T> {
 }
 
 #[cfg(target_arch = "x86_64")]
-pub fn set_window_wrapper(h_wnd: windef::HWND, l_param: minwindef::LPARAM) {
-    let data = unsafe { &mut *(l_param as *mut winuser::CREATESTRUCTW) };
+pub fn set_window_wrapper(h_wnd: HWND, l_param: LPARAM) {
+    let data = unsafe { &mut *(l_param.0 as *mut WindowsAndMessaging::CREATESTRUCTW) };
     unsafe {
-        winuser::SetWindowLongPtrW(
+        WindowsAndMessaging::SetWindowLongPtrW(
             h_wnd,
-            winuser::GWLP_USERDATA,
-            data.lpCreateParams as winapi::shared::basetsd::LONG_PTR,
+            WindowsAndMessaging::GWLP_USERDATA,
+            data.lpCreateParams as isize,
         );
     }
 }
 
 #[cfg(target_arch = "x86")]
-pub fn set_window_wrapper(h_wnd: windef::HWND, l_param: minwindef::LPARAM) {
-    let data = unsafe { &mut *(l_param as *mut winuser::CREATESTRUCTW) };
+pub fn set_window_wrapper(h_wnd: HWND, l_param: LPARAM) {
+    let data = unsafe { &mut *(l_param as *mut WindowsAndMessaging::CREATESTRUCTW) };
     unsafe {
-        winuser::SetWindowLongW(
+        WindowsAndMessaging::SetWindowLongW(
             h_wnd,
-            winuser::GWLP_USERDATA,
-            data.lpCreateParams as winnt::LONG,
+            WindowsAndMessaging::GWLP_USERDATA,
+            data.lpCreateParams,
         );
     }
 }
@@ -352,19 +357,19 @@ pub fn set_window_wrapper(h_wnd: windef::HWND, l_param: minwindef::LPARAM) {
 pub trait Windowed {
     fn window_proc(
         &mut self,
-        msg: minwindef::UINT,
-        w_param: minwindef::WPARAM,
-        l_param: minwindef::LPARAM,
-    ) -> Option<minwindef::LRESULT>;
+        msg: u32,
+        w_param: WPARAM,
+        l_param: LPARAM,
+    ) -> Option<LRESULT>;
 }
 
 pub unsafe extern "system" fn window_proc_generic<T: Windowed>(
-    h_wnd: windef::HWND,
-    msg: minwindef::UINT,
-    w_param: minwindef::WPARAM,
-    l_param: minwindef::LPARAM,
-) -> minwindef::LRESULT {
-    if msg == winuser::WM_CREATE {
+    h_wnd: HWND,
+    msg: u32,
+    w_param: WPARAM,
+    l_param: LPARAM,
+) -> LRESULT {
+    if msg == WindowsAndMessaging::WM_CREATE {
         set_window_wrapper(h_wnd, l_param);
     }
     // println!("sinproc: msg:{:?} w_param:{:?} l_param:{:?}", msg, w_param, l_param);
@@ -373,5 +378,5 @@ pub unsafe extern "system" fn window_proc_generic<T: Windowed>(
             return out;
         }
     }
-    winuser::DefWindowProcW(h_wnd, msg, w_param, l_param)
+    WindowsAndMessaging::DefWindowProcW(h_wnd, msg, w_param, l_param)
 }
