@@ -45,13 +45,13 @@ use crate::settings::*;
 mod clean_text;
 use crate::clean_text::*;
 
-struct State<'a> {
-    voice: Box<SpVoice<'a>>,
+struct State {
+    voice: Box<SpVoice>,
     settings: Box<SettingsWindow>,
     hk: Vec<HotKey>,
 }
 
-impl<'a> State<'a> {
+impl State {
     fn read(&mut self) {
         self.voice.resume();
         match get_text() {

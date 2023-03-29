@@ -31,20 +31,21 @@ pub struct Com {}
 impl Com {
     pub fn new() -> Com {
         println!("new for Com");
-        unsafe { System::Com::CoInitialize(None); }
+        unsafe { System::Com::CoInitialize(Some(null_mut())) };
         Com {}
     }
 }
 
 impl Drop for Com {
     fn drop(&mut self) {
+        unsafe { System::Com::CoUninitialize() };
         println!("drop for Com");
     }
 }
 
-pub struct SpVoice<'a> {
+pub struct SpVoice {
     // https://msdn.microsoft.com/en-us/library/ms723602.aspx
-    voice: &'a mut Speech::ISpVoice,
+    voice: Speech::ISpVoice,
     window: HWND,
     edit: HWND,
     rate: HWND,
@@ -55,10 +56,9 @@ pub struct SpVoice<'a> {
     us_per_utf16: [Variance; 21],
 }
 
-impl<'a> SpVoice<'a> {
-    pub fn new<'c: 'a>(_con: &'c Com) -> Box<SpVoice<'a>> {
+impl SpVoice {
+    pub fn new<'c>(_con: &'c Com) -> Box<SpVoice> {
         println!("new for SpVoice");
-        let voice: *mut Speech::ISpVoice = null_mut();
         let sapi_id: WideString = "SAPI.SpVoice".into();
 
         unsafe {
@@ -69,17 +69,15 @@ impl<'a> SpVoice<'a> {
                 Ok(c) => c,
             };
 
-            *voice = match System::Com::CoCreateInstance(
-                &clsid_spvoice,
-                None,
-                System::Com::CLSCTX_ALL
-            ) {
-                Err(_) => panic!("failed for SpVoice at CoCreateInstance"),
-                Ok(v) => v,
-            };
-
             let mut out = Box::new(SpVoice {
-                voice: &mut *voice,
+                voice: match System::Com::CoCreateInstance(
+                    &clsid_spvoice,
+                    None,
+                    System::Com::CLSCTX_ALL
+                ) {
+                    Err(_) => panic!("failed for SpVoice at CoCreateInstance"),
+                    Ok(v) => v,
+                },
                 window: HWND(0),
                 edit: HWND(0),
                 rate: HWND(0),
@@ -121,7 +119,7 @@ impl<'a> SpVoice<'a> {
                 WindowsAndMessaging::GetDesktopWindow(),
                 WindowsAndMessaging::HMENU(0),
                 HINSTANCE(0),
-                Some(&mut out as *mut Box<SpVoice<'_>>
+                Some(&mut out as *mut Box<SpVoice>
                     as *mut winapi::ctypes::c_void),
             );
 
@@ -328,7 +326,7 @@ fn test_format_duration() {
     assert_eq!(format_duration(duration), "0:00");
 }
 
-impl<'a> Windowed for SpVoice<'a> {
+impl Windowed for SpVoice {
     fn window_proc(
         &mut self,
         msg: u32,
@@ -425,7 +423,7 @@ impl<'a> Windowed for SpVoice<'a> {
     }
 }
 
-impl<'a> Drop for SpVoice<'a> {
+impl Drop for SpVoice {
     fn drop(&mut self) {
         unsafe { Shell::Shell_NotifyIconW(Shell::NIM_DELETE, &mut self.nicon) };
         println!("drop for SpVoice");
