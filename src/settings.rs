@@ -70,14 +70,8 @@ impl SettingsWindow {
                 cbClsExtra: 0,
                 cbWndExtra: 0,
                 hInstance: HINSTANCE(0),
-                hIcon: WindowsAndMessaging::LoadIconW(
-                    HINSTANCE(0),
-                    PCWSTR(&mut 1),
-                ).unwrap(),
-                hCursor: WindowsAndMessaging::LoadCursorW(
-                    HINSTANCE(0),
-                    WindowsAndMessaging::IDI_APPLICATION
-                ).unwrap(),
+                hIcon: WindowsAndMessaging::HICON(0),
+                hCursor: WindowsAndMessaging::HCURSOR(0),
                 hbrBackground: Graphics::Gdi::HBRUSH(16),
                 lpszMenuName: PCWSTR::null(),
                 lpszClassName: PCWSTR::from_raw(window_class_name.as_ptr()),
