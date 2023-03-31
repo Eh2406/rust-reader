@@ -3,7 +3,7 @@ use chrono;
 use std::mem::size_of;
 use std::mem::zeroed;
 
-use windows::core::{GUID, PCWSTR};
+use windows::core::PCWSTR;
 use windows::Win32::{
     Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, RECT, WPARAM},
     Graphics,
@@ -59,19 +59,11 @@ pub struct SpVoice {
 impl SpVoice {
     pub fn new<'c>(_con: &'c Com) -> Box<SpVoice> {
         println!("new for SpVoice");
-        let sapi_id: WideString = "SAPI.SpVoice".into();
 
         unsafe {
-            let clsid_spvoice: GUID = match System::Com::CLSIDFromProgID(
-                PCWSTR::from_raw(sapi_id.as_ptr())
-            ) {
-                Err(_) => panic!("failed for SpVoice at CLSIDFromProgID"),
-                Ok(c) => c,
-            };
-
             let mut out = Box::new(SpVoice {
                 voice: match System::Com::CoCreateInstance(
-                    &clsid_spvoice,
+                    &Speech::SpVoice,
                     None,
                     System::Com::CLSCTX_ALL
                 ) {
