@@ -1,4 +1,4 @@
-use windows::core::{HRESULT, PCWSTR};
+use windows::core::PCWSTR;
 use windows::Win32::{
     Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, RECT, WPARAM},
     System::Console,
@@ -73,17 +73,6 @@ pub fn create_edit_window(window_wnd: HWND, style: WindowsAndMessaging::WINDOW_S
             None,
         )
     }
-}
-
-#[inline]
-pub fn failed(hr: HRESULT) -> bool {
-    hr.0 < 0
-}
-
-#[inline]
-#[allow(dead_code)]
-pub fn succeeded(hr: HRESULT) -> bool {
-    !failed(hr)
 }
 
 pub fn get_message() -> Option<WindowsAndMessaging::MSG> {

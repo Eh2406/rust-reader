@@ -31,8 +31,10 @@ pub struct Com {}
 impl Com {
     pub fn new() -> Com {
         println!("new for Com");
-        unsafe { System::Com::CoInitialize(Some(null_mut())) };
-        Com {}
+        match unsafe { System::Com::CoInitialize(Some(null_mut())) } {
+            Ok(_) => Com{},
+            Err(_) => panic!("failed for Com"),
+        }
     }
 }
 
