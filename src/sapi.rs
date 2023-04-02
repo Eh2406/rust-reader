@@ -185,12 +185,12 @@ impl SpVoice {
     pub fn speak<T: Into<WideString>>(&mut self, string: T) {
         self.last_read = string.into();
         set_window_text(self.edit, &self.last_read);
-        unsafe { self.voice.Speak(PCWSTR::from_raw(self.last_read.as_ptr()), 19, None) };
+        unsafe { self.voice.Speak(PCWSTR::from_raw(self.last_read.as_ptr()), 19, None) }.unwrap();
         self.last_update = None;
     }
 
     pub fn wait(&mut self) {
-        unsafe { self.voice.WaitUntilDone(System::WindowsProgramming::INFINITE) };
+        unsafe { self.voice.WaitUntilDone(System::WindowsProgramming::INFINITE) }.unwrap();
     }
 
     pub fn speak_wait<T: Into<WideString>>(&mut self, string: T) {
@@ -199,25 +199,25 @@ impl SpVoice {
     }
 
     pub fn pause(&mut self) {
-        unsafe { self.voice.Pause() };
+         unsafe { self.voice.Pause() }.unwrap();
         self.last_update = None;
     }
 
     pub fn resume(&mut self) {
-        unsafe { self.voice.Resume() };
+        unsafe { self.voice.Resume() }.unwrap();
         self.last_update = None;
     }
 
     pub fn set_rate(&mut self, rate: i32) -> i32 {
         let rate = max(min(rate, 10), -10);
-        unsafe { self.voice.SetRate(rate) };
+        unsafe { self.voice.SetRate(rate) }.unwrap();
         self.last_update = None;
         self.get_rate()
     }
 
     pub fn get_rate(&mut self) -> i32 {
         let mut rate = 0;
-        unsafe { self.voice.GetRate(&mut rate) };
+        unsafe { self.voice.GetRate(&mut rate) }.unwrap();
         set_window_text(self.rate, &format!("reading at rate: {}", rate).into());
         rate
     }
@@ -228,30 +228,30 @@ impl SpVoice {
     }
 
     pub fn set_volume(&mut self, volume: u16) {
-        unsafe { self.voice.SetVolume(min(volume, 100)) };
+        unsafe { self.voice.SetVolume(min(volume, 100)) }.unwrap();
     }
 
     #[allow(dead_code)]
     pub fn get_volume(&mut self) -> u16 {
         let mut volume = 0;
-        unsafe { self.voice.GetVolume(&mut volume) };
+        unsafe { self.voice.GetVolume(&mut volume) }.unwrap();
         volume
     }
 
     pub fn set_alert_boundary(&mut self, boundary: Speech::SPEVENTENUM) {
-        unsafe { self.voice.SetAlertBoundary(boundary) };
+        unsafe { self.voice.SetAlertBoundary(boundary) }.unwrap();
     }
 
     #[allow(dead_code)]
     pub fn get_alert_boundary(&mut self) -> Speech::SPEVENTENUM {
         let mut boundary = Speech::SPEVENTENUM(0);
-        unsafe { self.voice.GetAlertBoundary(&mut boundary) };
+        unsafe { self.voice.GetAlertBoundary(&mut boundary) }.unwrap();
         boundary
     }
 
     pub fn get_status(&mut self) -> Speech::SPVOICESTATUS {
         let mut status: Speech::SPVOICESTATUS = unsafe { mem::zeroed() };
-        unsafe { self.voice.GetStatus(&mut status, null_mut()) };
+        unsafe { self.voice.GetStatus(&mut status, null_mut()) }.unwrap();
         status
     }
 
@@ -264,7 +264,7 @@ impl SpVoice {
                     WPARAM(0),
                     LPARAM(0)
                 )
-        };
+        }.unwrap();
     }
 
     pub fn set_interest(&mut self, event: &[u32], queued: &[u32]) {
@@ -276,7 +276,7 @@ impl SpVoice {
             .iter()
             .map(|&x| winapi::um::sapi51::SPFEI(x))
             .fold(queued, |acc, x| acc | x);
-        unsafe { self.voice.SetInterest(event, queued) };
+        unsafe { self.voice.SetInterest(event, queued) }.unwrap();
     }
 }
 
