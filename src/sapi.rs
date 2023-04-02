@@ -107,8 +107,7 @@ impl SpVoice {
                 WindowsAndMessaging::GetDesktopWindow(),
                 WindowsAndMessaging::HMENU(0),
                 HINSTANCE(0),
-                Some(&mut out as *mut Box<SpVoice>
-                    as *mut winapi::ctypes::c_void),
+                Some(&mut *out as *mut _ as _),
             );
 
             out.nicon.cbSize = size_of::<Shell::NOTIFYICONDATAW>() as u32;
