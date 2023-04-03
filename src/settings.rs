@@ -88,8 +88,7 @@ impl SettingsWindow {
                 wm::GetDesktopWindow(),
                 wm::HMENU(0),
                 HINSTANCE(0),
-                Some(&mut out as *mut Box<SettingsWindow>
-                    as *mut winapi::ctypes::c_void),
+                Some(&mut *out as *mut _ as *mut _),
             );
             Controls::InitCommonControls();
             let wide_trackbar: WideString = "msctls_trackbar32".into();
