@@ -8,7 +8,7 @@ extern crate unicode_segmentation;
 use windows::Win32::{
     Foundation::{WPARAM, LPARAM},
     System::Threading::GetCurrentThreadId,
-    UI::WindowsAndMessaging,
+    UI::WindowsAndMessaging as wm,
 };
 
 extern crate itertools;
@@ -137,9 +137,9 @@ fn setup_hotkeys(settings: &mut Settings) -> Vec<HotKey> {
 
 fn press_hotkey(id: Action) {
     unsafe {
-        WindowsAndMessaging::PostThreadMessageW(
+        wm::PostThreadMessageW(
             GetCurrentThreadId(),
-            WindowsAndMessaging::WM_HOTKEY,
+            wm::WM_HOTKEY,
             WPARAM(id as usize),
             LPARAM(0),
         )
@@ -183,14 +183,14 @@ fn main() {
 
     while let Some(msg) = get_message() {
         match msg.message {
-            WindowsAndMessaging::WM_HOTKEY if msg.wParam.0 < state.hk.len() => {
+            wm::WM_HOTKEY if msg.wParam.0 < state.hk.len() => {
                 state.match_hotkey_id(ACTION_LIST[msg.wParam.0])
             }
             _ => {
                 // println!("{:?}", msg);
                 unsafe {
-                    WindowsAndMessaging::TranslateMessage(&msg);
-                    WindowsAndMessaging::DispatchMessageW(&msg);
+                    wm::TranslateMessage(&msg);
+                    wm::DispatchMessageW(&msg);
                 }
             }
         }

@@ -7,10 +7,10 @@ use crate::wide_string::WideString;
 use windows::core::PCWSTR;
 use windows::Win32::{
     Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, RECT, WPARAM},
-    Graphics,
+    Graphics::Gdi,
     UI::Controls,
     UI::Input::KeyboardAndMouse::{VK_OEM_2, VK_ESCAPE, VK_OEM_MINUS, VK_OEM_PERIOD, VK_OEM_PLUS},
-    UI::WindowsAndMessaging,
+    UI::WindowsAndMessaging as wm,
 };
 use winapi::shared::minwindef::{HIBYTE, HIWORD, LOBYTE, MAKEWORD};
 use crate::window::*;
@@ -64,60 +64,57 @@ impl SettingsWindow {
 
         let window_class_name: WideString = "setings_window_class_name".into();
         unsafe {
-            WindowsAndMessaging::RegisterClassW(&WindowsAndMessaging::WNDCLASSW {
-                style: WindowsAndMessaging::WNDCLASS_STYLES(0),
+            wm::RegisterClassW(&wm::WNDCLASSW {
+                style: wm::WNDCLASS_STYLES(0),
                 lpfnWndProc: Some(window_proc_generic::<SettingsWindow>),
                 cbClsExtra: 0,
                 cbWndExtra: 0,
                 hInstance: HINSTANCE(0),
-                hIcon: WindowsAndMessaging::HICON(0),
-                hCursor: WindowsAndMessaging::HCURSOR(0),
-                hbrBackground: Graphics::Gdi::HBRUSH(16),
+                hIcon: wm::HICON(0),
+                hCursor: wm::HCURSOR(0),
+                hbrBackground: Gdi::HBRUSH(16),
                 lpszMenuName: PCWSTR::null(),
                 lpszClassName: PCWSTR::from_raw(window_class_name.as_ptr()),
             });
-            out.window = WindowsAndMessaging::CreateWindowExW(
-                WindowsAndMessaging::WINDOW_EX_STYLE(0),
+            out.window = wm::CreateWindowExW(
+                wm::WINDOW_EX_STYLE(0),
                 PCWSTR::from_raw(window_class_name.as_ptr()),
                 PCWSTR(&mut 0u16),
-                WindowsAndMessaging::WS_OVERLAPPEDWINDOW | WindowsAndMessaging::WS_CLIPSIBLINGS,
+                wm::WS_OVERLAPPEDWINDOW | wm::WS_CLIPSIBLINGS,
                 0,
                 0,
                 0,
                 0,
-                WindowsAndMessaging::GetDesktopWindow(),
-                WindowsAndMessaging::HMENU(0),
+                wm::GetDesktopWindow(),
+                wm::HMENU(0),
                 HINSTANCE(0),
                 Some(&mut out as *mut Box<SettingsWindow>
                     as *mut winapi::ctypes::c_void),
             );
             Controls::InitCommonControls();
             let wide_trackbar: WideString = "msctls_trackbar32".into();
-            out.rate.1 = WindowsAndMessaging::CreateWindowExW(
-                WindowsAndMessaging::WINDOW_EX_STYLE(0),
+            out.rate.1 = wm::CreateWindowExW(
+                wm::WINDOW_EX_STYLE(0),
                 PCWSTR::from_raw(wide_trackbar.as_ptr()),
                 PCWSTR(&mut 0u16),
-                WindowsAndMessaging::WS_CHILD
-                    | WindowsAndMessaging::WS_VISIBLE
-                    | WindowsAndMessaging::WINDOW_STYLE(
-                          Controls::TBS_AUTOTICKS
-                        | Controls::TBS_BOTTOM),
+                wm::WS_CHILD | wm::WS_VISIBLE | wm::WINDOW_STYLE(
+                    Controls::TBS_AUTOTICKS | Controls::TBS_BOTTOM),
                 0,
                 0,
                 0,
                 0,
                 out.window,
-                WindowsAndMessaging::HMENU(0),
+                wm::HMENU(0),
                 HINSTANCE(0),
                 None,
             );
-            WindowsAndMessaging::SendMessageW(
+            wm::SendMessageW(
                 out.rate.1,
                 Controls::TBM_SETRANGE,
                 WPARAM(0),
                 LPARAM(MAKEWORD(0, 20) as isize),
             );
-            WindowsAndMessaging::SendMessageW(
+            wm::SendMessageW(
                 out.rate.1,
                 Controls::TBM_SETPAGESIZE,
                 WPARAM(0),
@@ -138,21 +135,21 @@ impl SettingsWindow {
             for (act, ht) in crate::actions::ACTION_LIST.iter().zip(out.hotkeys.iter_mut()) {
                 let wide_hotkey_name: WideString = format!("{}", act).into();
                 ht.0 = create_static_window(window, Some(&wide_hotkey_name));
-                ht.1 = WindowsAndMessaging::CreateWindowExW(
-                    WindowsAndMessaging::WINDOW_EX_STYLE(0),
+                ht.1 = wm::CreateWindowExW(
+                    wm::WINDOW_EX_STYLE(0),
                     PCWSTR::from_raw(wide_hotkey_class.as_ptr()),
                     PCWSTR(&mut 0u16),
-                    WindowsAndMessaging::WS_CHILD | WindowsAndMessaging::WS_VISIBLE,
+                    wm::WS_CHILD | wm::WS_VISIBLE,
                     0,
                     0,
                     0,
                     0,
                     window,
-                    WindowsAndMessaging::HMENU(0),
+                    wm::HMENU(0),
                     HINSTANCE(0),
                     None,
                 );
-                WindowsAndMessaging::SendMessageW(
+                wm::SendMessageW(
                     ht.1,
                     Controls::HKM_SETRULES,
                     WPARAM((Controls::HKCOMB_NONE | Controls::HKCOMB_S) as usize),
@@ -171,7 +168,7 @@ impl SettingsWindow {
                 bottom: 400,
             },
         );
-        show_window(out.window, WindowsAndMessaging::SW_SHOWNORMAL);
+        show_window(out.window, wm::SW_SHOWNORMAL);
         out.toggle_window_visible();
         out
     }
@@ -179,8 +176,8 @@ impl SettingsWindow {
     fn add_cleaner(&mut self) {
         self.cleaners.push((
             None,
-            create_edit_window(self.window, WindowsAndMessaging::WINDOW_STYLE(0)),
-            create_edit_window(self.window, WindowsAndMessaging::WINDOW_STYLE(0)),
+            create_edit_window(self.window, wm::WINDOW_STYLE(0)),
+            create_edit_window(self.window, wm::WINDOW_STYLE(0)),
             create_button_window(self.window, Some(&"^".into())),
             create_button_window(self.window, Some(&"X".into())),
         ));
@@ -213,13 +210,13 @@ impl SettingsWindow {
     }
 
     pub fn show_window(&self) -> bool {
-        show_window(self.window, WindowsAndMessaging::SW_SHOW)
+        show_window(self.window, wm::SW_SHOW)
     }
 
     pub fn get_inner_rate(&mut self) -> i32 {
         let rate = self.settings.rate;
         unsafe {
-            WindowsAndMessaging::SendMessageW(
+            wm::SendMessageW(
                 self.rate.1,
                 Controls::TBM_SETPOS,
                 WPARAM(1),
@@ -233,7 +230,7 @@ impl SettingsWindow {
     pub fn get_inner_hotkeys(&self) -> [(u32, u32); 8] {
         for (&(a, b), hwnd) in self.settings.hotkeys.iter().zip(self.hotkeys.iter()) {
             unsafe {
-                WindowsAndMessaging::SendMessageW(
+                wm::SendMessageW(
                     hwnd.1,
                     Controls::HKM_SETHOTKEY,
                     WPARAM(MAKEWORD(b as u8, convert_mod(a as u8)) as usize),
@@ -254,9 +251,9 @@ impl SettingsWindow {
                 self.remove_cleaner(i);
             }
             unsafe {
-                WindowsAndMessaging::SendMessageW(
+                wm::SendMessageW(
                     self.window,
-                    WindowsAndMessaging::WM_SIZE,
+                    wm::WM_SIZE,
                     WPARAM(0),
                     LPARAM(0)
                 );
@@ -296,11 +293,11 @@ impl Windowed for SettingsWindow {
     ) -> Option<LRESULT> {
         use itertools::EitherOrBoth::{Both, Left, Right};
         match msg {
-            WindowsAndMessaging::WM_CLOSE => {
-                show_window(self.window, WindowsAndMessaging::SW_HIDE);
+            wm::WM_CLOSE => {
+                show_window(self.window, wm::SW_HIDE);
                 return Some(LRESULT(0));
             }
-            WindowsAndMessaging::WM_SIZE => {
+            wm::WM_SIZE => {
                 let rect = get_client_rect(self.window).inset(3);
                 if (w_param.0 <= 2) && rect.right > 0 && rect.bottom > 0 {
                     let mut rect = rect.split_rows(rect.bottom - 50);
@@ -340,11 +337,11 @@ impl Windowed for SettingsWindow {
                         let (l, r) = rect.0.split_columns(rect.1.right - 50);
                         let r = r.split_columns(25);
                         unsafe {
-                            Graphics::Gdi::InvalidateRect(ht.3, None, true);
+                            Gdi::InvalidateRect(ht.3, None, true);
                         }
                         move_window(ht.3, &r.0.inset(3));
                         unsafe {
-                            Graphics::Gdi::InvalidateRect(ht.4, None, true);
+                            Gdi::InvalidateRect(ht.4, None, true);
                         }
                         move_window(ht.4, &r.1.inset(3));
                         let (l, r) = l.split_columns(split_at);
@@ -354,19 +351,19 @@ impl Windowed for SettingsWindow {
                     return Some(LRESULT(0));
                 }
             }
-            WindowsAndMessaging::WM_GETMINMAXINFO => {
-                let data = unsafe { &mut *(l_param.0 as *mut WindowsAndMessaging::MINMAXINFO) };
+            wm::WM_GETMINMAXINFO => {
+                let data = unsafe { &mut *(l_param.0 as *mut wm::MINMAXINFO) };
                 data.ptMinTrackSize.x = 340;
                 data.ptMinTrackSize.y =
                     (55 + 25 * (3 + self.hotkeys.len()) + 25 * self.cleaners.len()) as i32;
                 return Some(LRESULT(0));
             }
-            WindowsAndMessaging::WM_COMMAND | WindowsAndMessaging::WM_HSCROLL => {
+            wm::WM_COMMAND | wm::WM_HSCROLL => {
                 let mut changed = false;
                 let mut invalid = false;
                 let mut dirty_cleaners = false;
 
-                if HIWORD(w_param.0.try_into().unwrap()) as u32 == WindowsAndMessaging::BN_CLICKED {
+                if HIWORD(w_param.0.try_into().unwrap()) as u32 == wm::BN_CLICKED {
                     if self.reset.0 == l_param.0 {
                         self.get_inner_all();
                     }
@@ -374,9 +371,9 @@ impl Windowed for SettingsWindow {
                         self.add_cleaner();
                         dirty_cleaners = true;
                         unsafe {
-                            WindowsAndMessaging::SendMessageW(
+                            wm::SendMessageW(
                                 self.window,
-                                WindowsAndMessaging::WM_SIZE,
+                                wm::WM_SIZE,
                                 WPARAM(0),
                                 LPARAM(0)
                             );
@@ -386,9 +383,9 @@ impl Windowed for SettingsWindow {
                         self.swap_cleaner(i);
                         dirty_cleaners = true;
                         unsafe {
-                            WindowsAndMessaging::SendMessageW(
+                            wm::SendMessageW(
                                 self.window,
-                                WindowsAndMessaging::WM_SIZE,
+                                wm::WM_SIZE,
                                 WPARAM(0),
                                 LPARAM(0)
                             );
@@ -398,9 +395,9 @@ impl Windowed for SettingsWindow {
                         self.remove_cleaner(i);
                         dirty_cleaners = true;
                         unsafe {
-                            WindowsAndMessaging::SendMessageW(
+                            wm::SendMessageW(
                                 self.window,
-                                WindowsAndMessaging::WM_SIZE,
+                                wm::WM_SIZE,
                                 WPARAM(0),
                                 LPARAM(0)
                             );
@@ -409,11 +406,11 @@ impl Windowed for SettingsWindow {
                 }
 
                 let saving = self.save.0 == l_param.0
-                    && HIWORD(w_param.0.try_into().unwrap()) as u32 == WindowsAndMessaging::BN_CLICKED;
+                    && HIWORD(w_param.0.try_into().unwrap()) as u32 == wm::BN_CLICKED;
 
                 // rate change
                 let new_rate =
-                    unsafe { WindowsAndMessaging::SendMessageW(
+                    unsafe { wm::SendMessageW(
                         self.rate.1,
                         TBM_GETPOS,
                         WPARAM(0),
@@ -425,7 +422,7 @@ impl Windowed for SettingsWindow {
                 // hotkeys change
                 for (&(_, ht), hkt) in self.hotkeys.iter().zip_eq(self.settings.hotkeys.iter()) {
                     let set_to = unsafe {
-                        WindowsAndMessaging::SendMessageW(
+                        wm::SendMessageW(
                             ht,
                             Controls::HKM_GETHOTKEY,
                             WPARAM(0),
@@ -490,7 +487,7 @@ impl Windowed for SettingsWindow {
                         self.hotkeys.iter().zip_eq(self.settings.hotkeys.iter_mut())
                     {
                         let set_to = unsafe {
-                            WindowsAndMessaging::SendMessageW(
+                            wm::SendMessageW(
                                 ht,
                                 Controls::HKM_GETHOTKEY,
                                 WPARAM(0),

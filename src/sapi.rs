@@ -6,11 +6,12 @@ use std::mem::zeroed;
 use windows::core::PCWSTR;
 use windows::Win32::{
     Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, RECT, WPARAM},
-    Graphics,
+    Graphics::Gdi,
     Media::Speech,
-    System,
+    System::Com as syscom,
+    System::WindowsProgramming::INFINITE,
     UI::Shell,
-    UI::WindowsAndMessaging,
+    UI::WindowsAndMessaging as wm,
 };
 use winapi;
 use winapi::shared::minwindef::{HIWORD, LOWORD};
@@ -23,15 +24,15 @@ use std::time::Instant;
 
 use crate::window::*;
 
-pub const WM_SAPI_EVENT: u32 = WindowsAndMessaging::WM_APP + 15;
-pub const WM_APP_NOTIFICATION_ICON: u32 = WindowsAndMessaging::WM_APP + 16;
+pub const WM_SAPI_EVENT: u32 = wm::WM_APP + 15;
+pub const WM_APP_NOTIFICATION_ICON: u32 = wm::WM_APP + 16;
 
 pub struct Com {}
 
 impl Com {
     pub fn new() -> Com {
         println!("new for Com");
-        match unsafe { System::Com::CoInitialize(Some(null_mut())) } {
+        match unsafe { syscom::CoInitialize(Some(null_mut())) } {
             Ok(_) => Com{},
             Err(_) => panic!("failed for Com"),
         }
@@ -40,7 +41,7 @@ impl Com {
 
 impl Drop for Com {
     fn drop(&mut self) {
-        unsafe { System::Com::CoUninitialize() };
+        unsafe { syscom::CoUninitialize() };
         println!("drop for Com");
     }
 }
@@ -64,10 +65,8 @@ impl SpVoice {
 
         unsafe {
             let mut out = Box::new(SpVoice {
-                voice: match System::Com::CoCreateInstance(
-                    &Speech::SpVoice,
-                    None,
-                    System::Com::CLSCTX_ALL
+                voice: match syscom::CoCreateInstance(
+                    &Speech::SpVoice, None, syscom::CLSCTX_ALL
                 ) {
                     Err(_) => panic!("failed for SpVoice at CoCreateInstance"),
                     Ok(v) => v,
@@ -83,29 +82,29 @@ impl SpVoice {
             });
 
             let window_class_name: WideString = "SAPI_event_window_class_name".into();
-            WindowsAndMessaging::RegisterClassW(&WindowsAndMessaging::WNDCLASSW {
-                style: WindowsAndMessaging::WNDCLASS_STYLES(0),
+            wm::RegisterClassW(&wm::WNDCLASSW {
+                style: wm::WNDCLASS_STYLES(0),
                 lpfnWndProc: Some(window_proc_generic::<SpVoice>),
                 cbClsExtra: 0,
                 cbWndExtra: 0,
                 hInstance: HINSTANCE(0),
-                hIcon: WindowsAndMessaging::HICON(0),
-                hCursor: WindowsAndMessaging::HCURSOR(0),
-                hbrBackground: Graphics::Gdi::HBRUSH(16),
+                hIcon: wm::HICON(0),
+                hCursor: wm::HCURSOR(0),
+                hbrBackground: Gdi::HBRUSH(16),
                 lpszMenuName: PCWSTR::null(),
                 lpszClassName: PCWSTR::from_raw(window_class_name.as_ptr()),
             });
-            out.window = WindowsAndMessaging::CreateWindowExW(
-                WindowsAndMessaging::WINDOW_EX_STYLE(0),
+            out.window = wm::CreateWindowExW(
+                wm::WINDOW_EX_STYLE(0),
                 PCWSTR::from_raw(window_class_name.as_ptr()),
                 PCWSTR(&mut 0u16),
-                WindowsAndMessaging::WS_OVERLAPPEDWINDOW | WindowsAndMessaging::WS_CLIPSIBLINGS | WindowsAndMessaging::WS_CLIPCHILDREN,
+                wm::WS_OVERLAPPEDWINDOW | wm::WS_CLIPSIBLINGS | wm::WS_CLIPCHILDREN,
                 0,
                 0,
                 0,
                 0,
-                WindowsAndMessaging::GetDesktopWindow(),
-                WindowsAndMessaging::HMENU(0),
+                wm::GetDesktopWindow(),
+                wm::HMENU(0),
                 HINSTANCE(0),
                 Some(&mut *out as *mut _ as _),
             );
@@ -115,7 +114,7 @@ impl SpVoice {
             out.nicon.uCallbackMessage = WM_APP_NOTIFICATION_ICON;
             out.nicon.uID = 1 as u32;
             out.nicon.uFlags |= Shell::NIF_ICON;
-            out.nicon.hIcon = WindowsAndMessaging::HICON(0);
+            out.nicon.hIcon = wm::HICON(0);
             out.nicon.uFlags |= Shell::NIF_MESSAGE;
             out.nicon.Anonymous.uVersion = Shell::NOTIFYICON_VERSION_4;
             let err = Shell::Shell_NotifyIconW(Shell::NIM_ADD, &mut out.nicon);
@@ -130,10 +129,8 @@ impl SpVoice {
 
             out.edit = create_edit_window(
                 out.window,
-                WindowsAndMessaging::WS_VSCROLL
-                | WindowsAndMessaging::WINDOW_STYLE(
-                      WindowsAndMessaging::ES_MULTILINE as u32
-                    | WindowsAndMessaging::ES_AUTOVSCROLL as u32)
+                wm::WS_VSCROLL | wm::WINDOW_STYLE(
+                      wm::ES_MULTILINE as u32 | wm::ES_AUTOVSCROLL as u32)
             );
             out.rate = create_static_window(out.window, None);
             out.reload_settings = create_button_window(out.window, Some(&"Show Settings".into()));
@@ -191,7 +188,7 @@ impl SpVoice {
     }
 
     pub fn wait(&mut self) {
-        unsafe { self.voice.WaitUntilDone(System::WindowsProgramming::INFINITE) }.unwrap();
+        unsafe { self.voice.WaitUntilDone(INFINITE) }.unwrap();
     }
 
     pub fn speak_wait<T: Into<WideString>>(&mut self, string: T) {
@@ -320,7 +317,7 @@ impl Windowed for SpVoice {
         l_param: LPARAM,
     ) -> Option<LRESULT> {
         match msg {
-            WindowsAndMessaging::WM_DESTROY | WindowsAndMessaging::WM_QUERYENDSESSION | WindowsAndMessaging::WM_ENDSESSION => close(),
+            wm::WM_DESTROY | wm::WM_QUERYENDSESSION | wm::WM_ENDSESSION => close(),
             WM_SAPI_EVENT => {
                 let status = self.get_status();
                 let word_range = status.word_range();
@@ -367,7 +364,7 @@ impl Windowed for SpVoice {
                 set_edit_scroll_caret(self.edit);
                 return Some(LRESULT(0));
             }
-            WindowsAndMessaging::WM_SIZE => {
+            wm::WM_SIZE => {
                 let rect = get_client_rect(self.window);
                 if (w_param.0 <= 2) && rect.right > 0 && rect.bottom > 0 {
                     let (up, down) = rect.inset(3).split_rows(25);
@@ -375,30 +372,30 @@ impl Windowed for SpVoice {
                     let (left, right) = up.split_columns(120);
                     move_window(self.reload_settings, &left.inset(3));
                     unsafe {
-                        Graphics::Gdi::InvalidateRect(self.rate, None, true);
+                        Gdi::InvalidateRect(self.rate, None, true);
                     }
                     move_window(self.rate, &right.inset(3));
                     return Some(LRESULT(0));
                 }
             }
-            WindowsAndMessaging::WM_GETMINMAXINFO => {
-                let data = unsafe { &mut *(l_param.0 as *mut u32 as *mut WindowsAndMessaging::MINMAXINFO) };
+            wm::WM_GETMINMAXINFO => {
+                let data = unsafe { &mut *(l_param.0 as *mut u32 as *mut wm::MINMAXINFO) };
                 data.ptMinTrackSize.x = 300;
                 data.ptMinTrackSize.y = 110;
                 return Some(LRESULT(0));
             }
-            WindowsAndMessaging::WM_COMMAND => {
+            wm::WM_COMMAND => {
                 use crate::press_hotkey;
                 use crate::Action;
                 if self.reload_settings.0 == l_param.0
-                    && HIWORD(w_param.0.try_into().unwrap()) as u32 == WindowsAndMessaging::BN_CLICKED
+                    && HIWORD(w_param.0.try_into().unwrap()) as u32 == wm::BN_CLICKED
                 {
                     press_hotkey(Action::ShowSettings);
                     return Some(LRESULT(0));
                 }
             }
             WM_APP_NOTIFICATION_ICON => {
-                if LOWORD(l_param.0.try_into().unwrap()) == (WindowsAndMessaging::WM_LBUTTONUP as u16) {
+                if LOWORD(l_param.0.try_into().unwrap()) == (wm::WM_LBUTTONUP as u16) {
                     self.toggle_window_visible();
                     return Some(LRESULT(0));
                 }
