@@ -130,8 +130,10 @@ impl SpVoice {
 
             out.edit = create_edit_window(
                 out.window,
-                WindowsAndMessaging::WS_VSCROLL,
-                //FIXME | WindowsAndMessaging::ES_MULTILINE | WindowsAndMessaging::ES_AUTOVSCROLL,
+                WindowsAndMessaging::WS_VSCROLL
+                | WindowsAndMessaging::WINDOW_STYLE(
+                      WindowsAndMessaging::ES_MULTILINE as u32
+                    | WindowsAndMessaging::ES_AUTOVSCROLL as u32)
             );
             out.rate = create_static_window(out.window, None);
             out.reload_settings = create_button_window(out.window, Some(&"Show Settings".into()));

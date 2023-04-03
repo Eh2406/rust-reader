@@ -98,10 +98,10 @@ impl SettingsWindow {
                 PCWSTR::from_raw(wide_trackbar.as_ptr()),
                 PCWSTR(&mut 0u16),
                 WindowsAndMessaging::WS_CHILD
-                    | WindowsAndMessaging::WS_VISIBLE,
-                // FIXME wrong style types?
-                //    | Controls::TBS_AUTOTICKS
-                //    | Controls::TBS_BOTTOM,
+                    | WindowsAndMessaging::WS_VISIBLE
+                    | WindowsAndMessaging::WINDOW_STYLE(
+                          Controls::TBS_AUTOTICKS
+                        | Controls::TBS_BOTTOM),
                 0,
                 0,
                 0,

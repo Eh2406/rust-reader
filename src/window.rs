@@ -2,6 +2,7 @@ use windows::core::PCWSTR;
 use windows::Win32::{
     Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, RECT, WPARAM},
     System::Console,
+    System::SystemServices,
     UI::{Controls, Input::KeyboardAndMouse, WindowsAndMessaging},
 };
 
@@ -17,8 +18,11 @@ pub fn create_static_window(window_wnd: HWND, name: Option<&WideString>) -> HWND
             WindowsAndMessaging::WINDOW_EX_STYLE(0),
             PCWSTR::from_raw(wide_static.as_ptr()),
             PCWSTR::from_raw(name.map(WideString::as_ptr).unwrap_or(&mut 0u16)),
-            WindowsAndMessaging::WS_CHILD | WindowsAndMessaging::WS_VISIBLE,
-            //FIXME | WindowsAndMessaging::SS_CENTER | WindowsAndMessaging::SS_NOPREFIX,
+            WindowsAndMessaging::WS_CHILD
+                | WindowsAndMessaging::WS_VISIBLE
+                | WindowsAndMessaging::WINDOW_STYLE(
+                      WindowsAndMessaging::ES_CENTER as u32
+                    | SystemServices::SS_NOPREFIX.0),
             0,
             0,
             0,
@@ -38,8 +42,12 @@ pub fn create_button_window(window_wnd: HWND, name: Option<&WideString>) -> HWND
             WindowsAndMessaging::WINDOW_EX_STYLE(0),
             PCWSTR::from_raw(wide_button.as_ptr()),
             PCWSTR::from_raw(name.map(WideString::as_ptr).unwrap_or(&mut 0u16)),
-            WindowsAndMessaging::WS_TABSTOP | WindowsAndMessaging::WS_VISIBLE | WindowsAndMessaging::WS_CHILD,
-            //FIXME | WindowsAndMessaging::BS_CENTER | WindowsAndMessaging::BS_PUSHBUTTON,
+            WindowsAndMessaging::WS_TABSTOP
+                | WindowsAndMessaging::WS_VISIBLE
+                | WindowsAndMessaging::WS_CHILD
+                | WindowsAndMessaging::WINDOW_STYLE(
+                      WindowsAndMessaging::BS_CENTER as u32
+                    | WindowsAndMessaging::BS_PUSHBUTTON as u32),
             0,
             0,
             0,
@@ -60,9 +68,14 @@ pub fn create_edit_window(window_wnd: HWND, style: WindowsAndMessaging::WINDOW_S
             WindowsAndMessaging::WS_EX_CLIENTEDGE,
             PCWSTR::from_raw(wide_edit.as_ptr()),
             PCWSTR(&mut 0u16),
-            WindowsAndMessaging::WS_TABSTOP | WindowsAndMessaging::WS_CHILD | WindowsAndMessaging::WS_VISIBLE | WindowsAndMessaging::WS_BORDER
-                | style,
-            //FIXME    | WindowsAndMessaging::ES_LEFT | WindowsAndMessaging::ES_NOHIDESEL
+            WindowsAndMessaging::WS_TABSTOP
+                | WindowsAndMessaging::WS_CHILD
+                | WindowsAndMessaging::WS_VISIBLE
+                | WindowsAndMessaging::WS_BORDER
+                | style
+                | WindowsAndMessaging::WINDOW_STYLE(
+                      WindowsAndMessaging::ES_LEFT as u32
+                    | WindowsAndMessaging::ES_NOHIDESEL as u32),
             0,
             0,
             0,
