@@ -12,7 +12,7 @@ use windows::Win32::{
     UI::Input::KeyboardAndMouse::{VK_OEM_2, VK_ESCAPE, VK_OEM_MINUS, VK_OEM_PERIOD, VK_OEM_PLUS},
     UI::WindowsAndMessaging as wm,
 };
-use winapi::shared::minwindef::{HIBYTE, HIWORD, LOBYTE, MAKEWORD};
+use winapi::shared::minwindef::{HIBYTE, HIWORD, LOBYTE, MAKELONG, MAKEWORD};
 use crate::window::*;
 
 const APP_INFO: AppInfo = AppInfo {
@@ -111,7 +111,7 @@ impl SettingsWindow {
                 out.rate.1,
                 Controls::TBM_SETRANGE,
                 WPARAM(0),
-                LPARAM(MAKEWORD(0, 20) as isize),
+                LPARAM(MAKELONG(0, 20) as isize),
             );
             wm::SendMessageW(
                 out.rate.1,
