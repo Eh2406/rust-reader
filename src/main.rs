@@ -1,3 +1,4 @@
+// Comment out the following line in order to see console output
 #![cfg_attr(not(test), windows_subsystem = "windows")]
 
 extern crate average;

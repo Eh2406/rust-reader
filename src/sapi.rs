@@ -321,7 +321,9 @@ impl Windowed for SpVoice {
             WM_SAPI_EVENT => {
                 let status = self.get_status();
                 let word_range = status.word_range();
-                let rate = self.get_rate();
+                // convert rate from range (-10, 10) to (0, 20)
+                let rate_shifted = 10u32.checked_add_signed(self.get_rate())
+                    .expect("bad rate < -10") as usize;
                 if word_range.end == 0 {
                     // called before start of reading.
                     self.last_update = None;
@@ -345,12 +347,12 @@ impl Windowed for SpVoice {
                         .expect("bad time diffrence.");
                     let new_rate =
                         (elapsed as f64) / ((word_range.start - old_word_range.start) as f64);
-                    self.us_per_utf16[rate as usize + 10].add(new_rate);
+                    self.us_per_utf16[rate_shifted].add(new_rate);
                 }
                 self.last_update = Some((Instant::now(), word_range.clone()));
                 let len_left = (self.last_read.len() - word_range.end) as f64;
-                let ms_left = len_left * self.us_per_utf16[rate as usize + 10].mean()
-                    + (len_left * self.us_per_utf16[rate as usize + 10].sample_variance()).sqrt();
+                let ms_left = len_left * self.us_per_utf16[rate_shifted].mean()
+                    + (len_left * self.us_per_utf16[rate_shifted].sample_variance()).sqrt();
                 let window_title = format!(
                     "{:.1}% {} \"{}\" rust_reader",
                     100.0 * (word_range.start as f64) / (self.last_read.len() as f64),
