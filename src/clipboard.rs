@@ -20,7 +20,10 @@ pub fn clipboard_setup() {
     }
 }
 
-pub fn send_key_event(vk: KeyboardAndMouse::VIRTUAL_KEY, flags: KeyboardAndMouse::KEYBD_EVENT_FLAGS) {
+pub fn send_key_event(
+    vk: KeyboardAndMouse::VIRTUAL_KEY,
+    flags: KeyboardAndMouse::KEYBD_EVENT_FLAGS,
+) {
     let mut input: KeyboardAndMouse::INPUT = unsafe { mem::zeroed() };
     unsafe {
         input.r#type = KeyboardAndMouse::INPUT_KEYBOARD;
@@ -31,10 +34,7 @@ pub fn send_key_event(vk: KeyboardAndMouse::VIRTUAL_KEY, flags: KeyboardAndMouse
             time: 0,
             dwExtraInfo: 0,
         };
-        KeyboardAndMouse::SendInput(
-            &[input],
-            mem::size_of::<KeyboardAndMouse::INPUT>() as i32
-        );
+        KeyboardAndMouse::SendInput(&[input], mem::size_of::<KeyboardAndMouse::INPUT>() as i32);
     }
 }
 
@@ -42,14 +42,14 @@ pub fn press_key(vk: &[u16]) {
     for &v in vk {
         send_key_event(
             KeyboardAndMouse::VIRTUAL_KEY(v),
-            KeyboardAndMouse::KEYBD_EVENT_FLAGS(0)
+            KeyboardAndMouse::KEYBD_EVENT_FLAGS(0),
         );
     }
     sleep(Duration::from_millis(1));
     for &v in vk.iter().rev() {
         send_key_event(
             KeyboardAndMouse::VIRTUAL_KEY(v),
-            KeyboardAndMouse::KEYEVENTF_KEYUP
+            KeyboardAndMouse::KEYEVENTF_KEYUP,
         );
     }
 }

@@ -4,9 +4,10 @@ use windows::Win32::{
     System::Console::SetConsoleTitleW,
     System::SystemServices::SS_NOPREFIX,
     UI::{
-        Controls::{EM_SETSEL, EM_SCROLLCARET},
+        Controls::{EM_SCROLLCARET, EM_SETSEL},
         Input::KeyboardAndMouse::EnableWindow,
-        WindowsAndMessaging as wm},
+        WindowsAndMessaging as wm,
+    },
 };
 
 use std::mem;
@@ -21,8 +22,7 @@ pub fn create_static_window(window_wnd: HWND, name: Option<&WideString>) -> HWND
             wm::WINDOW_EX_STYLE(0),
             PCWSTR::from_raw(wide_static.as_ptr()),
             PCWSTR::from_raw(name.map(WideString::as_ptr).unwrap_or(&mut 0u16)),
-            wm::WS_CHILD | wm::WS_VISIBLE
-                | wm::WINDOW_STYLE(wm::ES_CENTER as u32 | SS_NOPREFIX.0),
+            wm::WS_CHILD | wm::WS_VISIBLE | wm::WINDOW_STYLE(wm::ES_CENTER as u32 | SS_NOPREFIX.0),
             0,
             0,
             0,
@@ -42,7 +42,9 @@ pub fn create_button_window(window_wnd: HWND, name: Option<&WideString>) -> HWND
             wm::WINDOW_EX_STYLE(0),
             PCWSTR::from_raw(wide_button.as_ptr()),
             PCWSTR::from_raw(name.map(WideString::as_ptr).unwrap_or(&mut 0u16)),
-            wm::WS_TABSTOP | wm::WS_VISIBLE | wm::WS_CHILD
+            wm::WS_TABSTOP
+                | wm::WS_VISIBLE
+                | wm::WS_CHILD
                 | wm::WINDOW_STYLE(wm::BS_CENTER as u32 | wm::BS_PUSHBUTTON as u32),
             0,
             0,
@@ -64,7 +66,11 @@ pub fn create_edit_window(window_wnd: HWND, style: wm::WINDOW_STYLE) -> HWND {
             wm::WS_EX_CLIENTEDGE,
             PCWSTR::from_raw(wide_edit.as_ptr()),
             PCWSTR(&mut 0u16),
-            wm::WS_TABSTOP | wm::WS_CHILD | wm::WS_VISIBLE | wm::WS_BORDER | style
+            wm::WS_TABSTOP
+                | wm::WS_CHILD
+                | wm::WS_VISIBLE
+                | wm::WS_BORDER
+                | style
                 | wm::WINDOW_STYLE(wm::ES_LEFT as u32 | wm::ES_NOHIDESEL as u32),
             0,
             0,
@@ -131,12 +137,7 @@ pub fn set_edit_selection(h_wnd: HWND, celec: &Range<usize>) -> LRESULT {
 }
 
 pub fn set_edit_scroll_caret(h_wnd: HWND) -> LRESULT {
-    unsafe { wm::SendMessageW(
-        h_wnd,
-        EM_SCROLLCARET,
-        WPARAM(0),
-        LPARAM(0)
-    )}
+    unsafe { wm::SendMessageW(h_wnd, EM_SCROLLCARET, WPARAM(0), LPARAM(0)) }
 }
 
 pub fn get_client_rect(h_wnd: HWND) -> RECT {
@@ -146,16 +147,7 @@ pub fn get_client_rect(h_wnd: HWND) -> RECT {
 }
 
 pub fn move_window(h_wnd: HWND, rect: &RECT) -> bool {
-    unsafe {
-        wm::MoveWindow(
-            h_wnd,
-            rect.left,
-            rect.top,
-            rect.right,
-            rect.bottom,
-            true,
-        ).into()
-    }
+    unsafe { wm::MoveWindow(h_wnd, rect.left, rect.top, rect.right, rect.bottom, true).into() }
 }
 
 pub fn is_window_visible(h_wnd: HWND) -> bool {
@@ -227,7 +219,8 @@ mod rect_util_tests {
             left: 100,
             right: 100,
             top: 100,
-        }.inset(10);
+        }
+        .inset(10);
         assert_eq!(start.top, 110);
         assert_eq!(start.bottom, 80);
         assert_eq!(start.left, 110);
@@ -241,7 +234,8 @@ mod rect_util_tests {
             left: 100,
             right: 100,
             top: 100,
-        }.shift_down(10);
+        }
+        .shift_down(10);
         assert_eq!(start.top, 110);
         assert_eq!(start.bottom, 90);
         assert_eq!(start.left, 100);
@@ -255,7 +249,8 @@ mod rect_util_tests {
             left: 100,
             right: 100,
             top: 100,
-        }.shift_right(10);
+        }
+        .shift_right(10);
         assert_eq!(start.top, 100);
         assert_eq!(start.bottom, 100);
         assert_eq!(start.left, 110);
@@ -269,7 +264,8 @@ mod rect_util_tests {
             left: 100,
             right: 100,
             top: 100,
-        }.split_columns(10);
+        }
+        .split_columns(10);
         assert_eq!(start.0.top, 100);
         assert_eq!(start.0.bottom, 100);
         assert_eq!(start.0.left, 100);
@@ -287,7 +283,8 @@ mod rect_util_tests {
             left: 100,
             right: 100,
             top: 100,
-        }.split_rows(10);
+        }
+        .split_rows(10);
         assert_eq!(start.0.top, 100);
         assert_eq!(start.0.bottom, 10);
         assert_eq!(start.0.left, 100);
@@ -297,7 +294,6 @@ mod rect_util_tests {
         assert_eq!(start.1.left, 100);
         assert_eq!(start.1.right, 100);
     }
-
 }
 
 // window's proc related function
@@ -326,11 +322,7 @@ pub fn get_window_wrapper<'a, T>(h_wnd: HWND) -> Option<&'a mut T> {
 pub fn set_window_wrapper(h_wnd: HWND, l_param: LPARAM) {
     let data = unsafe { &mut *(l_param.0 as *mut wm::CREATESTRUCTW) };
     unsafe {
-        wm::SetWindowLongPtrW(
-            h_wnd,
-            wm::GWLP_USERDATA,
-            data.lpCreateParams as isize,
-        );
+        wm::SetWindowLongPtrW(h_wnd, wm::GWLP_USERDATA, data.lpCreateParams as isize);
     }
 }
 
@@ -338,21 +330,12 @@ pub fn set_window_wrapper(h_wnd: HWND, l_param: LPARAM) {
 pub fn set_window_wrapper(h_wnd: HWND, l_param: LPARAM) {
     let data = unsafe { &mut *(l_param as *mut wm::CREATESTRUCTW) };
     unsafe {
-        wm::SetWindowLongW(
-            h_wnd,
-            wm::GWLP_USERDATA,
-            data.lpCreateParams,
-        );
+        wm::SetWindowLongW(h_wnd, wm::GWLP_USERDATA, data.lpCreateParams);
     }
 }
 
 pub trait Windowed {
-    fn window_proc(
-        &mut self,
-        msg: u32,
-        w_param: WPARAM,
-        l_param: LPARAM,
-    ) -> Option<LRESULT>;
+    fn window_proc(&mut self, msg: u32, w_param: WPARAM, l_param: LPARAM) -> Option<LRESULT>;
 }
 
 pub unsafe extern "system" fn window_proc_generic<T: Windowed>(

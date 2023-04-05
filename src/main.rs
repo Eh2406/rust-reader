@@ -7,7 +7,7 @@ extern crate clipboard_win;
 extern crate ordslice;
 extern crate unicode_segmentation;
 use windows::Win32::{
-    Foundation::{WPARAM, LPARAM},
+    Foundation::{LPARAM, WPARAM},
     System::Threading::GetCurrentThreadId,
     UI::WindowsAndMessaging as wm,
 };

@@ -63,9 +63,12 @@ impl HotKey {
         if modifiers > 0 && vk > 0 {
             let hr = unsafe {
                 KeyboardAndMouse::RegisterHotKey(
-                    HWND(0), id, KeyboardAndMouse::HOT_KEY_MODIFIERS(modifiers), vk
+                    HWND(0),
+                    id,
+                    KeyboardAndMouse::HOT_KEY_MODIFIERS(modifiers),
+                    vk,
                 )
-                };
+            };
             if hr.0 == 0 {
                 None
             } else {
@@ -88,9 +91,13 @@ impl ::std::fmt::Display for HotKey {
                 write!(
                     f,
                     "{}",
-                    char::from_u32(unsafe { KeyboardAndMouse::MapVirtualKeyW(
-                        self.vk, KeyboardAndMouse::MAP_VIRTUAL_KEY_TYPE(2))
-                    }).unwrap()
+                    char::from_u32(unsafe {
+                        KeyboardAndMouse::MapVirtualKeyW(
+                            self.vk,
+                            KeyboardAndMouse::MAP_VIRTUAL_KEY_TYPE(2),
+                        )
+                    })
+                    .unwrap()
                 )
             }
         } else {
