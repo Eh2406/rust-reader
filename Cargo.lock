@@ -326,7 +326,6 @@ dependencies = [
  "serde",
  "serde_derive",
  "unicode-segmentation",
- "winapi 0.3.5",
  "windows",
  "winres",
 ]

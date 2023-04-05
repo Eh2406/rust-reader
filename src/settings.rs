@@ -5,7 +5,6 @@ use crate::window::*;
 use average::Variance;
 use itertools::Itertools;
 use preferences::{prefs_base_dir, AppInfo, Preferences};
-use winapi::shared::minwindef::{HIWORD, MAKELONG, MAKEWORD};
 use windows::core::PCWSTR;
 use windows::Win32::{
     Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, RECT, WPARAM},
@@ -106,7 +105,7 @@ impl SettingsWindow {
                 out.rate.1,
                 Controls::TBM_SETRANGE,
                 WPARAM(0),
-                LPARAM(MAKELONG(0, 20) as isize),
+                LPARAM((20 << 16) as isize),
             );
             wm::SendMessageW(out.rate.1, Controls::TBM_SETPAGESIZE, WPARAM(0), LPARAM(1));
             out.rate.0 = create_static_window(out.window, None);
@@ -226,7 +225,7 @@ impl SettingsWindow {
                 wm::SendMessageW(
                     hwnd.1,
                     Controls::HKM_SETHOTKEY,
-                    WPARAM(MAKEWORD(b as u8, convert_mod(a as u8)) as usize),
+                    WPARAM((b as u16 | ((convert_mod(a as u8) as u16) << 8)).into()),
                     LPARAM(0),
                 );
             }
@@ -348,7 +347,7 @@ impl Windowed for SettingsWindow {
                 let mut invalid = false;
                 let mut dirty_cleaners = false;
 
-                if HIWORD(w_param.0.try_into().unwrap()) as u32 == wm::BN_CLICKED {
+                if ((w_param.0 >> 16) & 0xffff) as u32 == wm::BN_CLICKED {
                     if self.reset.0 == l_param.0 {
                         self.get_inner_all();
                     }
@@ -376,7 +375,7 @@ impl Windowed for SettingsWindow {
                 }
 
                 let saving = self.save.0 == l_param.0
-                    && HIWORD(w_param.0.try_into().unwrap()) as u32 == wm::BN_CLICKED;
+                    && ((w_param.0 >> 16) & 0xffff) as u32 == wm::BN_CLICKED;
 
                 // rate change
                 let new_rate =
