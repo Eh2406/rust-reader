@@ -9,6 +9,7 @@ use windows::core::PCWSTR;
 use windows::Win32::{
     Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, RECT, WPARAM},
     Graphics::Gdi,
+    System::LibraryLoader,
     UI::Controls,
     UI::Input::KeyboardAndMouse::{VK_ESCAPE, VK_OEM_2, VK_OEM_MINUS, VK_OEM_PERIOD, VK_OEM_PLUS},
     UI::WindowsAndMessaging as wm,
@@ -63,8 +64,13 @@ impl SettingsWindow {
                 cbClsExtra: 0,
                 cbWndExtra: 0,
                 hInstance: HINSTANCE(0),
-                hIcon: wm::HICON(0),
-                hCursor: wm::HCURSOR(0),
+                hIcon: wm::LoadIconW(
+                    LibraryLoader::GetModuleHandleW(PCWSTR::null()).unwrap(),
+                    PCWSTR::from_raw(1 as *const u16),
+                )
+                .expect("failed to load icon"),
+                hCursor: wm::LoadCursorW(HINSTANCE(0), wm::IDI_APPLICATION)
+                    .expect("failed to load icon"),
                 hbrBackground: Gdi::HBRUSH(16),
                 lpszMenuName: PCWSTR::null(),
                 lpszClassName: PCWSTR::from_raw(window_class_name.as_ptr()),

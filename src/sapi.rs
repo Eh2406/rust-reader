@@ -9,6 +9,7 @@ use windows::Win32::{
     Graphics::Gdi,
     Media::Speech,
     System::Com as syscom,
+    System::LibraryLoader,
     System::WindowsProgramming::INFINITE,
     UI::Shell,
     UI::WindowsAndMessaging as wm,
@@ -84,8 +85,13 @@ impl SpVoice {
                 cbClsExtra: 0,
                 cbWndExtra: 0,
                 hInstance: HINSTANCE(0),
-                hIcon: wm::HICON(0),
-                hCursor: wm::HCURSOR(0),
+                hIcon: wm::LoadIconW(
+                    LibraryLoader::GetModuleHandleW(PCWSTR::null()).unwrap(),
+                    PCWSTR::from_raw(1 as *const u16),
+                )
+                .expect("failed to load icon"),
+                hCursor: wm::LoadCursorW(HINSTANCE(0), wm::IDI_APPLICATION)
+                    .expect("failed to load icon"),
                 hbrBackground: Gdi::HBRUSH(16),
                 lpszMenuName: PCWSTR::null(),
                 lpszClassName: PCWSTR::from_raw(window_class_name.as_ptr()),
@@ -110,7 +116,11 @@ impl SpVoice {
             out.nicon.uCallbackMessage = WM_APP_NOTIFICATION_ICON;
             out.nicon.uID = 1 as u32;
             out.nicon.uFlags |= Shell::NIF_ICON;
-            out.nicon.hIcon = wm::HICON(0);
+            out.nicon.hIcon = wm::LoadIconW(
+                LibraryLoader::GetModuleHandleW(PCWSTR::null()).unwrap(),
+                PCWSTR::from_raw(1 as *const u16),
+            )
+            .expect("failed to load icon");
             out.nicon.uFlags |= Shell::NIF_MESSAGE;
             out.nicon.Anonymous.uVersion = Shell::NOTIFYICON_VERSION_4;
             let err = Shell::Shell_NotifyIconW(Shell::NIM_ADD, &mut out.nicon);
