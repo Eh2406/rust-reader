@@ -64,10 +64,8 @@ impl SpVoice {
 
         unsafe {
             let mut out = Box::new(SpVoice {
-                voice: match syscom::CoCreateInstance(&Speech::SpVoice, None, syscom::CLSCTX_ALL) {
-                    Err(_) => panic!("failed for SpVoice at CoCreateInstance"),
-                    Ok(v) => v,
-                },
+                voice: syscom::CoCreateInstance(&Speech::SpVoice, None, syscom::CLSCTX_ALL)
+                    .expect("failed for SpVoice at CoCreateInstance"),
                 window: HWND(0),
                 edit: HWND(0),
                 rate: HWND(0),
@@ -197,8 +195,13 @@ impl SpVoice {
         self.last_read = string.into();
         set_window_text(self.edit, &self.last_read);
         unsafe {
-            self.voice
-                .Speak(PCWSTR::from_raw(self.last_read.as_ptr()), 19, None)
+            self.voice.Speak(
+                PCWSTR::from_raw(self.last_read.as_ptr()),
+                (Speech::SVSFlagsAsync.0 | Speech::SVSFPurgeBeforeSpeak.0 | Speech::SVSFIsNotXML.0)
+                    .try_into()
+                    .unwrap(),
+                None,
+            )
         }
         .unwrap();
         self.last_update = None;
