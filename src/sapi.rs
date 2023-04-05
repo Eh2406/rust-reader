@@ -13,8 +13,6 @@ use windows::Win32::{
     UI::Shell,
     UI::WindowsAndMessaging as wm,
 };
-use winapi;
-use winapi::shared::minwindef::{HIWORD, LOWORD};
 
 use std::cmp::{max, min};
 use std::mem;
@@ -33,7 +31,7 @@ impl Com {
     pub fn new() -> Com {
         println!("new for Com");
         match unsafe { syscom::CoInitialize(Some(null_mut())) } {
-            Ok(_) => Com{},
+            Ok(_) => Com {},
             Err(_) => panic!("failed for Com"),
         }
     }
@@ -65,9 +63,7 @@ impl SpVoice {
 
         unsafe {
             let mut out = Box::new(SpVoice {
-                voice: match syscom::CoCreateInstance(
-                    &Speech::SpVoice, None, syscom::CLSCTX_ALL
-                ) {
+                voice: match syscom::CoCreateInstance(&Speech::SpVoice, None, syscom::CLSCTX_ALL) {
                     Err(_) => panic!("failed for SpVoice at CoCreateInstance"),
                     Ok(v) => v,
                 },
@@ -129,8 +125,8 @@ impl SpVoice {
 
             out.edit = create_edit_window(
                 out.window,
-                wm::WS_VSCROLL | wm::WINDOW_STYLE(
-                      wm::ES_MULTILINE as u32 | wm::ES_AUTOVSCROLL as u32)
+                wm::WS_VSCROLL
+                    | wm::WINDOW_STYLE(wm::ES_MULTILINE as u32 | wm::ES_AUTOVSCROLL as u32),
             );
             out.rate = create_static_window(out.window, None);
             out.reload_settings = create_button_window(out.window, Some(&"Show Settings".into()));
@@ -146,7 +142,14 @@ impl SpVoice {
             out.set_notify_window_message();
             out.set_volume(100);
             out.set_alert_boundary(Speech::SPEI_PHONEME);
-            out.set_interest(&[5, 1, 2], &[]);
+            out.set_interest(
+                &[
+                    Speech::SPEI_WORD_BOUNDARY,
+                    Speech::SPEI_START_INPUT_STREAM,
+                    Speech::SPEI_END_INPUT_STREAM,
+                ],
+                &[],
+            );
             out
         }
     }
@@ -183,7 +186,11 @@ impl SpVoice {
     pub fn speak<T: Into<WideString>>(&mut self, string: T) {
         self.last_read = string.into();
         set_window_text(self.edit, &self.last_read);
-        unsafe { self.voice.Speak(PCWSTR::from_raw(self.last_read.as_ptr()), 19, None) }.unwrap();
+        unsafe {
+            self.voice
+                .Speak(PCWSTR::from_raw(self.last_read.as_ptr()), 19, None)
+        }
+        .unwrap();
         self.last_update = None;
     }
 
@@ -197,7 +204,7 @@ impl SpVoice {
     }
 
     pub fn pause(&mut self) {
-         unsafe { self.voice.Pause() }.unwrap();
+        unsafe { self.voice.Pause() }.unwrap();
         self.last_update = None;
     }
 
@@ -256,23 +263,23 @@ impl SpVoice {
     fn set_notify_window_message(&mut self) {
         unsafe {
             self.voice
-                .SetNotifyWindowMessage(
-                    self.window,
-                    WM_SAPI_EVENT,
-                    WPARAM(0),
-                    LPARAM(0)
-                )
-        }.unwrap();
+                .SetNotifyWindowMessage(self.window, WM_SAPI_EVENT, WPARAM(0), LPARAM(0))
+        }
+        .unwrap();
     }
 
-    pub fn set_interest(&mut self, event: &[u32], queued: &[u32]) {
+    pub fn set_interest(&mut self, event: &[Speech::SPEVENTENUM], queued: &[Speech::SPEVENTENUM]) {
         let queued = queued
             .iter()
-            .map(|&x| winapi::um::sapi51::SPFEI(x))
+            .map(|&x| {
+                (1 << x.0) | (1 << Speech::SPEI_RESERVED1.0) | (1 << Speech::SPEI_RESERVED2.0)
+            })
             .fold(0u64, |acc, x| acc | x);
         let event = event
             .iter()
-            .map(|&x| winapi::um::sapi51::SPFEI(x))
+            .map(|&x| {
+                (1 << x.0) | (1 << Speech::SPEI_RESERVED1.0) | (1 << Speech::SPEI_RESERVED2.0)
+            })
             .fold(queued, |acc, x| acc | x);
         unsafe { self.voice.SetInterest(event, queued) }.unwrap();
     }
@@ -310,20 +317,16 @@ fn test_format_duration() {
 }
 
 impl Windowed for SpVoice {
-    fn window_proc(
-        &mut self,
-        msg: u32,
-        w_param: WPARAM,
-        l_param: LPARAM,
-    ) -> Option<LRESULT> {
+    fn window_proc(&mut self, msg: u32, w_param: WPARAM, l_param: LPARAM) -> Option<LRESULT> {
         match msg {
             wm::WM_DESTROY | wm::WM_QUERYENDSESSION | wm::WM_ENDSESSION => close(),
             WM_SAPI_EVENT => {
                 let status = self.get_status();
-                let word_range = status.word_range();
                 // convert rate from range (-10, 10) to (0, 20)
-                let rate_shifted = 10u32.checked_add_signed(self.get_rate())
+                let rate_shifted = 10u32
+                    .checked_add_signed(self.get_rate())
                     .expect("bad rate < -10") as usize;
+                let word_range = status.word_range();
                 if word_range.end == 0 {
                     // called before start of reading.
                     self.last_update = None;
@@ -390,14 +393,14 @@ impl Windowed for SpVoice {
                 use crate::press_hotkey;
                 use crate::Action;
                 if self.reload_settings.0 == l_param.0
-                    && HIWORD(w_param.0.try_into().unwrap()) as u32 == wm::BN_CLICKED
+                    && ((w_param.0 >> 16) & 0xffff) as u32 == wm::BN_CLICKED
                 {
                     press_hotkey(Action::ShowSettings);
                     return Some(LRESULT(0));
                 }
             }
             WM_APP_NOTIFICATION_ICON => {
-                if LOWORD(l_param.0.try_into().unwrap()) == (wm::WM_LBUTTONUP as u16) {
+                if (l_param.0 & 0xffff) as u32 == wm::WM_LBUTTONUP {
                     self.toggle_window_visible();
                     return Some(LRESULT(0));
                 }

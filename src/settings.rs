@@ -1,19 +1,19 @@
-use average::Variance;
 use crate::clean_text::RegexCleanerPair;
 use crate::hot_key::*;
+use crate::wide_string::WideString;
+use crate::window::*;
+use average::Variance;
 use itertools::Itertools;
 use preferences::{prefs_base_dir, AppInfo, Preferences};
-use crate::wide_string::WideString;
+use winapi::shared::minwindef::{HIWORD, MAKELONG, MAKEWORD};
 use windows::core::PCWSTR;
 use windows::Win32::{
     Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, RECT, WPARAM},
     Graphics::Gdi,
     UI::Controls,
-    UI::Input::KeyboardAndMouse::{VK_OEM_2, VK_ESCAPE, VK_OEM_MINUS, VK_OEM_PERIOD, VK_OEM_PLUS},
+    UI::Input::KeyboardAndMouse::{VK_ESCAPE, VK_OEM_2, VK_OEM_MINUS, VK_OEM_PERIOD, VK_OEM_PLUS},
     UI::WindowsAndMessaging as wm,
 };
-use winapi::shared::minwindef::{HIBYTE, HIWORD, LOBYTE, MAKELONG, MAKEWORD};
-use crate::window::*;
 
 const APP_INFO: AppInfo = AppInfo {
     name: "rust_reader",
@@ -37,13 +37,7 @@ pub struct SettingsWindow {
     window: HWND,
     rate: (HWND, HWND),
     hotkeys: [(HWND, HWND); 8],
-    cleaners: Vec<(
-        Option<bool>,
-        HWND,
-        HWND,
-        HWND,
-        HWND,
-    )>,
+    cleaners: Vec<(Option<bool>, HWND, HWND, HWND, HWND)>,
     add_cleaner: HWND,
     reset: HWND,
     save: HWND,
@@ -96,8 +90,9 @@ impl SettingsWindow {
                 wm::WINDOW_EX_STYLE(0),
                 PCWSTR::from_raw(wide_trackbar.as_ptr()),
                 PCWSTR(&mut 0u16),
-                wm::WS_CHILD | wm::WS_VISIBLE | wm::WINDOW_STYLE(
-                    Controls::TBS_AUTOTICKS | Controls::TBS_BOTTOM),
+                wm::WS_CHILD
+                    | wm::WS_VISIBLE
+                    | wm::WINDOW_STYLE(Controls::TBS_AUTOTICKS | Controls::TBS_BOTTOM),
                 0,
                 0,
                 0,
@@ -113,11 +108,7 @@ impl SettingsWindow {
                 WPARAM(0),
                 LPARAM(MAKELONG(0, 20) as isize),
             );
-            wm::SendMessageW(
-                out.rate.1,
-                Controls::TBM_SETPAGESIZE,
-                WPARAM(0),
-                LPARAM(1));
+            wm::SendMessageW(out.rate.1, Controls::TBM_SETPAGESIZE, WPARAM(0), LPARAM(1));
             out.rate.0 = create_static_window(out.window, None);
 
             out.add_cleaner = create_button_window(out.window, Some(&"add cleaner".into()));
@@ -131,7 +122,10 @@ impl SettingsWindow {
             icex.dwICC = Controls::ICC_HOTKEY_CLASS;
             Controls::InitCommonControlsEx(&icex);
 
-            for (act, ht) in crate::actions::ACTION_LIST.iter().zip(out.hotkeys.iter_mut()) {
+            for (act, ht) in crate::actions::ACTION_LIST
+                .iter()
+                .zip(out.hotkeys.iter_mut())
+            {
                 let wide_hotkey_name: WideString = format!("{}", act).into();
                 ht.0 = create_static_window(window, Some(&wide_hotkey_name));
                 ht.1 = wm::CreateWindowExW(
@@ -219,7 +213,7 @@ impl SettingsWindow {
                 self.rate.1,
                 Controls::TBM_SETPOS,
                 WPARAM(1),
-                LPARAM((rate + 10) as isize)
+                LPARAM((rate + 10) as isize),
             );
         }
         set_window_text(self.rate.0, &format!("reading at rate: {}", rate).into());
@@ -250,12 +244,7 @@ impl SettingsWindow {
                 self.remove_cleaner(i);
             }
             unsafe {
-                wm::SendMessageW(
-                    self.window,
-                    wm::WM_SIZE,
-                    WPARAM(0),
-                    LPARAM(0)
-                );
+                wm::SendMessageW(self.window, wm::WM_SIZE, WPARAM(0), LPARAM(0));
             }
         }
         for (cl, rexpar) in self
@@ -284,12 +273,7 @@ impl SettingsWindow {
 }
 
 impl Windowed for SettingsWindow {
-    fn window_proc(
-        &mut self,
-        msg: u32,
-        w_param: WPARAM,
-        l_param: LPARAM,
-    ) -> Option<LRESULT> {
+    fn window_proc(&mut self, msg: u32, w_param: WPARAM, l_param: LPARAM) -> Option<LRESULT> {
         use itertools::EitherOrBoth::{Both, Left, Right};
         match msg {
             wm::WM_CLOSE => {
@@ -322,13 +306,15 @@ impl Windowed for SettingsWindow {
                         .iter()
                         .map(|&(_, a, _, _, _)| get_window_text_length(a))
                         .max()
-                        .unwrap_or(0) + 1;
+                        .unwrap_or(0)
+                        + 1;
                     let mlr = self
                         .cleaners
                         .iter()
                         .map(|&(_, _, b, _, _)| get_window_text_length(b))
                         .max()
-                        .unwrap_or(0) + 1;
+                        .unwrap_or(0)
+                        + 1;
                     rect.1 = rect.1.shift_down(5);
                     let split_at = (rect.1.right - 50) * mll / (mll + mlr);
                     for &ht in &self.cleaners {
@@ -370,36 +356,21 @@ impl Windowed for SettingsWindow {
                         self.add_cleaner();
                         dirty_cleaners = true;
                         unsafe {
-                            wm::SendMessageW(
-                                self.window,
-                                wm::WM_SIZE,
-                                WPARAM(0),
-                                LPARAM(0)
-                            );
+                            wm::SendMessageW(self.window, wm::WM_SIZE, WPARAM(0), LPARAM(0));
                         }
                     }
-                    if let Some(i) = self.cleaners.iter().position(|x| x.3.0 == l_param.0) {
+                    if let Some(i) = self.cleaners.iter().position(|x| x.3 .0 == l_param.0) {
                         self.swap_cleaner(i);
                         dirty_cleaners = true;
                         unsafe {
-                            wm::SendMessageW(
-                                self.window,
-                                wm::WM_SIZE,
-                                WPARAM(0),
-                                LPARAM(0)
-                            );
+                            wm::SendMessageW(self.window, wm::WM_SIZE, WPARAM(0), LPARAM(0));
                         }
                     }
-                    if let Some(i) = self.cleaners.iter().position(|x| x.4.0 == l_param.0) {
+                    if let Some(i) = self.cleaners.iter().position(|x| x.4 .0 == l_param.0) {
                         self.remove_cleaner(i);
                         dirty_cleaners = true;
                         unsafe {
-                            wm::SendMessageW(
-                                self.window,
-                                wm::WM_SIZE,
-                                WPARAM(0),
-                                LPARAM(0)
-                            );
+                            wm::SendMessageW(self.window, wm::WM_SIZE, WPARAM(0), LPARAM(0));
                         }
                     }
                 }
@@ -409,28 +380,20 @@ impl Windowed for SettingsWindow {
 
                 // rate change
                 let new_rate =
-                    unsafe { wm::SendMessageW(
-                        self.rate.1,
-                        TBM_GETPOS,
-                        WPARAM(0),
-                        LPARAM(0)
-                    ) }.0 - 10;
+                    unsafe { wm::SendMessageW(self.rate.1, TBM_GETPOS, WPARAM(0), LPARAM(0)) }.0
+                        - 10;
                 if self.settings.rate != new_rate as i32 {
                     changed = true;
                 }
                 // hotkeys change
                 for (&(_, ht), hkt) in self.hotkeys.iter().zip_eq(self.settings.hotkeys.iter()) {
                     let set_to = unsafe {
-                        wm::SendMessageW(
-                            ht,
-                            Controls::HKM_GETHOTKEY,
-                            WPARAM(0),
-                            LPARAM(0)
-                        ) 
-                    }.0;
+                        wm::SendMessageW(ht, Controls::HKM_GETHOTKEY, WPARAM(0), LPARAM(0))
+                    }
+                    .0;
                     let new = (
-                        u32::from(convert_mod(HIBYTE(set_to as u16))),
-                        u32::from(LOBYTE(set_to as u16)),
+                        u32::from(convert_mod(((set_to >> 8) & 0xff) as u8)),
+                        u32::from((set_to as u16) & 0xff),
                     );
                     if *hkt != new {
                         changed = true;
@@ -439,7 +402,7 @@ impl Windowed for SettingsWindow {
                 if self
                     .cleaners
                     .iter()
-                    .any(|x| x.1.0 == l_param.0 || x.2.0 == l_param.0)
+                    .any(|x| x.1 .0 == l_param.0 || x.2 .0 == l_param.0)
                     || dirty_cleaners
                 {
                     // cleaners change
@@ -486,16 +449,12 @@ impl Windowed for SettingsWindow {
                         self.hotkeys.iter().zip_eq(self.settings.hotkeys.iter_mut())
                     {
                         let set_to = unsafe {
-                            wm::SendMessageW(
-                                ht,
-                                Controls::HKM_GETHOTKEY,
-                                WPARAM(0),
-                                LPARAM(0)
-                            )
-                        }.0;
+                            wm::SendMessageW(ht, Controls::HKM_GETHOTKEY, WPARAM(0), LPARAM(0))
+                        }
+                        .0;
                         *hkt = (
-                            u32::from(convert_mod(HIBYTE(set_to as u16))),
-                            u32::from(LOBYTE(set_to as u16)),
+                            u32::from(convert_mod(((set_to >> 8) & 0xff) as u8)),
+                            u32::from((set_to as u16) & 0xff),
                         );
                     }
                     self.settings.cleaners = self
@@ -545,7 +504,8 @@ impl Settings {
                     r"(?P<s>[0-9a-f]{6})([0-9]+[a-f]|[a-f]+[0-9])[0-9a-f]*",
                     "hash $s",
                 ),
-            ]).unwrap(),
+            ])
+            .unwrap(),
             time_estimater: Default::default(),
         }
     }
