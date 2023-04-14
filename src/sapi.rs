@@ -3,8 +3,8 @@ use chrono;
 use std::mem::size_of;
 use std::mem::zeroed;
 
-use windows::w;
 use windows::core::PCWSTR;
+use windows::w;
 use windows::Win32::{
     Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, RECT, WPARAM},
     Graphics::Gdi,
@@ -244,6 +244,17 @@ impl SpVoice {
     pub fn change_rate(&mut self, delta: i32) -> i32 {
         let rate = self.get_rate() + delta;
         self.set_rate(rate)
+    }
+
+    pub fn get_voice(&mut self) -> Option<String> {
+        unsafe {
+            self.voice
+                .GetVoice()
+                .ok()
+                .and_then(|t| t.OpenKey(w!("Attributes")).ok())
+                .and_then(|k| k.GetStringValue(w!("name")).ok())
+                .and_then(|s| s.to_string().ok())
+        }
     }
 
     pub fn set_volume(&mut self, volume: u16) {
