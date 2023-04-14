@@ -3,6 +3,7 @@ use chrono;
 use std::mem::size_of;
 use std::mem::zeroed;
 
+use windows::w;
 use windows::core::PCWSTR;
 use windows::Win32::{
     Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, RECT, WPARAM},
@@ -76,7 +77,7 @@ impl SpVoice {
                 us_per_utf16: Default::default(),
             });
 
-            let window_class_name: WideString = "SAPI_event_window_class_name".into();
+            let window_class_name = w!("SAPI_event_window_class_name");
             wm::RegisterClassW(&wm::WNDCLASSW {
                 style: wm::WNDCLASS_STYLES(0),
                 lpfnWndProc: Some(window_proc_generic::<SpVoice>),
@@ -92,11 +93,11 @@ impl SpVoice {
                     .expect("failed to load icon"),
                 hbrBackground: Gdi::HBRUSH(16),
                 lpszMenuName: PCWSTR::null(),
-                lpszClassName: PCWSTR::from_raw(window_class_name.as_ptr()),
+                lpszClassName: window_class_name,
             });
             out.window = wm::CreateWindowExW(
                 wm::WINDOW_EX_STYLE(0),
-                PCWSTR::from_raw(window_class_name.as_ptr()),
+                window_class_name,
                 PCWSTR(&mut 0u16),
                 wm::WS_OVERLAPPEDWINDOW | wm::WS_CLIPSIBLINGS | wm::WS_CLIPCHILDREN,
                 0,
@@ -137,7 +138,7 @@ impl SpVoice {
                     | wm::WINDOW_STYLE(wm::ES_MULTILINE as u32 | wm::ES_AUTOVSCROLL as u32),
             );
             out.rate = create_static_window(out.window, None);
-            out.reload_settings = create_button_window(out.window, Some(&"Show Settings".into()));
+            out.reload_settings = create_button_window(out.window, w!("Show Settings"));
             move_window(
                 out.window,
                 &RECT {

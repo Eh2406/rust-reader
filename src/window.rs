@@ -1,3 +1,4 @@
+use windows::w;
 use windows::core::PCWSTR;
 use windows::Win32::{
     Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, RECT, WPARAM},
@@ -16,11 +17,10 @@ use std::ops::Range;
 pub use crate::wide_string::*;
 
 pub fn create_static_window(window_wnd: HWND, name: Option<&WideString>) -> HWND {
-    let wide_static: WideString = "STATIC".into();
     unsafe {
         wm::CreateWindowExW(
             wm::WINDOW_EX_STYLE(0),
-            PCWSTR::from_raw(wide_static.as_ptr()),
+            w!("STATIC"),
             PCWSTR::from_raw(name.map(WideString::as_ptr).unwrap_or(&mut 0u16)),
             wm::WS_CHILD | wm::WS_VISIBLE | wm::WINDOW_STYLE(wm::ES_CENTER as u32 | SS_NOPREFIX.0),
             0,
@@ -35,13 +35,12 @@ pub fn create_static_window(window_wnd: HWND, name: Option<&WideString>) -> HWND
     }
 }
 
-pub fn create_button_window(window_wnd: HWND, name: Option<&WideString>) -> HWND {
-    let wide_button: WideString = "BUTTON".into();
+pub fn create_button_window(window_wnd: HWND, name: PCWSTR) -> HWND {
     unsafe {
         wm::CreateWindowExW(
             wm::WINDOW_EX_STYLE(0),
-            PCWSTR::from_raw(wide_button.as_ptr()),
-            PCWSTR::from_raw(name.map(WideString::as_ptr).unwrap_or(&mut 0u16)),
+            w!("BUTTON"),
+            name,
             wm::WS_TABSTOP
                 | wm::WS_VISIBLE
                 | wm::WS_CHILD
@@ -60,11 +59,10 @@ pub fn create_button_window(window_wnd: HWND, name: Option<&WideString>) -> HWND
 
 pub fn create_edit_window(window_wnd: HWND, style: wm::WINDOW_STYLE) -> HWND {
     // https://msdn.microsoft.com/en-us/library/windows/desktop/hh298433.aspx
-    let wide_edit: WideString = "EDIT".into();
     unsafe {
         wm::CreateWindowExW(
             wm::WS_EX_CLIENTEDGE,
-            PCWSTR::from_raw(wide_edit.as_ptr()),
+            w!("EDIT"),
             PCWSTR(&mut 0u16),
             wm::WS_TABSTOP
                 | wm::WS_CHILD

@@ -6,6 +6,7 @@ use average::Variance;
 use itertools::Itertools;
 use preferences::{prefs_base_dir, AppInfo, Preferences};
 use windows::core::PCWSTR;
+use windows::w;
 use windows::Win32::{
     Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, RECT, WPARAM},
     Graphics::Gdi,
@@ -56,7 +57,7 @@ impl SettingsWindow {
             save: HWND(0),
         });
 
-        let window_class_name: WideString = "setings_window_class_name".into();
+        let window_class_name = w!("setings_window_class_name");
         unsafe {
             wm::RegisterClassW(&wm::WNDCLASSW {
                 style: wm::WNDCLASS_STYLES(0),
@@ -73,11 +74,11 @@ impl SettingsWindow {
                     .expect("failed to load icon"),
                 hbrBackground: Gdi::HBRUSH(16),
                 lpszMenuName: PCWSTR::null(),
-                lpszClassName: PCWSTR::from_raw(window_class_name.as_ptr()),
+                lpszClassName: window_class_name,
             });
             out.window = wm::CreateWindowExW(
                 wm::WINDOW_EX_STYLE(0),
-                PCWSTR::from_raw(window_class_name.as_ptr()),
+                window_class_name,
                 PCWSTR(&mut 0u16),
                 wm::WS_OVERLAPPEDWINDOW | wm::WS_CLIPSIBLINGS,
                 0,
@@ -90,10 +91,9 @@ impl SettingsWindow {
                 Some(&mut *out as *mut _ as *mut _),
             );
             Controls::InitCommonControls();
-            let wide_trackbar: WideString = "msctls_trackbar32".into();
             out.rate.1 = wm::CreateWindowExW(
                 wm::WINDOW_EX_STYLE(0),
-                PCWSTR::from_raw(wide_trackbar.as_ptr()),
+                w!("msctls_trackbar32"),
                 PCWSTR(&mut 0u16),
                 wm::WS_CHILD
                     | wm::WS_VISIBLE
@@ -116,11 +116,10 @@ impl SettingsWindow {
             wm::SendMessageW(out.rate.1, Controls::TBM_SETPAGESIZE, WPARAM(0), LPARAM(1));
             out.rate.0 = create_static_window(out.window, None);
 
-            out.add_cleaner = create_button_window(out.window, Some(&"add cleaner".into()));
-            out.save = create_button_window(out.window, Some(&"save".into()));
-            out.reset = create_button_window(out.window, Some(&"reset".into()));
+            out.add_cleaner = create_button_window(out.window, w!("add cleaner"));
+            out.save = create_button_window(out.window, w!("save"));
+            out.reset = create_button_window(out.window, w!("reset"));
             let window = out.window;
-            let wide_hotkey_class: WideString = "msctls_hotkey32".into();
 
             let mut icex: Controls::INITCOMMONCONTROLSEX = ::std::mem::zeroed();
             icex.dwSize = ::std::mem::size_of::<Controls::INITCOMMONCONTROLSEX>() as u32;
@@ -135,7 +134,7 @@ impl SettingsWindow {
                 ht.0 = create_static_window(window, Some(&wide_hotkey_name));
                 ht.1 = wm::CreateWindowExW(
                     wm::WINDOW_EX_STYLE(0),
-                    PCWSTR::from_raw(wide_hotkey_class.as_ptr()),
+                    w!("msctls_hotkey32"),
                     PCWSTR(&mut 0u16),
                     wm::WS_CHILD | wm::WS_VISIBLE,
                     0,
@@ -176,8 +175,8 @@ impl SettingsWindow {
             None,
             create_edit_window(self.window, wm::WINDOW_STYLE(0)),
             create_edit_window(self.window, wm::WINDOW_STYLE(0)),
-            create_button_window(self.window, Some(&"^".into())),
-            create_button_window(self.window, Some(&"X".into())),
+            create_button_window(self.window, w!("^")),
+            create_button_window(self.window, w!("X")),
         ));
     }
 
