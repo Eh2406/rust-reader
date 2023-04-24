@@ -476,7 +476,6 @@ dependencies = [
  "quickcheck",
  "regex",
  "serde",
- "serde_derive",
  "unicode-segmentation",
  "windows 0.46.0",
  "winres",
@@ -499,6 +498,9 @@ name = "serde"
 version = "1.0.160"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bb2f3770c8bce3bcda7e149193a069a0f4365bda1fa5cd88e03bca26afc1216c"
+dependencies = [
+ "serde_derive",
+]
 
 [[package]]
 name = "serde-big-array"

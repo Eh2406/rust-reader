@@ -5,6 +5,7 @@ use crate::window::*;
 use average::Variance;
 use itertools::Itertools;
 use preferences::{prefs_base_dir, AppInfo, Preferences};
+use serde::{Serialize, Deserialize};
 use windows::core::PCWSTR;
 use windows::w;
 use windows::Win32::{
