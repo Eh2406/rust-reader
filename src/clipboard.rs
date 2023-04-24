@@ -1,12 +1,13 @@
-use clipboard_win::{get_clipboard_string, set_clipboard_string, Clipboard};
-use std::io;
+use clipboard_win::{get_clipboard_string, set_clipboard_string};
+use error_code::ErrorCode;
 use std::mem;
+use std::num::NonZeroU32;
 use std::thread::sleep;
 use std::time::Duration;
 use windows::Win32::UI::Input::KeyboardAndMouse;
 
-fn get_clipboard_seq_num() -> Option<u32> {
-    Clipboard::seq_num()
+fn get_clipboard_seq_num() -> Option<NonZeroU32> {
+    clipboard_win::seq_num()
 }
 
 pub fn clipboard_setup() {
@@ -59,7 +60,7 @@ pub fn press_ctrl_c() {
     press_key(&[KeyboardAndMouse::VK_CONTROL.0, 67]); //ascii for "c"
 }
 
-pub fn what_on_clipboard_seq_num(clip_num: u32, n: u8) -> bool {
+pub fn what_on_clipboard_seq_num(clip_num: NonZeroU32, n: u8) -> bool {
     for i in 0..u32::from(n) {
         if get_clipboard_seq_num().unwrap_or(clip_num) != clip_num {
             return true;
@@ -69,7 +70,7 @@ pub fn what_on_clipboard_seq_num(clip_num: u32, n: u8) -> bool {
     get_clipboard_seq_num().unwrap_or(clip_num) != clip_num
 }
 
-pub fn what_on_get_clipboard_string(n: u8) -> io::Result<String> {
+pub fn what_on_get_clipboard_string(n: u8) -> clipboard_win::SysResult<String> {
     for i in 0..u32::from(n) {
         match get_clipboard_string() {
             Ok(x) => return Ok(x),
@@ -79,14 +80,14 @@ pub fn what_on_get_clipboard_string(n: u8) -> io::Result<String> {
     get_clipboard_string()
 }
 
-pub fn get_text() -> io::Result<String> {
+pub fn get_text() -> clipboard_win::SysResult<String> {
     println!("getting text");
     let old_clip = what_on_get_clipboard_string(6);
     let old_clip_num = get_clipboard_seq_num()
         .expect("Lacks sufficient rights to access clipboard(WINSTA_ACCESSCLIPBOARD)");
     press_ctrl_c();
     if !what_on_clipboard_seq_num(old_clip_num, 6) {
-        return Err(io::Error::new(io::ErrorKind::Other, "oh no!"));
+        return Err(ErrorCode::new(0));
     }
     let new_clip = what_on_get_clipboard_string(6);
     if let Ok(clip) = old_clip {

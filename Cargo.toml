@@ -21,23 +21,24 @@ windows = { version = "0.46.0", features = [
     "Win32_UI_Shell",
     "Win32_UI_WindowsAndMessaging"
 ] }
-clipboard-win = "*"
-serde_derive = "*"
-serde = "*"
+clipboard-win = "4.5.0"
+serde_derive = "1.0.160"
+serde = "1.0.160"
 preferences = { git = "https://github.com/Eh2406/preferences-rs", branch = "patch-1"}
-unicode-segmentation = "*"
-regex = "*"
-itertools = "*"
-ordslice = "*"
+unicode-segmentation = "1.10.1"
+regex = "1.8.1"
+itertools = "0.10.5"
+ordslice = "0.3.0"
 average = { version = "0.9.2", features = ["serde1"]}
 chrono = { version = "0.4", features = ["serde"] }
+error-code = "2.3.1"
 
 [target.'cfg(windows)'.build-dependencies]
-winres = "*"
+winres = "0.1.12"
 
 [dev-dependencies]
-quickcheck = "*"
-lazy_static = "*"
+quickcheck = "1.0.3"
+lazy_static = "1.4.0"
 
 [profile.release]
 debug = true
