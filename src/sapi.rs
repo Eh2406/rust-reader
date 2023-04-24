@@ -2,13 +2,19 @@ use average::{Estimate, Variance};
 use chrono;
 use std::mem::size_of;
 use std::mem::zeroed;
-use winapi;
-use winapi::shared::minwindef;
-use winapi::shared::windef;
-use winapi::um::libloaderapi;
-use winapi::um::shellapi;
-use winapi::um::winnt;
-use winapi::um::winuser;
+
+use windows::w;
+use windows::core::PCWSTR;
+use windows::Win32::{
+    Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, RECT, WPARAM},
+    Graphics::Gdi,
+    Media::Speech,
+    System::Com as syscom,
+    System::LibraryLoader,
+    System::WindowsProgramming::INFINITE,
+    UI::Shell,
+    UI::WindowsAndMessaging as wm,
+};
 
 use std::cmp::{max, min};
 use std::mem;
@@ -18,147 +24,124 @@ use std::time::Instant;
 
 use crate::window::*;
 
-pub const WM_SAPI_EVENT: minwindef::UINT = winuser::WM_APP + 15;
-pub const WM_APP_NOTIFICATION_ICON: minwindef::UINT = winuser::WM_APP + 16;
+pub const WM_SAPI_EVENT: u32 = wm::WM_APP + 15;
+pub const WM_APP_NOTIFICATION_ICON: u32 = wm::WM_APP + 16;
 
-pub struct Com {
-    hr: winnt::HRESULT,
-}
+pub struct Com {}
 
 impl Com {
     pub fn new() -> Com {
         println!("new for Com");
-        // https://msdn.microsoft.com/en-us/library/windows/desktop/ms678543.aspx
-        let hr = unsafe { winapi::um::objbase::CoInitialize(null_mut()) };
-        if failed(hr) {
-            panic!("failed for Com");
+        match unsafe { syscom::CoInitialize(Some(null_mut())) } {
+            Ok(_) => Com {},
+            Err(_) => panic!("failed for Com"),
         }
-        Com { hr }
     }
 }
 
 impl Drop for Com {
     fn drop(&mut self) {
-        // https://msdn.microsoft.com/en-us/library/windows/desktop/ms688715.aspx
-        if self.hr != winapi::shared::winerror::RPC_E_CHANGED_MODE {
-            unsafe { winapi::um::combaseapi::CoUninitialize() };
-        }
+        unsafe { syscom::CoUninitialize() };
         println!("drop for Com");
     }
 }
 
-pub struct SpVoice<'a> {
+pub struct SpVoice {
     // https://msdn.microsoft.com/en-us/library/ms723602.aspx
-    voice: &'a mut winapi::um::sapi51::ISpVoice,
-    window: windef::HWND,
-    edit: windef::HWND,
-    rate: windef::HWND,
-    reload_settings: windef::HWND,
-    nicon: shellapi::NOTIFYICONDATAW,
+    voice: Speech::ISpVoice,
+    window: HWND,
+    edit: HWND,
+    rate: HWND,
+    reload_settings: HWND,
+    nicon: Shell::NOTIFYICONDATAW,
     last_read: WideString,
     last_update: Option<(Instant, Range<usize>)>,
     us_per_utf16: [Variance; 21],
 }
 
-impl<'a> SpVoice<'a> {
-    pub fn new<'c: 'a>(_con: &'c Com) -> Box<SpVoice<'a>> {
+impl SpVoice {
+    pub fn new<'c>(_con: &'c Com) -> Box<SpVoice> {
         println!("new for SpVoice");
-        use winapi::Interface;
-        let mut voice: *mut winapi::um::sapi51::ISpVoice = null_mut();
-        let mut clsid_spvoice: winapi::shared::guiddef::CLSID = unsafe { mem::zeroed() };
-        let sapi_id: WideString = "SAPI.SpVoice".into();
 
         unsafe {
-            if failed(winapi::um::combaseapi::CLSIDFromProgID(
-                sapi_id.as_ptr(),
-                &mut clsid_spvoice,
-            )) {
-                panic!("failed for SpVoice at CLSIDFromProgID");
-            }
-
-            if failed(winapi::um::combaseapi::CoCreateInstance(
-                &clsid_spvoice,
-                null_mut(),
-                winapi::um::combaseapi::CLSCTX_ALL,
-                &winapi::um::sapi51::ISpVoice::uuidof(),
-                &mut voice as *mut *mut winapi::um::sapi51::ISpVoice
-                    as *mut *mut winapi::ctypes::c_void,
-            )) {
-                panic!("failed for SpVoice at CoCreateInstance");
-            }
             let mut out = Box::new(SpVoice {
-                voice: &mut *voice,
-                window: null_mut(),
-                edit: null_mut(),
-                rate: null_mut(),
-                reload_settings: null_mut(),
+                voice: syscom::CoCreateInstance(&Speech::SpVoice, None, syscom::CLSCTX_ALL)
+                    .expect("failed for SpVoice at CoCreateInstance"),
+                window: HWND(0),
+                edit: HWND(0),
+                rate: HWND(0),
+                reload_settings: HWND(0),
                 nicon: zeroed(),
                 last_read: WideString::new(),
                 last_update: None,
                 us_per_utf16: Default::default(),
             });
 
-            let window_class_name: WideString = "SAPI_event_window_class_name".into();
-            winuser::RegisterClassW(&winuser::WNDCLASSW {
-                style: 0,
+            let window_class_name = w!("SAPI_event_window_class_name");
+            wm::RegisterClassW(&wm::WNDCLASSW {
+                style: wm::WNDCLASS_STYLES(0),
                 lpfnWndProc: Some(window_proc_generic::<SpVoice>),
                 cbClsExtra: 0,
                 cbWndExtra: 0,
-                hInstance: null_mut(),
-                hIcon: winuser::LoadIconW(
-                    libloaderapi::GetModuleHandleW(null_mut()),
-                    winuser::MAKEINTRESOURCEW(1),
-                ),
-                hCursor: winuser::LoadCursorW(null_mut(), winuser::IDI_APPLICATION),
-                hbrBackground: 16 as windef::HBRUSH,
-                lpszMenuName: null_mut(),
-                lpszClassName: window_class_name.as_ptr(),
+                hInstance: HINSTANCE(0),
+                hIcon: wm::LoadIconW(
+                    LibraryLoader::GetModuleHandleW(PCWSTR::null()).unwrap(),
+                    PCWSTR::from_raw(1 as *const u16),
+                )
+                .expect("failed to load icon"),
+                hCursor: wm::LoadCursorW(HINSTANCE(0), wm::IDI_APPLICATION)
+                    .expect("failed to load icon"),
+                hbrBackground: Gdi::HBRUSH(16),
+                lpszMenuName: PCWSTR::null(),
+                lpszClassName: window_class_name,
             });
-            out.window = winuser::CreateWindowExW(
-                0,
-                window_class_name.as_ptr(),
-                &0u16,
-                winuser::WS_OVERLAPPEDWINDOW | winuser::WS_CLIPSIBLINGS | winuser::WS_CLIPCHILDREN,
-                0,
-                0,
+            out.window = wm::CreateWindowExW(
+                wm::WINDOW_EX_STYLE(0),
+                window_class_name,
+                PCWSTR(&mut 0u16),
+                wm::WS_OVERLAPPEDWINDOW | wm::WS_CLIPSIBLINGS | wm::WS_CLIPCHILDREN,
                 0,
                 0,
-                winuser::GetDesktopWindow(),
-                null_mut(),
-                null_mut(),
-                &mut *out as *mut _ as minwindef::LPVOID,
+                0,
+                0,
+                wm::GetDesktopWindow(),
+                wm::HMENU(0),
+                HINSTANCE(0),
+                Some(&mut *out as *mut _ as _),
             );
 
-            out.nicon.cbSize = size_of::<shellapi::NOTIFYICONDATAW>() as u32;
+            out.nicon.cbSize = size_of::<Shell::NOTIFYICONDATAW>() as u32;
             out.nicon.hWnd = out.window;
             out.nicon.uCallbackMessage = WM_APP_NOTIFICATION_ICON;
             out.nicon.uID = 1 as u32;
-            out.nicon.uFlags |= shellapi::NIF_ICON;
-            out.nicon.hIcon = winuser::LoadIconW(
-                libloaderapi::GetModuleHandleW(null_mut()),
-                winuser::MAKEINTRESOURCEW(1),
-            );
-            out.nicon.uFlags |= shellapi::NIF_MESSAGE;
-            *out.nicon.u.uVersion_mut() = shellapi::NOTIFYICON_VERSION_4;
-            let err = shellapi::Shell_NotifyIconW(shellapi::NIM_ADD, &mut out.nicon);
-            if err == 0 {
+            out.nicon.uFlags |= Shell::NIF_ICON;
+            out.nicon.hIcon = wm::LoadIconW(
+                LibraryLoader::GetModuleHandleW(PCWSTR::null()).unwrap(),
+                PCWSTR::from_raw(1 as *const u16),
+            )
+            .expect("failed to load icon");
+            out.nicon.uFlags |= Shell::NIF_MESSAGE;
+            out.nicon.Anonymous.uVersion = Shell::NOTIFYICON_VERSION_4;
+            let err = Shell::Shell_NotifyIconW(Shell::NIM_ADD, &mut out.nicon);
+            if err == false {
                 panic!("failed for Shell_NotifyIconW NIM_ADD");
             }
 
-            let err = shellapi::Shell_NotifyIconW(shellapi::NIM_SETVERSION, &mut out.nicon);
-            if err == 0 {
+            let err = Shell::Shell_NotifyIconW(Shell::NIM_SETVERSION, &mut out.nicon);
+            if err == false {
                 panic!("failed for Shell_NotifyIconW ");
             }
 
             out.edit = create_edit_window(
                 out.window,
-                winuser::WS_VSCROLL | winuser::ES_MULTILINE | winuser::ES_AUTOVSCROLL,
+                wm::WS_VSCROLL
+                    | wm::WINDOW_STYLE(wm::ES_MULTILINE as u32 | wm::ES_AUTOVSCROLL as u32),
             );
             out.rate = create_static_window(out.window, None);
-            out.reload_settings = create_button_window(out.window, Some(&"Show Settings".into()));
+            out.reload_settings = create_button_window(out.window, w!("Show Settings"));
             move_window(
                 out.window,
-                &windef::RECT {
+                &RECT {
                     left: 0,
                     top: 0,
                     right: 400,
@@ -167,14 +150,21 @@ impl<'a> SpVoice<'a> {
             );
             out.set_notify_window_message();
             out.set_volume(100);
-            out.set_alert_boundary(winapi::um::sapi51::SPEI_PHONEME);
-            out.set_interest(&[5, 1, 2], &[]);
+            out.set_alert_boundary(Speech::SPEI_PHONEME);
+            out.set_interest(
+                &[
+                    Speech::SPEI_WORD_BOUNDARY,
+                    Speech::SPEI_START_INPUT_STREAM,
+                    Speech::SPEI_END_INPUT_STREAM,
+                ],
+                &[],
+            );
             out
         }
     }
 
     #[allow(dead_code)]
-    pub fn get_window_handle(&mut self) -> windef::HWND {
+    pub fn get_window_handle(&mut self) -> HWND {
         self.window
     }
 
@@ -186,7 +176,7 @@ impl<'a> SpVoice<'a> {
         self.us_per_utf16.clone()
     }
 
-    pub fn toggle_window_visible(&self) -> minwindef::BOOL {
+    pub fn toggle_window_visible(&self) -> bool {
         toggle_window_visible(self.window)
     }
 
@@ -205,12 +195,21 @@ impl<'a> SpVoice<'a> {
     pub fn speak<T: Into<WideString>>(&mut self, string: T) {
         self.last_read = string.into();
         set_window_text(self.edit, &self.last_read);
-        unsafe { self.voice.Speak(self.last_read.as_ptr(), 19, null_mut()) };
+        unsafe {
+            self.voice.Speak(
+                PCWSTR::from_raw(self.last_read.as_ptr()),
+                (Speech::SVSFlagsAsync.0 | Speech::SVSFPurgeBeforeSpeak.0 | Speech::SVSFIsNotXML.0)
+                    .try_into()
+                    .unwrap(),
+                None,
+            )
+        }
+        .unwrap();
         self.last_update = None;
     }
 
     pub fn wait(&mut self) {
-        unsafe { self.voice.WaitUntilDone(winapi::um::winbase::INFINITE) };
+        unsafe { self.voice.WaitUntilDone(INFINITE) }.unwrap();
     }
 
     pub fn speak_wait<T: Into<WideString>>(&mut self, string: T) {
@@ -219,25 +218,25 @@ impl<'a> SpVoice<'a> {
     }
 
     pub fn pause(&mut self) {
-        unsafe { self.voice.Pause() };
+        unsafe { self.voice.Pause() }.unwrap();
         self.last_update = None;
     }
 
     pub fn resume(&mut self) {
-        unsafe { self.voice.Resume() };
+        unsafe { self.voice.Resume() }.unwrap();
         self.last_update = None;
     }
 
     pub fn set_rate(&mut self, rate: i32) -> i32 {
         let rate = max(min(rate, 10), -10);
-        unsafe { self.voice.SetRate(rate) };
+        unsafe { self.voice.SetRate(rate) }.unwrap();
         self.last_update = None;
         self.get_rate()
     }
 
     pub fn get_rate(&mut self) -> i32 {
         let mut rate = 0;
-        unsafe { self.voice.GetRate(&mut rate) };
+        unsafe { self.voice.GetRate(&mut rate) }.unwrap();
         set_window_text(self.rate, &format!("reading at rate: {}", rate).into());
         rate
     }
@@ -248,50 +247,55 @@ impl<'a> SpVoice<'a> {
     }
 
     pub fn set_volume(&mut self, volume: u16) {
-        unsafe { self.voice.SetVolume(min(volume, 100)) };
+        unsafe { self.voice.SetVolume(min(volume, 100)) }.unwrap();
     }
 
     #[allow(dead_code)]
     pub fn get_volume(&mut self) -> u16 {
         let mut volume = 0;
-        unsafe { self.voice.GetVolume(&mut volume) };
+        unsafe { self.voice.GetVolume(&mut volume) }.unwrap();
         volume
     }
 
-    pub fn set_alert_boundary(&mut self, boundary: winapi::um::sapi51::SPEVENTENUM) {
-        unsafe { self.voice.SetAlertBoundary(boundary) };
+    pub fn set_alert_boundary(&mut self, boundary: Speech::SPEVENTENUM) {
+        unsafe { self.voice.SetAlertBoundary(boundary) }.unwrap();
     }
 
     #[allow(dead_code)]
-    pub fn get_alert_boundary(&mut self) -> winapi::um::sapi51::SPEVENTENUM {
-        let mut boundary = 0;
-        unsafe { self.voice.GetAlertBoundary(&mut boundary) };
+    pub fn get_alert_boundary(&mut self) -> Speech::SPEVENTENUM {
+        let mut boundary = Speech::SPEVENTENUM(0);
+        unsafe { self.voice.GetAlertBoundary(&mut boundary) }.unwrap();
         boundary
     }
 
-    pub fn get_status(&mut self) -> winapi::um::sapi51::SPVOICESTATUS {
-        let mut status: winapi::um::sapi51::SPVOICESTATUS = unsafe { mem::zeroed() };
-        unsafe { self.voice.GetStatus(&mut status, null_mut()) };
+    pub fn get_status(&mut self) -> Speech::SPVOICESTATUS {
+        let mut status: Speech::SPVOICESTATUS = unsafe { mem::zeroed() };
+        unsafe { self.voice.GetStatus(&mut status, null_mut()) }.unwrap();
         status
     }
 
     fn set_notify_window_message(&mut self) {
         unsafe {
             self.voice
-                .SetNotifyWindowMessage(self.window, WM_SAPI_EVENT, 0, 0)
-        };
+                .SetNotifyWindowMessage(self.window, WM_SAPI_EVENT, WPARAM(0), LPARAM(0))
+        }
+        .unwrap();
     }
 
-    pub fn set_interest(&mut self, event: &[u32], queued: &[u32]) {
+    pub fn set_interest(&mut self, event: &[Speech::SPEVENTENUM], queued: &[Speech::SPEVENTENUM]) {
         let queued = queued
             .iter()
-            .map(|&x| winapi::um::sapi51::SPFEI(x))
+            .map(|&x| {
+                (1 << x.0) | (1 << Speech::SPEI_RESERVED1.0) | (1 << Speech::SPEI_RESERVED2.0)
+            })
             .fold(0u64, |acc, x| acc | x);
         let event = event
             .iter()
-            .map(|&x| winapi::um::sapi51::SPFEI(x))
+            .map(|&x| {
+                (1 << x.0) | (1 << Speech::SPEI_RESERVED1.0) | (1 << Speech::SPEI_RESERVED2.0)
+            })
             .fold(queued, |acc, x| acc | x);
-        unsafe { self.voice.SetInterest(event, queued) };
+        unsafe { self.voice.SetInterest(event, queued) }.unwrap();
     }
 }
 
@@ -326,23 +330,21 @@ fn test_format_duration() {
     assert_eq!(format_duration(duration), "0:00");
 }
 
-impl<'a> Windowed for SpVoice<'a> {
-    fn window_proc(
-        &mut self,
-        msg: minwindef::UINT,
-        w_param: minwindef::WPARAM,
-        l_param: minwindef::LPARAM,
-    ) -> Option<minwindef::LRESULT> {
+impl Windowed for SpVoice {
+    fn window_proc(&mut self, msg: u32, w_param: WPARAM, l_param: LPARAM) -> Option<LRESULT> {
         match msg {
-            winuser::WM_DESTROY | winuser::WM_QUERYENDSESSION | winuser::WM_ENDSESSION => close(),
+            wm::WM_DESTROY | wm::WM_QUERYENDSESSION | wm::WM_ENDSESSION => close(),
             WM_SAPI_EVENT => {
                 let status = self.get_status();
+                // convert rate from range (-10, 10) to (0, 20)
+                let rate_shifted = 10u32
+                    .checked_add_signed(self.get_rate())
+                    .expect("bad rate < -10") as usize;
                 let word_range = status.word_range();
-                let rate = self.get_rate();
                 if word_range.end == 0 {
                     // called before start of reading.
                     self.last_update = None;
-                    return Some(0);
+                    return Some(LRESULT(0));
                 }
                 if status.dwRunningState == 3 {
                     // called before end of reading.
@@ -350,11 +352,11 @@ impl<'a> Windowed for SpVoice<'a> {
                     set_console_title(&window_title);
                     set_window_text(self.window, &window_title);
                     self.last_update = None;
-                    return Some(0);
+                    return Some(LRESULT(0));
                 }
                 if let Some((ref old_time, ref old_word_range)) = self.last_update {
                     if old_word_range.start == word_range.start {
-                        return Some(0);
+                        return Some(LRESULT(0));
                     }
                     let elapsed = chrono::Duration::from_std(old_time.elapsed())
                         .expect("bad time diffrence.")
@@ -362,12 +364,12 @@ impl<'a> Windowed for SpVoice<'a> {
                         .expect("bad time diffrence.");
                     let new_rate =
                         (elapsed as f64) / ((word_range.start - old_word_range.start) as f64);
-                    self.us_per_utf16[rate as usize + 10].add(new_rate);
+                    self.us_per_utf16[rate_shifted].add(new_rate);
                 }
                 self.last_update = Some((Instant::now(), word_range.clone()));
                 let len_left = (self.last_read.len() - word_range.end) as f64;
-                let ms_left = len_left * self.us_per_utf16[rate as usize + 10].mean()
-                    + (len_left * self.us_per_utf16[rate as usize + 10].sample_variance()).sqrt();
+                let ms_left = len_left * self.us_per_utf16[rate_shifted].mean()
+                    + (len_left * self.us_per_utf16[rate_shifted].sample_variance()).sqrt();
                 let window_title = format!(
                     "{:.1}% {} \"{}\" rust_reader",
                     100.0 * (word_range.start as f64) / (self.last_read.len() as f64),
@@ -379,42 +381,42 @@ impl<'a> Windowed for SpVoice<'a> {
                 set_window_text(self.window, &window_title);
                 set_edit_selection(self.edit, &word_range);
                 set_edit_scroll_caret(self.edit);
-                return Some(0);
+                return Some(LRESULT(0));
             }
-            winuser::WM_SIZE => {
+            wm::WM_SIZE => {
                 let rect = get_client_rect(self.window);
-                if (w_param <= 2) && rect.right > 0 && rect.bottom > 0 {
+                if (w_param.0 <= 2) && rect.right > 0 && rect.bottom > 0 {
                     let (up, down) = rect.inset(3).split_rows(25);
                     move_window(self.edit, &down.inset(3));
                     let (left, right) = up.split_columns(120);
                     move_window(self.reload_settings, &left.inset(3));
                     unsafe {
-                        winuser::InvalidateRect(self.rate, null_mut(), minwindef::TRUE);
+                        Gdi::InvalidateRect(self.rate, None, true);
                     }
                     move_window(self.rate, &right.inset(3));
-                    return Some(0);
+                    return Some(LRESULT(0));
                 }
             }
-            winuser::WM_GETMINMAXINFO => {
-                let data = unsafe { &mut *(l_param as *mut winuser::MINMAXINFO) };
+            wm::WM_GETMINMAXINFO => {
+                let data = unsafe { &mut *(l_param.0 as *mut u32 as *mut wm::MINMAXINFO) };
                 data.ptMinTrackSize.x = 300;
                 data.ptMinTrackSize.y = 110;
-                return Some(0);
+                return Some(LRESULT(0));
             }
-            winuser::WM_COMMAND => {
+            wm::WM_COMMAND => {
                 use crate::press_hotkey;
                 use crate::Action;
-                if self.reload_settings as isize == l_param
-                    && minwindef::HIWORD(w_param as u32) == winuser::BN_CLICKED
+                if self.reload_settings.0 == l_param.0
+                    && ((w_param.0 >> 16) & 0xffff) as u32 == wm::BN_CLICKED
                 {
                     press_hotkey(Action::ShowSettings);
-                    return Some(0);
+                    return Some(LRESULT(0));
                 }
             }
             WM_APP_NOTIFICATION_ICON => {
-                if minwindef::LOWORD(l_param as u32) == (winuser::WM_LBUTTONUP as u16) {
+                if (l_param.0 & 0xffff) as u32 == wm::WM_LBUTTONUP {
                     self.toggle_window_visible();
-                    return Some(0);
+                    return Some(LRESULT(0));
                 }
             }
             _ => {}
@@ -423,10 +425,9 @@ impl<'a> Windowed for SpVoice<'a> {
     }
 }
 
-impl<'a> Drop for SpVoice<'a> {
+impl Drop for SpVoice {
     fn drop(&mut self) {
-        unsafe { self.voice.Release() };
-        unsafe { shellapi::Shell_NotifyIconW(shellapi::NIM_DELETE, &mut self.nicon) };
+        unsafe { Shell::Shell_NotifyIconW(Shell::NIM_DELETE, &mut self.nicon) };
         println!("drop for SpVoice");
     }
 }
@@ -436,7 +437,7 @@ pub trait StatusUtil {
     fn sent_range(&self) -> Range<usize>;
 }
 
-impl StatusUtil for winapi::um::sapi51::SPVOICESTATUS {
+impl StatusUtil for Speech::SPVOICESTATUS {
     fn word_range(&self) -> Range<usize> {
         self.ulInputWordPos as usize..(self.ulInputWordPos + self.ulInputWordLen) as usize
     }

@@ -3,7 +3,7 @@ use std::io;
 use std::mem;
 use std::thread::sleep;
 use std::time::Duration;
-use winapi;
+use windows::Win32::UI::Input::KeyboardAndMouse;
 
 fn get_clipboard_seq_num() -> Option<u32> {
     Clipboard::seq_num()
@@ -20,35 +20,43 @@ pub fn clipboard_setup() {
     }
 }
 
-pub fn send_key_event(vk: u16, flags: u32) {
-    let mut input: winapi::um::winuser::INPUT = unsafe { mem::zeroed() };
+pub fn send_key_event(
+    vk: KeyboardAndMouse::VIRTUAL_KEY,
+    flags: KeyboardAndMouse::KEYBD_EVENT_FLAGS,
+) {
+    let mut input: KeyboardAndMouse::INPUT = unsafe { mem::zeroed() };
     unsafe {
-        input.type_ = winapi::um::winuser::INPUT_KEYBOARD;
-        *input.u.ki_mut() = winapi::um::winuser::KEYBDINPUT {
+        input.r#type = KeyboardAndMouse::INPUT_KEYBOARD;
+        input.Anonymous.ki = KeyboardAndMouse::KEYBDINPUT {
             wVk: vk,
             wScan: 0,
             dwFlags: flags,
             time: 0,
             dwExtraInfo: 0,
         };
-        let b = &mut input;
-        winapi::um::winuser::SendInput(1, b, mem::size_of::<winapi::um::winuser::INPUT>() as i32);
+        KeyboardAndMouse::SendInput(&[input], mem::size_of::<KeyboardAndMouse::INPUT>() as i32);
     }
 }
 
 pub fn press_key(vk: &[u16]) {
     for &v in vk {
-        send_key_event(v, 0);
+        send_key_event(
+            KeyboardAndMouse::VIRTUAL_KEY(v),
+            KeyboardAndMouse::KEYBD_EVENT_FLAGS(0),
+        );
     }
     sleep(Duration::from_millis(1));
     for &v in vk.iter().rev() {
-        send_key_event(v, winapi::um::winuser::KEYEVENTF_KEYUP);
+        send_key_event(
+            KeyboardAndMouse::VIRTUAL_KEY(v),
+            KeyboardAndMouse::KEYEVENTF_KEYUP,
+        );
     }
 }
 
 pub fn press_ctrl_c() {
     println!("sending ctrl-c");
-    press_key(&[winapi::um::winuser::VK_CONTROL as u16, 67]); //ascii for "c"
+    press_key(&[KeyboardAndMouse::VK_CONTROL.0, 67]); //ascii for "c"
 }
 
 pub fn what_on_clipboard_seq_num(clip_num: u32, n: u8) -> bool {

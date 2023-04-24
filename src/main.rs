@@ -1,3 +1,4 @@
+// Comment out the following line in order to see console output
 #![cfg_attr(not(test), windows_subsystem = "windows")]
 
 extern crate average;
@@ -5,7 +6,11 @@ extern crate chrono;
 extern crate clipboard_win;
 extern crate ordslice;
 extern crate unicode_segmentation;
-extern crate winapi;
+use windows::Win32::{
+    Foundation::{LPARAM, WPARAM},
+    System::Threading::GetCurrentThreadId,
+    UI::WindowsAndMessaging as wm,
+};
 
 extern crate itertools;
 #[cfg(test)]
@@ -41,13 +46,13 @@ use crate::settings::*;
 mod clean_text;
 use crate::clean_text::*;
 
-struct State<'a> {
-    voice: Box<SpVoice<'a>>,
+struct State {
+    voice: Box<SpVoice>,
     settings: Box<SettingsWindow>,
     hk: Vec<HotKey>,
 }
 
-impl<'a> State<'a> {
+impl State {
     fn read(&mut self) {
         self.voice.resume();
         match get_text() {
@@ -133,11 +138,11 @@ fn setup_hotkeys(settings: &mut Settings) -> Vec<HotKey> {
 
 fn press_hotkey(id: Action) {
     unsafe {
-        winapi::um::winuser::PostThreadMessageW(
-            winapi::um::processthreadsapi::GetCurrentThreadId(),
-            winapi::um::winuser::WM_HOTKEY,
-            id as winapi::shared::minwindef::WPARAM,
-            0,
+        wm::PostThreadMessageW(
+            GetCurrentThreadId(),
+            wm::WM_HOTKEY,
+            WPARAM(id as usize),
+            LPARAM(0),
         )
     };
 }
@@ -179,14 +184,14 @@ fn main() {
 
     while let Some(msg) = get_message() {
         match msg.message {
-            winapi::um::winuser::WM_HOTKEY if (msg.wParam as usize) < state.hk.len() => {
-                state.match_hotkey_id(ACTION_LIST[msg.wParam as usize])
+            wm::WM_HOTKEY if msg.wParam.0 < state.hk.len() => {
+                state.match_hotkey_id(ACTION_LIST[msg.wParam.0])
             }
             _ => {
                 // println!("{:?}", msg);
                 unsafe {
-                    winapi::um::winuser::TranslateMessage(&msg);
-                    winapi::um::winuser::DispatchMessageW(&msg);
+                    wm::TranslateMessage(&msg);
+                    wm::DispatchMessageW(&msg);
                 }
             }
         }

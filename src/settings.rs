@@ -1,22 +1,28 @@
-use average::Variance;
 use crate::clean_text::RegexCleanerPair;
 use crate::hot_key::*;
+use crate::wide_string::WideString;
+use crate::window::*;
+use average::Variance;
 use itertools::Itertools;
 use preferences::{prefs_base_dir, AppInfo, Preferences};
-use std::ptr::null_mut;
-use crate::wide_string::WideString;
-use winapi::shared::minwindef;
-use winapi::shared::windef;
-use winapi::um::commctrl;
-use winapi::um::libloaderapi;
-use winapi::um::winuser;
-use winapi::um::winuser::{VK_OEM_2, VK_ESCAPE, VK_OEM_MINUS, VK_OEM_PERIOD, VK_OEM_PLUS};
-use crate::window::*;
+use windows::core::PCWSTR;
+use windows::w;
+use windows::Win32::{
+    Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, RECT, WPARAM},
+    Graphics::Gdi,
+    System::LibraryLoader,
+    UI::Controls,
+    UI::Input::KeyboardAndMouse::{VK_ESCAPE, VK_OEM_2, VK_OEM_MINUS, VK_OEM_PERIOD, VK_OEM_PLUS},
+    UI::WindowsAndMessaging as wm,
+};
 
 const APP_INFO: AppInfo = AppInfo {
     name: "rust_reader",
     author: "us",
 };
+
+// TBM_SETPOS is defined in winrows crate, but TBM_GETPOS is missing?
+pub const TBM_GETPOS: u32 = Controls::TBM_SETPOS - 5;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Settings {
@@ -29,126 +35,122 @@ pub struct Settings {
 
 pub struct SettingsWindow {
     settings: Settings,
-    window: windef::HWND,
-    rate: (windef::HWND, windef::HWND),
-    hotkeys: [(windef::HWND, windef::HWND); 8],
-    cleaners: Vec<(
-        Option<bool>,
-        windef::HWND,
-        windef::HWND,
-        windef::HWND,
-        windef::HWND,
-    )>,
-    add_cleaner: windef::HWND,
-    reset: windef::HWND,
-    save: windef::HWND,
+    window: HWND,
+    rate: (HWND, HWND),
+    hotkeys: [(HWND, HWND); 8],
+    cleaners: Vec<(Option<bool>, HWND, HWND, HWND, HWND)>,
+    add_cleaner: HWND,
+    reset: HWND,
+    save: HWND,
 }
 
 impl SettingsWindow {
     pub fn new(s: Settings) -> Box<SettingsWindow> {
         let mut out = Box::new(SettingsWindow {
             settings: s,
-            window: null_mut(),
-            rate: (null_mut(), null_mut()),
-            hotkeys: [(null_mut(), null_mut()); 8],
+            window: HWND(0),
+            rate: (HWND(0), HWND(0)),
+            hotkeys: [(HWND(0), HWND(0)); 8],
             cleaners: Vec::new(),
-            add_cleaner: null_mut(),
-            reset: null_mut(),
-            save: null_mut(),
+            add_cleaner: HWND(0),
+            reset: HWND(0),
+            save: HWND(0),
         });
 
-        let window_class_name: WideString = "setings_window_class_name".into();
+        let window_class_name = w!("setings_window_class_name");
         unsafe {
-            winuser::RegisterClassW(&winuser::WNDCLASSW {
-                style: 0,
+            wm::RegisterClassW(&wm::WNDCLASSW {
+                style: wm::WNDCLASS_STYLES(0),
                 lpfnWndProc: Some(window_proc_generic::<SettingsWindow>),
                 cbClsExtra: 0,
                 cbWndExtra: 0,
-                hInstance: null_mut(),
-                hIcon: winuser::LoadIconW(
-                    libloaderapi::GetModuleHandleW(null_mut()),
-                    winuser::MAKEINTRESOURCEW(1),
-                ),
-                hCursor: winuser::LoadCursorW(null_mut(), winuser::IDI_APPLICATION),
-                hbrBackground: 16 as windef::HBRUSH,
-                lpszMenuName: null_mut(),
-                lpszClassName: window_class_name.as_ptr(),
+                hInstance: HINSTANCE(0),
+                hIcon: wm::LoadIconW(
+                    LibraryLoader::GetModuleHandleW(PCWSTR::null()).unwrap(),
+                    PCWSTR::from_raw(1 as *const u16),
+                )
+                .expect("failed to load icon"),
+                hCursor: wm::LoadCursorW(HINSTANCE(0), wm::IDI_APPLICATION)
+                    .expect("failed to load icon"),
+                hbrBackground: Gdi::HBRUSH(16),
+                lpszMenuName: PCWSTR::null(),
+                lpszClassName: window_class_name,
             });
-            out.window = winuser::CreateWindowExW(
-                0,
-                window_class_name.as_ptr(),
-                &0u16,
-                winuser::WS_OVERLAPPEDWINDOW | winuser::WS_CLIPSIBLINGS,
-                0,
-                0,
+            out.window = wm::CreateWindowExW(
+                wm::WINDOW_EX_STYLE(0),
+                window_class_name,
+                PCWSTR(&mut 0u16),
+                wm::WS_OVERLAPPEDWINDOW | wm::WS_CLIPSIBLINGS,
                 0,
                 0,
-                winuser::GetDesktopWindow(),
-                null_mut(),
-                null_mut(),
-                &mut *out as *mut _ as minwindef::LPVOID,
+                0,
+                0,
+                wm::GetDesktopWindow(),
+                wm::HMENU(0),
+                HINSTANCE(0),
+                Some(&mut *out as *mut _ as *mut _),
             );
-            commctrl::InitCommonControls();
-            let wide_trackbar: WideString = "msctls_trackbar32".into();
-            out.rate.1 = winuser::CreateWindowExW(
-                0,
-                wide_trackbar.as_ptr(),
-                &0u16,
-                winuser::WS_CHILD
-                    | winuser::WS_VISIBLE
-                    | commctrl::TBS_AUTOTICKS
-                    | commctrl::TBS_BOTTOM,
+            Controls::InitCommonControls();
+            out.rate.1 = wm::CreateWindowExW(
+                wm::WINDOW_EX_STYLE(0),
+                w!("msctls_trackbar32"),
+                PCWSTR(&mut 0u16),
+                wm::WS_CHILD
+                    | wm::WS_VISIBLE
+                    | wm::WINDOW_STYLE(Controls::TBS_AUTOTICKS | Controls::TBS_BOTTOM),
                 0,
                 0,
                 0,
                 0,
                 out.window,
-                null_mut(),
-                null_mut(),
-                null_mut(),
+                wm::HMENU(0),
+                HINSTANCE(0),
+                None,
             );
-            winuser::SendMessageW(
+            wm::SendMessageW(
                 out.rate.1,
-                commctrl::TBM_SETRANGE,
-                0,
-                minwindef::MAKELONG(0, 20) as isize,
+                Controls::TBM_SETRANGE,
+                WPARAM(0),
+                LPARAM((20 << 16) as isize),
             );
-            winuser::SendMessageW(out.rate.1, commctrl::TBM_SETPAGESIZE, 0, 1);
+            wm::SendMessageW(out.rate.1, Controls::TBM_SETPAGESIZE, WPARAM(0), LPARAM(1));
             out.rate.0 = create_static_window(out.window, None);
 
-            out.add_cleaner = create_button_window(out.window, Some(&"add cleaner".into()));
-            out.save = create_button_window(out.window, Some(&"save".into()));
-            out.reset = create_button_window(out.window, Some(&"reset".into()));
+            out.add_cleaner = create_button_window(out.window, w!("add cleaner"));
+            out.save = create_button_window(out.window, w!("save"));
+            out.reset = create_button_window(out.window, w!("reset"));
             let window = out.window;
-            let wide_hotkey_class: WideString = "msctls_hotkey32".into();
 
-            let mut icex: commctrl::INITCOMMONCONTROLSEX = ::std::mem::zeroed();
-            icex.dwSize = ::std::mem::size_of::<commctrl::INITCOMMONCONTROLSEX>() as u32;
-            icex.dwICC = commctrl::ICC_HOTKEY_CLASS;
-            commctrl::InitCommonControlsEx(&icex);
+            let mut icex: Controls::INITCOMMONCONTROLSEX = ::std::mem::zeroed();
+            icex.dwSize = ::std::mem::size_of::<Controls::INITCOMMONCONTROLSEX>() as u32;
+            icex.dwICC = Controls::ICC_HOTKEY_CLASS;
+            Controls::InitCommonControlsEx(&icex);
 
-            for (act, ht) in crate::actions::ACTION_LIST.iter().zip(out.hotkeys.iter_mut()) {
+            for (act, ht) in crate::actions::ACTION_LIST
+                .iter()
+                .zip(out.hotkeys.iter_mut())
+            {
                 let wide_hotkey_name: WideString = format!("{}", act).into();
                 ht.0 = create_static_window(window, Some(&wide_hotkey_name));
-                ht.1 = winuser::CreateWindowExW(
-                    0,
-                    wide_hotkey_class.as_ptr(),
-                    &0u16,
-                    winuser::WS_CHILD | winuser::WS_VISIBLE,
+                ht.1 = wm::CreateWindowExW(
+                    wm::WINDOW_EX_STYLE(0),
+                    w!("msctls_hotkey32"),
+                    PCWSTR(&mut 0u16),
+                    wm::WS_CHILD | wm::WS_VISIBLE,
                     0,
                     0,
                     0,
                     0,
                     window,
-                    null_mut(),
-                    null_mut(),
-                    null_mut(),
+                    wm::HMENU(0),
+                    HINSTANCE(0),
+                    None,
                 );
-                winuser::SendMessageW(
+                wm::SendMessageW(
                     ht.1,
-                    commctrl::HKM_SETRULES,
-                    (commctrl::HKCOMB_NONE | commctrl::HKCOMB_S) as usize,
-                    commctrl::HOTKEYF_CONTROL as isize,
+                    Controls::HKM_SETRULES,
+                    WPARAM((Controls::HKCOMB_NONE | Controls::HKCOMB_S) as usize),
+                    LPARAM(Controls::HOTKEYF_CONTROL as isize),
                 );
             }
         }
@@ -156,14 +158,14 @@ impl SettingsWindow {
         out.get_inner_all();
         move_window(
             out.window,
-            &windef::RECT {
+            &RECT {
                 left: 0,
                 top: 0,
                 right: 400,
                 bottom: 400,
             },
         );
-        show_window(out.window, winuser::SW_SHOWNORMAL);
+        show_window(out.window, wm::SW_SHOWNORMAL);
         out.toggle_window_visible();
         out
     }
@@ -171,10 +173,10 @@ impl SettingsWindow {
     fn add_cleaner(&mut self) {
         self.cleaners.push((
             None,
-            create_edit_window(self.window, 0),
-            create_edit_window(self.window, 0),
-            create_button_window(self.window, Some(&"^".into())),
-            create_button_window(self.window, Some(&"X".into())),
+            create_edit_window(self.window, wm::WINDOW_STYLE(0)),
+            create_edit_window(self.window, wm::WINDOW_STYLE(0)),
+            create_button_window(self.window, w!("^")),
+            create_button_window(self.window, w!("X")),
         ));
     }
 
@@ -200,18 +202,23 @@ impl SettingsWindow {
         &mut self.settings
     }
 
-    pub fn toggle_window_visible(&self) -> minwindef::BOOL {
+    pub fn toggle_window_visible(&self) -> bool {
         toggle_window_visible(self.window)
     }
 
-    pub fn show_window(&self) -> minwindef::BOOL {
-        show_window(self.window, winuser::SW_SHOW)
+    pub fn show_window(&self) -> bool {
+        show_window(self.window, wm::SW_SHOW)
     }
 
     pub fn get_inner_rate(&mut self) -> i32 {
         let rate = self.settings.rate;
         unsafe {
-            winuser::SendMessageW(self.rate.1, commctrl::TBM_SETPOS, 1, (rate + 10) as isize);
+            wm::SendMessageW(
+                self.rate.1,
+                Controls::TBM_SETPOS,
+                WPARAM(1),
+                LPARAM((rate + 10) as isize),
+            );
         }
         set_window_text(self.rate.0, &format!("reading at rate: {}", rate).into());
         rate
@@ -220,11 +227,11 @@ impl SettingsWindow {
     pub fn get_inner_hotkeys(&self) -> [(u32, u32); 8] {
         for (&(a, b), hwnd) in self.settings.hotkeys.iter().zip(self.hotkeys.iter()) {
             unsafe {
-                winuser::SendMessageW(
+                wm::SendMessageW(
                     hwnd.1,
-                    commctrl::HKM_SETHOTKEY,
-                    minwindef::MAKEWORD(b as u8, convert_mod(a as u8)) as usize,
-                    0,
+                    Controls::HKM_SETHOTKEY,
+                    WPARAM((b as u16 | ((convert_mod(a as u8) as u16) << 8)).into()),
+                    LPARAM(0),
                 );
             }
         }
@@ -241,7 +248,7 @@ impl SettingsWindow {
                 self.remove_cleaner(i);
             }
             unsafe {
-                winuser::SendMessageW(self.window, winuser::WM_SIZE, 0, 0);
+                wm::SendMessageW(self.window, wm::WM_SIZE, WPARAM(0), LPARAM(0));
             }
         }
         for (cl, rexpar) in self
@@ -270,21 +277,16 @@ impl SettingsWindow {
 }
 
 impl Windowed for SettingsWindow {
-    fn window_proc(
-        &mut self,
-        msg: minwindef::UINT,
-        w_param: minwindef::WPARAM,
-        l_param: minwindef::LPARAM,
-    ) -> Option<minwindef::LRESULT> {
+    fn window_proc(&mut self, msg: u32, w_param: WPARAM, l_param: LPARAM) -> Option<LRESULT> {
         use itertools::EitherOrBoth::{Both, Left, Right};
         match msg {
-            winuser::WM_CLOSE => {
-                show_window(self.window, winuser::SW_HIDE);
-                return Some(0);
+            wm::WM_CLOSE => {
+                show_window(self.window, wm::SW_HIDE);
+                return Some(LRESULT(0));
             }
-            winuser::WM_SIZE => {
+            wm::WM_SIZE => {
                 let rect = get_client_rect(self.window).inset(3);
-                if (w_param <= 2) && rect.right > 0 && rect.bottom > 0 {
+                if (w_param.0 <= 2) && rect.right > 0 && rect.bottom > 0 {
                     let mut rect = rect.split_rows(rect.bottom - 50);
                     let mut bot = rect.1.split_rows(25);
                     bot.0 = bot.0.inset(3).shift_right(50);
@@ -308,13 +310,15 @@ impl Windowed for SettingsWindow {
                         .iter()
                         .map(|&(_, a, _, _, _)| get_window_text_length(a))
                         .max()
-                        .unwrap_or(0) + 1;
+                        .unwrap_or(0)
+                        + 1;
                     let mlr = self
                         .cleaners
                         .iter()
                         .map(|&(_, _, b, _, _)| get_window_text_length(b))
                         .max()
-                        .unwrap_or(0) + 1;
+                        .unwrap_or(0)
+                        + 1;
                     rect.1 = rect.1.shift_down(5);
                     let split_at = (rect.1.right - 50) * mll / (mll + mlr);
                     for &ht in &self.cleaners {
@@ -322,75 +326,78 @@ impl Windowed for SettingsWindow {
                         let (l, r) = rect.0.split_columns(rect.1.right - 50);
                         let r = r.split_columns(25);
                         unsafe {
-                            winuser::InvalidateRect(ht.3, null_mut(), minwindef::TRUE);
+                            Gdi::InvalidateRect(ht.3, None, true);
                         }
                         move_window(ht.3, &r.0.inset(3));
                         unsafe {
-                            winuser::InvalidateRect(ht.4, null_mut(), minwindef::TRUE);
+                            Gdi::InvalidateRect(ht.4, None, true);
                         }
                         move_window(ht.4, &r.1.inset(3));
                         let (l, r) = l.split_columns(split_at);
                         move_window(ht.1, &l);
                         move_window(ht.2, &r);
                     }
-                    return Some(0);
+                    return Some(LRESULT(0));
                 }
             }
-            winuser::WM_GETMINMAXINFO => {
-                let data = unsafe { &mut *(l_param as *mut winuser::MINMAXINFO) };
+            wm::WM_GETMINMAXINFO => {
+                let data = unsafe { &mut *(l_param.0 as *mut wm::MINMAXINFO) };
                 data.ptMinTrackSize.x = 340;
                 data.ptMinTrackSize.y =
                     (55 + 25 * (3 + self.hotkeys.len()) + 25 * self.cleaners.len()) as i32;
-                return Some(0);
+                return Some(LRESULT(0));
             }
-            winuser::WM_COMMAND | winuser::WM_HSCROLL => {
+            wm::WM_COMMAND | wm::WM_HSCROLL => {
                 let mut changed = false;
                 let mut invalid = false;
                 let mut dirty_cleaners = false;
 
-                if minwindef::HIWORD(w_param as u32) == winuser::BN_CLICKED {
-                    if self.reset as isize == l_param {
+                if ((w_param.0 >> 16) & 0xffff) as u32 == wm::BN_CLICKED {
+                    if self.reset.0 == l_param.0 {
                         self.get_inner_all();
                     }
-                    if self.add_cleaner as isize == l_param {
+                    if self.add_cleaner.0 == l_param.0 {
                         self.add_cleaner();
                         dirty_cleaners = true;
                         unsafe {
-                            winuser::SendMessageW(self.window, winuser::WM_SIZE, 0, 0);
+                            wm::SendMessageW(self.window, wm::WM_SIZE, WPARAM(0), LPARAM(0));
                         }
                     }
-                    if let Some(i) = self.cleaners.iter().position(|x| x.3 as isize == l_param) {
+                    if let Some(i) = self.cleaners.iter().position(|x| x.3 .0 == l_param.0) {
                         self.swap_cleaner(i);
                         dirty_cleaners = true;
                         unsafe {
-                            winuser::SendMessageW(self.window, winuser::WM_SIZE, 0, 0);
+                            wm::SendMessageW(self.window, wm::WM_SIZE, WPARAM(0), LPARAM(0));
                         }
                     }
-                    if let Some(i) = self.cleaners.iter().position(|x| x.4 as isize == l_param) {
+                    if let Some(i) = self.cleaners.iter().position(|x| x.4 .0 == l_param.0) {
                         self.remove_cleaner(i);
                         dirty_cleaners = true;
                         unsafe {
-                            winuser::SendMessageW(self.window, winuser::WM_SIZE, 0, 0);
+                            wm::SendMessageW(self.window, wm::WM_SIZE, WPARAM(0), LPARAM(0));
                         }
                     }
                 }
 
-                let saving = self.save as isize == l_param
-                    && minwindef::HIWORD(w_param as u32) == winuser::BN_CLICKED;
+                let saving = self.save.0 == l_param.0
+                    && ((w_param.0 >> 16) & 0xffff) as u32 == wm::BN_CLICKED;
 
                 // rate change
                 let new_rate =
-                    unsafe { winuser::SendMessageW(self.rate.1, commctrl::TBM_GETPOS, 0, 0) } - 10;
+                    unsafe { wm::SendMessageW(self.rate.1, TBM_GETPOS, WPARAM(0), LPARAM(0)) }.0
+                        - 10;
                 if self.settings.rate != new_rate as i32 {
                     changed = true;
                 }
                 // hotkeys change
                 for (&(_, ht), hkt) in self.hotkeys.iter().zip_eq(self.settings.hotkeys.iter()) {
-                    let set_to =
-                        unsafe { winuser::SendMessageW(ht, commctrl::HKM_GETHOTKEY, 0, 0) };
+                    let set_to = unsafe {
+                        wm::SendMessageW(ht, Controls::HKM_GETHOTKEY, WPARAM(0), LPARAM(0))
+                    }
+                    .0;
                     let new = (
-                        u32::from(convert_mod(minwindef::HIBYTE(set_to as u16))),
-                        u32::from(minwindef::LOBYTE(set_to as u16)),
+                        u32::from(convert_mod(((set_to >> 8) & 0xff) as u8)),
+                        u32::from((set_to as u16) & 0xff),
                     );
                     if *hkt != new {
                         changed = true;
@@ -399,7 +406,7 @@ impl Windowed for SettingsWindow {
                 if self
                     .cleaners
                     .iter()
-                    .any(|x| x.1 as isize == l_param || x.2 as isize == l_param)
+                    .any(|x| x.1 .0 == l_param.0 || x.2 .0 == l_param.0)
                     || dirty_cleaners
                 {
                     // cleaners change
@@ -445,11 +452,13 @@ impl Windowed for SettingsWindow {
                     for (&(_, ht), hkt) in
                         self.hotkeys.iter().zip_eq(self.settings.hotkeys.iter_mut())
                     {
-                        let set_to =
-                            unsafe { winuser::SendMessageW(ht, commctrl::HKM_GETHOTKEY, 0, 0) };
+                        let set_to = unsafe {
+                            wm::SendMessageW(ht, Controls::HKM_GETHOTKEY, WPARAM(0), LPARAM(0))
+                        }
+                        .0;
                         *hkt = (
-                            u32::from(convert_mod(minwindef::HIBYTE(set_to as u16))),
-                            u32::from(minwindef::LOBYTE(set_to as u16)),
+                            u32::from(convert_mod(((set_to >> 8) & 0xff) as u8)),
+                            u32::from((set_to as u16) & 0xff),
                         );
                     }
                     self.settings.cleaners = self
@@ -477,14 +486,14 @@ impl Settings {
         Settings {
             rate: 6,
             hotkeys: [
-                (2, VK_OEM_2 as u32),      // ctrl-? key
-                (7, VK_ESCAPE as u32),     // ctrl-alt-shift-esk
-                (7, 0x52 as u32),          // ctrl-alt-shift-r
-                (7, 0x53 as u32),          // ctrl-alt-shift-s
-                (3, VK_OEM_2 as u32),      // ctrl-alt-?
-                (2, VK_OEM_PERIOD as u32), // ctrl-.
-                (3, VK_OEM_MINUS as u32),  // ctrl-alt--
-                (3, VK_OEM_PLUS as u32),   // ctrl-alt-=
+                (2, VK_OEM_2.0.into()),      // ctrl-? key
+                (7, VK_ESCAPE.0.into()),     // ctrl-alt-shift-esk
+                (7, 0x52 as u32),            // ctrl-alt-shift-r
+                (7, 0x53 as u32),            // ctrl-alt-shift-s
+                (3, VK_OEM_2.0.into()),      // ctrl-alt-?
+                (2, VK_OEM_PERIOD.0.into()), // ctrl-.
+                (3, VK_OEM_MINUS.0.into()),  // ctrl-alt--
+                (3, VK_OEM_PLUS.0.into()),   // ctrl-alt-=
             ],
             cleaners: RegexCleanerPair::prep_list(&[
                 (r"\s+", " "),
@@ -499,7 +508,8 @@ impl Settings {
                     r"(?P<s>[0-9a-f]{6})([0-9]+[a-f]|[a-f]+[0-9])[0-9a-f]*",
                     "hash $s",
                 ),
-            ]).unwrap(),
+            ])
+            .unwrap(),
             time_estimater: Default::default(),
         }
     }
