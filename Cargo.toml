@@ -21,14 +21,8 @@ windows = { version = "0.46.0", features = [
     "Win32_UI_Shell",
     "Win32_UI_WindowsAndMessaging"
 ] }
-<<<<<<< HEAD
-clipboard-win = "*"
-serde_derive = "*"
-serde = "*"
-=======
 clipboard-win = "4.5.0"
 serde = { version = "1.0.160", features = ["derive"] }
->>>>>>> 33f025f3dc53f2a0c69e26c773c8ef30d5ef8e3b
 preferences = { git = "https://github.com/Eh2406/preferences-rs", branch = "patch-1"}
 unicode-segmentation = "1.10.1"
 regex = "1.8.1"
