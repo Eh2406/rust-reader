@@ -270,6 +270,27 @@ impl SettingsWindow {
         }
     }
 
+    pub fn get_selected_voice(&self) -> String {
+        let index = unsafe {
+            wm::SendMessageW(self.voice.1, wm::CB_GETCURSEL, WPARAM(0), LPARAM(0))
+        }
+        .0 as usize;
+        let item_length = unsafe {
+            wm::SendMessageW(self.voice.1, wm::CB_GETLBTEXTLEN, WPARAM(index), LPARAM(0))
+        }
+        .0 as usize;
+        let mut buf = vec![0u16; item_length + 1];
+        unsafe {
+            wm::SendMessageW(
+                self.voice.1,
+                wm::CB_GETLBTEXT,
+                WPARAM(index),
+                LPARAM(buf.as_mut_ptr() as isize),
+            );
+        }
+        WideString::from_raw(buf).as_string()
+    }
+
     pub fn get_inner_hotkeys(&self) -> [(u32, u32); 8] {
         for (&(a, b), hwnd) in self.settings.hotkeys.iter().zip(self.hotkeys.iter()) {
             unsafe {
@@ -404,8 +425,15 @@ impl Windowed for SettingsWindow {
                 let mut changed = false;
                 let mut invalid = false;
                 let mut dirty_cleaners = false;
+                let hiword = ((w_param.0 >> 16) & 0xffff) as u32;
 
-                if ((w_param.0 >> 16) & 0xffff) as u32 == wm::BN_CLICKED {
+                if hiword == wm::CBN_SELCHANGE {
+                    if self.get_selected_voice() != self.settings.voice {
+                        changed = true;
+                    }
+                }
+
+                if hiword == wm::BN_CLICKED {
                     if self.reset.0 == l_param.0 {
                         self.get_inner_all();
                     }
@@ -432,8 +460,7 @@ impl Windowed for SettingsWindow {
                     }
                 }
 
-                let saving = self.save.0 == l_param.0
-                    && ((w_param.0 >> 16) & 0xffff) as u32 == wm::BN_CLICKED;
+                let saving = self.save.0 == l_param.0 && hiword == wm::BN_CLICKED;
 
                 // rate change
                 let new_rate =
