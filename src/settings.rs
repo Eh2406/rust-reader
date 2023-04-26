@@ -33,6 +33,8 @@ pub struct Settings {
     pub cleaners: Vec<RegexCleanerPair>,
     #[serde(default)]
     pub time_estimater: [Variance; 21],
+    #[serde(default)]
+    pub available_voices: Vec<String>,
 }
 
 pub struct SettingsWindow {
@@ -253,16 +255,17 @@ impl SettingsWindow {
     }
 
     pub fn get_inner_voice(&mut self) {
-        let voice_name: WideString = self.settings.voice.clone().into();
-        println!("add to dropdown: {}", self.settings.voice);
+        //let voice_name: WideString = self.settings.voice.clone().into();
         unsafe {
             wm::SendMessageW(self.voice.1, wm::CB_RESETCONTENT, WPARAM(0), LPARAM(0));
-            wm::SendMessageW(
-                self.voice.1,
-                wm::CB_ADDSTRING,
-                WPARAM(0),
-                LPARAM(voice_name.as_ptr() as isize),
-            );
+            for voice in self.settings.available_voices.iter() {
+                wm::SendMessageW(
+                    self.voice.1,
+                    wm::CB_ADDSTRING,
+                    WPARAM(0),
+                    LPARAM(WideString::from(voice.as_str()).as_ptr() as isize),
+                );
+            }
             wm::SendMessageW(self.voice.1, wm::CB_SETCURSEL, WPARAM(0), LPARAM(0));
         }
     }
@@ -562,6 +565,7 @@ impl Settings {
             ])
             .unwrap(),
             time_estimater: Default::default(),
+            available_voices: Default::default(),
         }
     }
     pub fn get_dir(&self) -> ::std::path::PathBuf {

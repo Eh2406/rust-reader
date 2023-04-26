@@ -62,6 +62,8 @@ impl State {
                 self.voice.set_rate(self.settings.get_inner_settings().rate);
             self.settings.get_mut_inner_settings().voice =
                 self.voice.get_voice().unwrap_or("unknown".to_string()).to_string();
+            self.settings.get_mut_inner_settings().available_voices =
+                self.voice.available_voices();
             self.voice
                 .set_time_estimater(self.settings.get_inner_settings().time_estimater.clone());
             self.settings.inner_to_file();
@@ -75,6 +77,7 @@ impl State {
     }
 
     fn show_settings(&mut self) {
+        self.settings.get_mut_inner_settings().available_voices = self.voice.available_voices();
         self.settings.get_mut_inner_settings().time_estimater = self.voice.get_time_estimater();
         self.settings.inner_to_file();
         self.settings.show_window();
@@ -172,14 +175,7 @@ fn main() {
     state
         .voice
         .speak(make_speech(state.settings.get_inner_settings(), &state.hk));
-    println!(
-        "voice: {}",
-        state.voice.get_voice().unwrap_or("".to_string())
-    );
-    println!(
-        "other voice: {}",
-        state.voice.get_all_voices().unwrap_or("".to_string())
-    );
+
     while let Some(msg) = get_message() {
         match msg.message {
             wm::WM_HOTKEY if msg.wParam.0 < state.hk.len() => {

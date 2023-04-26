@@ -261,7 +261,8 @@ impl SpVoice {
         unsafe { self.voice.SetVoice(&token).unwrap() };
     }
 
-    pub fn get_all_voices(&mut self) -> Option<String> {
+    pub fn available_voices(&mut self) -> Vec<String> {
+        let mut voices = vec![];
         unsafe {
             let category: Speech::ISpObjectTokenCategory =
                 syscom::CoCreateInstance(&Speech::SpObjectTokenCategory, None, syscom::CLSCTX_ALL)
@@ -277,17 +278,19 @@ impl SpVoice {
                 token_enum.Next(1, token.as_mut_ptr(), None).unwrap();
                 match token.assume_init() {
                     Some(t) => {
-                        self.set_voice(t);
-                        //println!("some voice: {}", t.OpenKey(w!("Attributes")).ok()
-                        //    .and_then(|k| k.GetStringValue(w!("name")).ok())
-                        //    .and_then(|s| s.to_string().ok())
-                        //    .unwrap())
+                        //self.set_voice(t);
+                        let voice_name = t.OpenKey(w!("Attributes")).ok()
+                            .and_then(|k| k.GetStringValue(w!("name")).ok())
+                            .and_then(|s| s.to_string().ok())
+                            .unwrap();
+                        println!("available voice: {}", voice_name);
+                        voices.push(voice_name);
                     },
                     None => { break; },
                 }
             }
         }
-        Some("foo".to_string())
+        voices
     }
 
     pub fn set_volume(&mut self, volume: u16) {
