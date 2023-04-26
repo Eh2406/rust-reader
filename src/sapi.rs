@@ -1,7 +1,7 @@
 use average::{Estimate, Variance};
 use chrono;
 use std::mem::size_of;
-use std::mem::zeroed;
+use std::mem::{MaybeUninit, zeroed};
 
 use windows::core::PCWSTR;
 use windows::w;
@@ -255,6 +255,39 @@ impl SpVoice {
                 .and_then(|k| k.GetStringValue(w!("name")).ok())
                 .and_then(|s| s.to_string().ok())
         }
+    }
+
+    pub fn set_voice(&mut self, token: Speech::ISpObjectToken) {
+        unsafe { self.voice.SetVoice(&token).unwrap() };
+    }
+
+    pub fn get_all_voices(&mut self) -> Option<String> {
+        unsafe {
+            let category: Speech::ISpObjectTokenCategory =
+                syscom::CoCreateInstance(&Speech::SpObjectTokenCategory, None, syscom::CLSCTX_ALL)
+                    .expect("failed to get voice category");
+            category.SetId(
+                w!(r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices"),
+                false,
+            ).unwrap();
+
+            let token_enum = category.EnumTokens(w!(""), w!("")).unwrap();
+            loop {
+                let mut token = MaybeUninit::uninit();
+                token_enum.Next(1, token.as_mut_ptr(), None).unwrap();
+                match token.assume_init() {
+                    Some(t) => {
+                        self.set_voice(t);
+                        //println!("some voice: {}", t.OpenKey(w!("Attributes")).ok()
+                        //    .and_then(|k| k.GetStringValue(w!("name")).ok())
+                        //    .and_then(|s| s.to_string().ok())
+                        //    .unwrap())
+                    },
+                    None => { break; },
+                }
+            }
+        }
+        Some("foo".to_string())
     }
 
     pub fn set_volume(&mut self, volume: u16) {

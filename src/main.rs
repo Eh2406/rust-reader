@@ -1,5 +1,5 @@
 // Comment out the following line in order to see console output
-#![cfg_attr(not(test), windows_subsystem = "windows")]
+//#![cfg_attr(not(test), windows_subsystem = "windows")]
 
 use windows::Win32::{
     Foundation::{LPARAM, WPARAM},
@@ -60,6 +60,8 @@ impl State {
             self.hk = setup_hotkeys(self.settings.get_mut_inner_settings());
             self.settings.get_mut_inner_settings().rate =
                 self.voice.set_rate(self.settings.get_inner_settings().rate);
+            self.settings.get_mut_inner_settings().voice =
+                self.voice.get_voice().unwrap_or("unknown".to_string()).to_string();
             self.voice
                 .set_time_estimater(self.settings.get_inner_settings().time_estimater.clone());
             self.settings.inner_to_file();
@@ -141,6 +143,9 @@ fn make_speech(settings: &Settings, hk: &[HotKey]) -> String {
     out += "speech rate of: ";
     out += &settings.rate.to_string();
     out += "\r\n";
+    out += "voice: ";
+    out += &settings.voice;
+    out += "\r\n";
     out += "hotkeys\r\n";
     for (act, h) in ACTION_LIST.iter().zip(hk.iter()) {
         out += &format!("{}: {}\r\n", act, h);
@@ -167,7 +172,14 @@ fn main() {
     state
         .voice
         .speak(make_speech(state.settings.get_inner_settings(), &state.hk));
-
+    println!(
+        "voice: {}",
+        state.voice.get_voice().unwrap_or("".to_string())
+    );
+    println!(
+        "other voice: {}",
+        state.voice.get_all_voices().unwrap_or("".to_string())
+    );
     while let Some(msg) = get_message() {
         match msg.message {
             wm::WM_HOTKEY if msg.wParam.0 < state.hk.len() => {
