@@ -60,10 +60,10 @@ impl State {
             self.hk = setup_hotkeys(self.settings.get_mut_inner_settings());
             self.settings.get_mut_inner_settings().rate =
                 self.voice.set_rate(self.settings.get_inner_settings().rate);
-            self.settings.get_mut_inner_settings().voice =
-                self.voice.get_voice().unwrap_or("unknown".to_string()).to_string();
+            self.voice.set_voice_by_name(self.settings.get_mut_inner_settings().voice.clone());
+            self.settings.get_mut_inner_settings().voice = self.voice.get_voice_name(None);
             self.settings.get_mut_inner_settings().available_voices =
-                self.voice.available_voices();
+                self.voice.available_voice_names();
             self.voice
                 .set_time_estimater(self.settings.get_inner_settings().time_estimater.clone());
             self.settings.inner_to_file();
@@ -77,7 +77,8 @@ impl State {
     }
 
     fn show_settings(&mut self) {
-        self.settings.get_mut_inner_settings().available_voices = self.voice.available_voices();
+        self.settings.get_mut_inner_settings().available_voices =
+            self.voice.available_voice_names();
         self.settings.get_mut_inner_settings().time_estimater = self.voice.get_time_estimater();
         self.settings.inner_to_file();
         self.settings.show_window();
@@ -162,6 +163,8 @@ fn main() {
     let mut voice = SpVoice::new(&com);
     let mut settings = Settings::from_file();
     voice.set_rate(settings.rate);
+    voice.set_voice_by_name(settings.voice.clone());
+    //voice.set_voice_by_name("Microsoft Zira Desktop".to_string());
     voice.set_time_estimater(settings.time_estimater.clone());
     let hk = setup_hotkeys(&mut settings);
     clipboard_setup();

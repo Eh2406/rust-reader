@@ -255,9 +255,10 @@ impl SettingsWindow {
     }
 
     pub fn get_inner_voice(&mut self) {
-        //let voice_name: WideString = self.settings.voice.clone().into();
         unsafe {
+            // Remove existing combobox entries
             wm::SendMessageW(self.voice.1, wm::CB_RESETCONTENT, WPARAM(0), LPARAM(0));
+            // Populate combobox with all available voices
             for voice in self.settings.available_voices.iter() {
                 wm::SendMessageW(
                     self.voice.1,
@@ -265,16 +266,19 @@ impl SettingsWindow {
                     WPARAM(0),
                     LPARAM(WideString::from(voice.as_str()).as_ptr() as isize),
                 );
+                // Select this combobox entry if it matches active voice
+                if *voice == self.settings.voice {
+                    println!("setting combobox to {}", voice);
+                    wm::SendMessageW(self.voice.1, wm::CB_SETCURSEL, WPARAM(0), LPARAM(0));
+                }
             }
-            wm::SendMessageW(self.voice.1, wm::CB_SETCURSEL, WPARAM(0), LPARAM(0));
         }
     }
 
     pub fn get_selected_voice(&self) -> String {
-        let index = unsafe {
-            wm::SendMessageW(self.voice.1, wm::CB_GETCURSEL, WPARAM(0), LPARAM(0))
-        }
-        .0 as usize;
+        let index =
+            unsafe { wm::SendMessageW(self.voice.1, wm::CB_GETCURSEL, WPARAM(0), LPARAM(0)) }.0
+                as usize;
         let item_length = unsafe {
             wm::SendMessageW(self.voice.1, wm::CB_GETLBTEXTLEN, WPARAM(index), LPARAM(0))
         }
@@ -427,8 +431,10 @@ impl Windowed for SettingsWindow {
                 let mut dirty_cleaners = false;
                 let hiword = ((w_param.0 >> 16) & 0xffff) as u32;
 
+                let new_voice = self.get_selected_voice();
                 if hiword == wm::CBN_SELCHANGE {
-                    if self.get_selected_voice() != self.settings.voice {
+                    if new_voice != self.settings.voice {
+                        println!("changed voice to {}", new_voice);
                         changed = true;
                     }
                 }
@@ -529,6 +535,7 @@ impl Windowed for SettingsWindow {
                     use crate::press_hotkey;
                     use crate::Action;
                     self.settings.rate = new_rate as i32;
+                    self.settings.voice = new_voice;
                     for (&(_, ht), hkt) in
                         self.hotkeys.iter().zip_eq(self.settings.hotkeys.iter_mut())
                     {
@@ -550,6 +557,7 @@ impl Windowed for SettingsWindow {
                             RegexCleanerPair::new(new_a, new_b).unwrap()
                         })
                         .collect();
+                    println!("new saved voiec: {}", self.settings.voice);
                     self.settings.to_file();
                     enable_window(self.save, false);
                     press_hotkey(Action::ReloadSettings);
