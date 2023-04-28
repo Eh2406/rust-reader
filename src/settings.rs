@@ -145,6 +145,15 @@ impl SettingsWindow {
                 HINSTANCE(0),
                 None,
             );
+            // Populate combobox with all available voices
+            for voice in out.settings.available_voices.iter() {
+                wm::SendMessageW(
+                    out.voice.1,
+                    wm::CB_ADDSTRING,
+                    WPARAM(0),
+                    LPARAM(WideString::from(voice.as_str()).as_ptr() as isize),
+                );
+            }
 
             out.add_cleaner = create_button_window(out.window, w!("add cleaner"));
             out.save = create_button_window(out.window, w!("save"));
@@ -256,22 +265,22 @@ impl SettingsWindow {
 
     pub fn get_inner_voice(&mut self) {
         unsafe {
-            // Remove existing combobox entries
-            wm::SendMessageW(self.voice.1, wm::CB_RESETCONTENT, WPARAM(0), LPARAM(0));
-            // Populate combobox with all available voices
-            for voice in self.settings.available_voices.iter() {
-                wm::SendMessageW(
-                    self.voice.1,
-                    wm::CB_ADDSTRING,
-                    WPARAM(0),
-                    LPARAM(WideString::from(voice.as_str()).as_ptr() as isize),
-                );
-                // Select this combobox entry if it matches active voice
-                if *voice == self.settings.voice {
-                    println!("setting combobox to {}", voice);
-                    wm::SendMessageW(self.voice.1, wm::CB_SETCURSEL, WPARAM(0), LPARAM(0));
-                }
-            }
+            // Find position of active voice in combobox
+            let index = wm::SendMessageW(
+                self.voice.1,
+                wm::CB_FINDSTRING,
+                WPARAM(0),
+                LPARAM(WideString::from(self.settings.voice.as_str()).as_ptr() as isize),
+            )
+            .0;
+            println!("found voice {} at position {}", self.settings.voice, index);
+            // Set combobox selection to active voice
+            wm::SendMessageW(
+                self.voice.1,
+                wm::CB_SETCURSEL,
+                WPARAM(index as usize),
+                LPARAM(0),
+            );
         }
     }
 
@@ -431,14 +440,6 @@ impl Windowed for SettingsWindow {
                 let mut dirty_cleaners = false;
                 let hiword = ((w_param.0 >> 16) & 0xffff) as u32;
 
-                let new_voice = self.get_selected_voice();
-                if hiword == wm::CBN_SELCHANGE {
-                    if new_voice != self.settings.voice {
-                        println!("changed voice to {}", new_voice);
-                        changed = true;
-                    }
-                }
-
                 if hiword == wm::BN_CLICKED {
                     if self.reset.0 == l_param.0 {
                         self.get_inner_all();
@@ -473,6 +474,11 @@ impl Windowed for SettingsWindow {
                     unsafe { wm::SendMessageW(self.rate.1, TBM_GETPOS, WPARAM(0), LPARAM(0)) }.0
                         - 10;
                 if self.settings.rate != new_rate as i32 {
+                    changed = true;
+                }
+                // voice change
+                let new_voice = self.get_selected_voice();
+                if new_voice != self.settings.voice {
                     changed = true;
                 }
                 // hotkeys change
