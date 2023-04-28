@@ -273,7 +273,6 @@ impl SettingsWindow {
                 LPARAM(WideString::from(self.settings.voice.as_str()).as_ptr() as isize),
             )
             .0;
-            println!("found voice {} at position {}", self.settings.voice, index);
             // Set combobox selection to active voice
             wm::SendMessageW(
                 self.voice.1,
@@ -563,7 +562,6 @@ impl Windowed for SettingsWindow {
                             RegexCleanerPair::new(new_a, new_b).unwrap()
                         })
                         .collect();
-                    println!("new saved voiec: {}", self.settings.voice);
                     self.settings.to_file();
                     enable_window(self.save, false);
                     press_hotkey(Action::ReloadSettings);

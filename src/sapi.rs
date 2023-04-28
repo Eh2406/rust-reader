@@ -247,10 +247,8 @@ impl SpVoice {
     }
 
     pub fn get_voice_name(&mut self, token: Option<Speech::ISpObjectToken>) -> String {
-        // If specified token is None return name of currently active voice
         unsafe {
             token
-                .or_else(|| self.voice.GetVoice().ok())
                 .and_then(|t| t.OpenKey(w!("Attributes")).ok())
                 .and_then(|k| k.GetStringValue(w!("name")).ok())
                 .and_then(|s| s.to_string().ok())
@@ -263,18 +261,20 @@ impl SpVoice {
         unsafe {
             let category: Speech::ISpObjectTokenCategory =
                 syscom::CoCreateInstance(&Speech::SpObjectTokenCategory, None, syscom::CLSCTX_ALL)
-                    .expect("failed to get voice category");
+                    .expect("create voice category");
             category
                 .SetId(
                     w!(r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices"),
                     false,
                 )
-                .unwrap();
+                .expect("set voice category id");
 
-            let token_enum = category.EnumTokens(w!(""), w!("")).unwrap();
+            let token_enum = category.EnumTokens(w!(""), w!("")).expect("get voice list");
             loop {
                 let mut token = MaybeUninit::uninit();
-                token_enum.Next(1, token.as_mut_ptr(), None).unwrap();
+                token_enum
+                    .Next(1, token.as_mut_ptr(), None)
+                    .expect("iterate voices");
                 match token.assume_init() {
                     Some(t) => {
                         voices.push(t);
@@ -291,24 +291,24 @@ impl SpVoice {
     pub fn available_voice_names(&mut self) -> Vec<String> {
         self.available_voices()
             .iter()
-            .map(|t| {
-                self.get_voice_name(Some(t.clone()))
-            })
+            .map(|t| self.get_voice_name(Some(t.clone())))
             .collect::<Vec<_>>()
     }
 
     pub fn set_voice(&mut self, token: Speech::ISpObjectToken) {
-        unsafe { self.voice.SetVoice(&token).expect("failed to set voice") }
+        unsafe { self.voice.SetVoice(&token).expect("set voice") }
     }
 
-    pub fn set_voice_by_name(&mut self, voice_name: String) {
-        println!("setting voice to {}", voice_name);
-        self.available_voices()
+    pub fn set_voice_by_name(&mut self, voice_name: String) -> String {
+        if let Some(t) = self
+            .available_voices()
             .iter()
-            .find(|&t| {
-                voice_name == self.get_voice_name(Some(t.clone()))
-            })
-            .and_then(|t| Some(self.set_voice(t.clone())));
+            .find(|&t| voice_name == self.get_voice_name(Some(t.clone())))
+        {
+            self.set_voice(t.clone());
+        }
+        // Return name of voice now in use
+        self.get_voice_name(unsafe { self.voice.GetVoice().ok() })
     }
 
     pub fn set_volume(&mut self, volume: u16) {
