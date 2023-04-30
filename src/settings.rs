@@ -33,12 +33,11 @@ pub struct Settings {
     pub cleaners: Vec<RegexCleanerPair>,
     #[serde(default)]
     pub time_estimater: [Variance; 21],
-    #[serde(default)]
-    pub available_voices: Vec<String>,
 }
 
 pub struct SettingsWindow {
     settings: Settings,
+    available_voices: Vec<String>,
     window: HWND,
     rate: (HWND, HWND),
     voice: (HWND, HWND),
@@ -50,9 +49,10 @@ pub struct SettingsWindow {
 }
 
 impl SettingsWindow {
-    pub fn new(s: Settings) -> Box<SettingsWindow> {
+    pub fn new(s: Settings, voice_list: Vec<String>) -> Box<SettingsWindow> {
         let mut out = Box::new(SettingsWindow {
             settings: s,
+            available_voices: voice_list,
             window: HWND(0),
             rate: (HWND(0), HWND(0)),
             voice: (HWND(0), HWND(0)),
@@ -146,12 +146,13 @@ impl SettingsWindow {
                 None,
             );
             // Populate combobox with all available voices
-            for voice in out.settings.available_voices.iter() {
+            for voice in out.available_voices.iter() {
+                let wide_voice: WideString = voice.as_str().into();
                 wm::SendMessageW(
                     out.voice.1,
                     wm::CB_ADDSTRING,
                     WPARAM(0),
-                    LPARAM(WideString::from(voice.as_str()).as_ptr() as isize),
+                    LPARAM(wide_voice.as_ptr() as isize),
                 );
             }
 
@@ -265,21 +266,24 @@ impl SettingsWindow {
 
     pub fn get_inner_voice(&mut self) {
         unsafe {
-            // Find position of active voice in combobox
+            // Find position of setting in voice list
+            let wide_voice: WideString = self.settings.voice.as_str().into();
             let index = wm::SendMessageW(
                 self.voice.1,
                 wm::CB_FINDSTRING,
                 WPARAM(0),
-                LPARAM(WideString::from(self.settings.voice.as_str()).as_ptr() as isize),
+                LPARAM(wide_voice.as_ptr() as isize),
             )
             .0;
-            // Set combobox selection to active voice
-            wm::SendMessageW(
-                self.voice.1,
-                wm::CB_SETCURSEL,
-                WPARAM(index as usize),
-                LPARAM(0),
-            );
+            // If voice from settings file was found, set combobox selection
+            if index >= 0 {
+                wm::SendMessageW(
+                    self.voice.1,
+                    wm::CB_SETCURSEL,
+                    WPARAM(index as usize),
+                    LPARAM(0),
+                );
+            }
         }
     }
 
@@ -290,8 +294,12 @@ impl SettingsWindow {
         let item_length = unsafe {
             wm::SendMessageW(self.voice.1, wm::CB_GETLBTEXTLEN, WPARAM(index), LPARAM(0))
         }
-        .0 as usize;
-        let mut buf = vec![0u16; item_length + 1];
+        .0;
+        if item_length < 0 {
+            // no voice selected
+            return "unknown".to_string();
+        }
+        let mut buf = vec![0u16; item_length as usize + 1];
         unsafe {
             wm::SendMessageW(
                 self.voice.1,
@@ -604,7 +612,6 @@ impl Settings {
             ])
             .unwrap(),
             time_estimater: Default::default(),
-            available_voices: Default::default(),
         }
     }
     pub fn get_dir(&self) -> ::std::path::PathBuf {

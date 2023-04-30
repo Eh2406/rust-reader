@@ -246,17 +246,18 @@ impl SpVoice {
         self.set_rate(rate)
     }
 
-    pub fn get_voice_name(&mut self, token: Option<Speech::ISpObjectToken>) -> String {
+    fn get_voice_name(token: Speech::ISpObjectToken) -> String {
         unsafe {
             token
-                .and_then(|t| t.OpenKey(w!("Attributes")).ok())
+                .OpenKey(w!("Attributes"))
+                .ok()
                 .and_then(|k| k.GetStringValue(w!("name")).ok())
                 .and_then(|s| s.to_string().ok())
                 .unwrap_or("unknown".to_string())
         }
     }
 
-    pub fn available_voices(&mut self) -> Vec<Speech::ISpObjectToken> {
+    fn available_voices(&mut self) -> Vec<Speech::ISpObjectToken> {
         let mut voices = vec![];
         unsafe {
             let category: Speech::ISpObjectTokenCategory =
@@ -275,13 +276,10 @@ impl SpVoice {
                 token_enum
                     .Next(1, token.as_mut_ptr(), None)
                     .expect("iterate voices");
-                match token.assume_init() {
-                    Some(t) => {
-                        voices.push(t);
-                    }
-                    None => {
-                        break;
-                    }
+                if let Some(t) = token.assume_init() {
+                    voices.push(t);
+                } else {
+                    break;
                 }
             }
         }
@@ -291,11 +289,11 @@ impl SpVoice {
     pub fn available_voice_names(&mut self) -> Vec<String> {
         self.available_voices()
             .iter()
-            .map(|t| self.get_voice_name(Some(t.clone())))
+            .map(|t| SpVoice::get_voice_name(t.clone()))
             .collect::<Vec<_>>()
     }
 
-    pub fn set_voice(&mut self, token: Speech::ISpObjectToken) {
+    fn set_voice(&mut self, token: Speech::ISpObjectToken) {
         unsafe { self.voice.SetVoice(&token).expect("set voice") }
     }
 
@@ -303,12 +301,15 @@ impl SpVoice {
         if let Some(t) = self
             .available_voices()
             .iter()
-            .find(|&t| voice_name == self.get_voice_name(Some(t.clone())))
+            .find(|&t| voice_name == SpVoice::get_voice_name(t.clone()))
         {
             self.set_voice(t.clone());
         }
         // Return name of voice now in use
-        self.get_voice_name(unsafe { self.voice.GetVoice().ok() })
+        match unsafe { self.voice.GetVoice().ok() } {
+            Some(t) => SpVoice::get_voice_name(t),
+            None => "unknown".to_string(),
+        }
     }
 
     pub fn set_volume(&mut self, volume: u16) {
