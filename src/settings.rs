@@ -5,7 +5,7 @@ use crate::window::*;
 use average::Variance;
 use itertools::Itertools;
 use preferences::{prefs_base_dir, AppInfo, Preferences};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use windows::core::PCWSTR;
 use windows::w;
 use windows::Win32::{
@@ -28,6 +28,7 @@ pub const TBM_GETPOS: u32 = Controls::TBM_SETPOS - 5;
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Settings {
     pub rate: i32,
+    pub voice: String,
     pub hotkeys: [(u32, u32); 8],
     pub cleaners: Vec<RegexCleanerPair>,
     #[serde(default)]
@@ -36,8 +37,10 @@ pub struct Settings {
 
 pub struct SettingsWindow {
     settings: Settings,
+    available_voices: Vec<String>,
     window: HWND,
     rate: (HWND, HWND),
+    voice: (HWND, HWND),
     hotkeys: [(HWND, HWND); 8],
     cleaners: Vec<(Option<bool>, HWND, HWND, HWND, HWND)>,
     add_cleaner: HWND,
@@ -46,11 +49,13 @@ pub struct SettingsWindow {
 }
 
 impl SettingsWindow {
-    pub fn new(s: Settings) -> Box<SettingsWindow> {
+    pub fn new(s: Settings, voice_list: Vec<String>) -> Box<SettingsWindow> {
         let mut out = Box::new(SettingsWindow {
             settings: s,
+            available_voices: voice_list,
             window: HWND(0),
             rate: (HWND(0), HWND(0)),
+            voice: (HWND(0), HWND(0)),
             hotkeys: [(HWND(0), HWND(0)); 8],
             cleaners: Vec::new(),
             add_cleaner: HWND(0),
@@ -94,7 +99,7 @@ impl SettingsWindow {
             Controls::InitCommonControls();
             out.rate.1 = wm::CreateWindowExW(
                 wm::WINDOW_EX_STYLE(0),
-                w!("msctls_trackbar32"),
+                Controls::TRACKBAR_CLASSW,
                 PCWSTR(&mut 0u16),
                 wm::WS_CHILD
                     | wm::WS_VISIBLE
@@ -117,6 +122,40 @@ impl SettingsWindow {
             wm::SendMessageW(out.rate.1, Controls::TBM_SETPAGESIZE, WPARAM(0), LPARAM(1));
             out.rate.0 = create_static_window(out.window, None);
 
+            let voice_label: WideString = "voice".into();
+            out.voice.0 = create_static_window(out.window, Some(&voice_label));
+            out.voice.1 = wm::CreateWindowExW(
+                wm::WINDOW_EX_STYLE(0),
+                Controls::WC_COMBOBOX,
+                PCWSTR(&mut 0u16),
+                wm::WS_CHILD
+                    | wm::WS_VISIBLE
+                    | wm::WS_OVERLAPPED
+                    | wm::WINDOW_STYLE(
+                        (wm::CBS_DROPDOWNLIST | wm::CBS_SORT | wm::CBS_HASSTRINGS)
+                            .try_into()
+                            .unwrap(),
+                    ),
+                0,
+                0,
+                0,
+                0,
+                out.window,
+                wm::HMENU(0),
+                HINSTANCE(0),
+                None,
+            );
+            // Populate combobox with all available voices
+            for voice in out.available_voices.iter() {
+                let wide_voice: WideString = voice.as_str().into();
+                wm::SendMessageW(
+                    out.voice.1,
+                    wm::CB_ADDSTRING,
+                    WPARAM(0),
+                    LPARAM(wide_voice.as_ptr() as isize),
+                );
+            }
+
             out.add_cleaner = create_button_window(out.window, w!("add cleaner"));
             out.save = create_button_window(out.window, w!("save"));
             out.reset = create_button_window(out.window, w!("reset"));
@@ -135,7 +174,7 @@ impl SettingsWindow {
                 ht.0 = create_static_window(window, Some(&wide_hotkey_name));
                 ht.1 = wm::CreateWindowExW(
                     wm::WINDOW_EX_STYLE(0),
-                    w!("msctls_hotkey32"),
+                    Controls::HOTKEY_CLASSW,
                     PCWSTR(&mut 0u16),
                     wm::WS_CHILD | wm::WS_VISIBLE,
                     0,
@@ -225,6 +264,53 @@ impl SettingsWindow {
         rate
     }
 
+    pub fn get_inner_voice(&mut self) {
+        unsafe {
+            // Find position of setting in voice list
+            let wide_voice: WideString = self.settings.voice.as_str().into();
+            let index = wm::SendMessageW(
+                self.voice.1,
+                wm::CB_FINDSTRING,
+                WPARAM(0),
+                LPARAM(wide_voice.as_ptr() as isize),
+            )
+            .0;
+            // If voice from settings file was found, set combobox selection
+            if index >= 0 {
+                wm::SendMessageW(
+                    self.voice.1,
+                    wm::CB_SETCURSEL,
+                    WPARAM(index as usize),
+                    LPARAM(0),
+                );
+            }
+        }
+    }
+
+    pub fn get_selected_voice(&self) -> String {
+        let index =
+            unsafe { wm::SendMessageW(self.voice.1, wm::CB_GETCURSEL, WPARAM(0), LPARAM(0)) }.0
+                as usize;
+        let item_length = unsafe {
+            wm::SendMessageW(self.voice.1, wm::CB_GETLBTEXTLEN, WPARAM(index), LPARAM(0))
+        }
+        .0;
+        if item_length < 0 {
+            // no voice selected
+            return "unknown".to_string();
+        }
+        let mut buf = vec![0u16; item_length as usize + 1];
+        unsafe {
+            wm::SendMessageW(
+                self.voice.1,
+                wm::CB_GETLBTEXT,
+                WPARAM(index),
+                LPARAM(buf.as_mut_ptr() as isize),
+            );
+        }
+        WideString::from_raw(buf).as_string()
+    }
+
     pub fn get_inner_hotkeys(&self) -> [(u32, u32); 8] {
         for (&(a, b), hwnd) in self.settings.hotkeys.iter().zip(self.hotkeys.iter()) {
             unsafe {
@@ -267,6 +353,7 @@ impl SettingsWindow {
 
     fn get_inner_all(&mut self) {
         self.get_inner_rate();
+        self.get_inner_voice();
         self.get_inner_hotkeys();
         self.get_inner_cleaners();
     }
@@ -300,6 +387,12 @@ impl Windowed for SettingsWindow {
                     let (l, r) = rect.0.split_columns(160);
                     move_window(self.rate.0, &l);
                     move_window(self.rate.1, &r);
+
+                    rect = rect.1.split_rows(25);
+                    let (l, r) = rect.0.split_columns(160);
+                    move_window(self.voice.0, &l);
+                    move_window(self.voice.1, &r);
+
                     for &ht in &self.hotkeys {
                         rect = rect.1.split_rows(25);
                         let (l, r) = rect.0.split_columns(160);
@@ -345,15 +438,16 @@ impl Windowed for SettingsWindow {
                 let data = unsafe { &mut *(l_param.0 as *mut wm::MINMAXINFO) };
                 data.ptMinTrackSize.x = 340;
                 data.ptMinTrackSize.y =
-                    (55 + 25 * (3 + self.hotkeys.len()) + 25 * self.cleaners.len()) as i32;
+                    (80 + 25 * (3 + self.hotkeys.len()) + 25 * self.cleaners.len()) as i32;
                 return Some(LRESULT(0));
             }
             wm::WM_COMMAND | wm::WM_HSCROLL => {
                 let mut changed = false;
                 let mut invalid = false;
                 let mut dirty_cleaners = false;
+                let hiword = ((w_param.0 >> 16) & 0xffff) as u32;
 
-                if ((w_param.0 >> 16) & 0xffff) as u32 == wm::BN_CLICKED {
+                if hiword == wm::BN_CLICKED {
                     if self.reset.0 == l_param.0 {
                         self.get_inner_all();
                     }
@@ -380,14 +474,18 @@ impl Windowed for SettingsWindow {
                     }
                 }
 
-                let saving = self.save.0 == l_param.0
-                    && ((w_param.0 >> 16) & 0xffff) as u32 == wm::BN_CLICKED;
+                let saving = self.save.0 == l_param.0 && hiword == wm::BN_CLICKED;
 
                 // rate change
                 let new_rate =
                     unsafe { wm::SendMessageW(self.rate.1, TBM_GETPOS, WPARAM(0), LPARAM(0)) }.0
                         - 10;
                 if self.settings.rate != new_rate as i32 {
+                    changed = true;
+                }
+                // voice change
+                let new_voice = self.get_selected_voice();
+                if new_voice != self.settings.voice {
                     changed = true;
                 }
                 // hotkeys change
@@ -450,6 +548,7 @@ impl Windowed for SettingsWindow {
                     use crate::press_hotkey;
                     use crate::Action;
                     self.settings.rate = new_rate as i32;
+                    self.settings.voice = new_voice;
                     for (&(_, ht), hkt) in
                         self.hotkeys.iter().zip_eq(self.settings.hotkeys.iter_mut())
                     {
@@ -486,6 +585,7 @@ impl Settings {
     pub fn new() -> Settings {
         Settings {
             rate: 6,
+            voice: "Microsoft David Desktop".to_string(),
             hotkeys: [
                 (2, VK_OEM_2.0.into()),      // ctrl-? key
                 (7, VK_ESCAPE.0.into()),     // ctrl-alt-shift-esk

@@ -1,10 +1,10 @@
 use average::{Estimate, Variance};
 use chrono;
 use std::mem::size_of;
-use std::mem::zeroed;
+use std::mem::{zeroed, MaybeUninit};
 
-use windows::w;
 use windows::core::PCWSTR;
+use windows::w;
 use windows::Win32::{
     Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, RECT, WPARAM},
     Graphics::Gdi,
@@ -244,6 +244,72 @@ impl SpVoice {
     pub fn change_rate(&mut self, delta: i32) -> i32 {
         let rate = self.get_rate() + delta;
         self.set_rate(rate)
+    }
+
+    fn get_voice_name(token: Speech::ISpObjectToken) -> String {
+        unsafe {
+            token
+                .OpenKey(w!("Attributes"))
+                .ok()
+                .and_then(|k| k.GetStringValue(w!("name")).ok())
+                .and_then(|s| s.to_string().ok())
+                .unwrap_or("unknown".to_string())
+        }
+    }
+
+    fn available_voices(&mut self) -> Vec<Speech::ISpObjectToken> {
+        let mut voices = vec![];
+        unsafe {
+            let category: Speech::ISpObjectTokenCategory =
+                syscom::CoCreateInstance(&Speech::SpObjectTokenCategory, None, syscom::CLSCTX_ALL)
+                    .expect("create voice category");
+            category
+                .SetId(
+                    w!(r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices"),
+                    false,
+                )
+                .expect("set voice category id");
+
+            let token_enum = category.EnumTokens(w!(""), w!("")).expect("get voice list");
+            loop {
+                let mut token = MaybeUninit::uninit();
+                token_enum
+                    .Next(1, token.as_mut_ptr(), None)
+                    .expect("iterate voices");
+                if let Some(t) = token.assume_init() {
+                    voices.push(t);
+                } else {
+                    break;
+                }
+            }
+        }
+        voices
+    }
+
+    pub fn available_voice_names(&mut self) -> Vec<String> {
+        self.available_voices()
+            .iter()
+            .map(|t| SpVoice::get_voice_name(t.clone()))
+            .collect::<Vec<_>>()
+    }
+
+    fn set_voice(&mut self, token: Speech::ISpObjectToken) {
+        unsafe { self.voice.SetVoice(&token).expect("set voice") }
+    }
+
+    pub fn set_voice_by_name(&mut self, voice_name: String) -> String {
+        if let Some(t) = self
+            .available_voices()
+            .iter()
+            .find(|&t| voice_name == SpVoice::get_voice_name(t.clone()))
+        {
+            self.set_voice(t.clone());
+        }
+        // Return name of voice now in use
+        match unsafe { self.voice.GetVoice().ok() } {
+            Some(t) => SpVoice::get_voice_name(t),
+            None => "unknown".to_string(),
+        }
     }
 
     pub fn set_volume(&mut self, volume: u16) {
