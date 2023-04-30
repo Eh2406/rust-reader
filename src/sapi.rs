@@ -259,27 +259,35 @@ impl SpVoice {
 
     fn available_voices(&mut self) -> Vec<Speech::ISpObjectToken> {
         let mut voices = vec![];
+        // Registry keys where voice tokens may be found
+        let voice_categories = [
+            w!(r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices"),
+            w!(r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech_OneCore\Voices"),
+        ];
         unsafe {
-            let category: Speech::ISpObjectTokenCategory =
-                syscom::CoCreateInstance(&Speech::SpObjectTokenCategory, None, syscom::CLSCTX_ALL)
-                    .expect("create voice category");
-            category
-                .SetId(
-                    w!(r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices"),
-                    false,
+            for c in voice_categories.iter() {
+                let category: Speech::ISpObjectTokenCategory = syscom::CoCreateInstance(
+                    &Speech::SpObjectTokenCategory,
+                    None,
+                    syscom::CLSCTX_ALL,
                 )
-                .expect("set voice category id");
+                .expect("create voice category");
+                if let Err(_) = category.SetId(*c, false) {
+                    // If registry key is not found, just try the next one
+                    continue;
+                }
 
-            let token_enum = category.EnumTokens(w!(""), w!("")).expect("get voice list");
-            loop {
-                let mut token = MaybeUninit::uninit();
-                token_enum
-                    .Next(1, token.as_mut_ptr(), None)
-                    .expect("iterate voices");
-                if let Some(t) = token.assume_init() {
-                    voices.push(t);
-                } else {
-                    break;
+                let token_enum = category.EnumTokens(w!(""), w!("")).expect("get voice list");
+                loop {
+                    let mut token = MaybeUninit::uninit();
+                    token_enum
+                        .Next(1, token.as_mut_ptr(), None)
+                        .expect("iterate voices");
+                    if let Some(t) = token.assume_init() {
+                        voices.push(t);
+                    } else {
+                        break;
+                    }
                 }
             }
         }
@@ -294,7 +302,9 @@ impl SpVoice {
     }
 
     fn set_voice(&mut self, token: Speech::ISpObjectToken) {
-        unsafe { self.voice.SetVoice(&token).expect("set voice") }
+        unsafe {
+            self.voice.SetVoice(&token).ok();
+        }
     }
 
     pub fn set_voice_by_name(&mut self, voice_name: String) -> String {
