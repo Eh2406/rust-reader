@@ -264,8 +264,8 @@ impl SpVoice {
             w!(r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices"),
             w!(r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech_OneCore\Voices"),
         ];
-        unsafe {
-            for c in voice_categories.iter() {
+        for c in voice_categories.iter() {
+            unsafe {
                 let category: Speech::ISpObjectTokenCategory = syscom::CoCreateInstance(
                     &Speech::SpObjectTokenCategory,
                     None,
@@ -278,17 +278,13 @@ impl SpVoice {
                 }
 
                 let token_enum = category.EnumTokens(w!(""), w!("")).expect("get voice list");
-                loop {
+                voices.extend(std::iter::from_fn(|| {
                     let mut token = MaybeUninit::uninit();
                     token_enum
                         .Next(1, token.as_mut_ptr(), None)
                         .expect("iterate voices");
-                    if let Some(t) = token.assume_init() {
-                        voices.push(t);
-                    } else {
-                        break;
-                    }
-                }
+                    token.assume_init()
+                }));
             }
         }
         voices
@@ -302,9 +298,7 @@ impl SpVoice {
     }
 
     fn set_voice(&mut self, token: Speech::ISpObjectToken) {
-        unsafe {
-            self.voice.SetVoice(&token).ok();
-        }
+        unsafe { self.voice.SetVoice(&token).ok() };
     }
 
     pub fn set_voice_by_name(&mut self, voice_name: String) -> String {
