@@ -1,5 +1,5 @@
 // Comment out the following line in order to see console output
-#![cfg_attr(not(test), windows_subsystem = "windows")]
+//#![cfg_attr(not(test), windows_subsystem = "windows")]
 
 use windows::Win32::{
     Foundation::{LPARAM, WPARAM},
@@ -32,9 +32,13 @@ use crate::settings::*;
 mod clean_text;
 use crate::clean_text::*;
 
+mod on_screen_control;
+use crate::on_screen_control::*;
+
 struct State {
     voice: Box<SpVoice>,
     settings: Box<SettingsWindow>,
+    controls: Box<OnScreenControlWindow>,
     hk: Vec<HotKey>,
 }
 
@@ -60,8 +64,9 @@ impl State {
             self.hk = setup_hotkeys(self.settings.get_mut_inner_settings());
             self.settings.get_mut_inner_settings().rate =
                 self.voice.set_rate(self.settings.get_inner_settings().rate);
-            self.settings.get_mut_inner_settings().voice =
-                self.voice.set_voice_by_name(self.settings.get_mut_inner_settings().voice.clone());
+            self.settings.get_mut_inner_settings().voice = self
+                .voice
+                .set_voice_by_name(self.settings.get_mut_inner_settings().voice.clone());
             self.voice
                 .set_time_estimater(self.settings.get_inner_settings().time_estimater.clone());
             self.settings.inner_to_file();
@@ -78,6 +83,10 @@ impl State {
         self.settings.get_mut_inner_settings().time_estimater = self.voice.get_time_estimater();
         self.settings.inner_to_file();
         self.settings.show_window();
+    }
+
+    fn show_controls(&mut self) {
+        self.controls.show_window();
     }
 
     fn toggle_window_visible(&mut self) {
@@ -105,6 +114,7 @@ impl State {
             Close => close(),
             ReloadSettings => self.reload_settings(),
             ShowSettings => self.show_settings(),
+            ShowControls => self.show_controls(),
             ToggleWindowVisible => self.toggle_window_visible(),
             PlayPause => self.play_pause(),
             RateDown => self.rate_change(-1),
@@ -168,6 +178,7 @@ fn main() {
     let mut state = State {
         voice,
         settings: SettingsWindow::new(settings, voices),
+        controls: OnScreenControlWindow::new(),
         hk,
     };
 

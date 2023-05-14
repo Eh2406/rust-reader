@@ -13,7 +13,9 @@ use windows::Win32::{
     Graphics::Gdi,
     System::LibraryLoader,
     UI::Controls,
-    UI::Input::KeyboardAndMouse::{VK_ESCAPE, VK_OEM_2, VK_OEM_MINUS, VK_OEM_PERIOD, VK_OEM_PLUS},
+    UI::Input::KeyboardAndMouse::{
+        VK_ESCAPE, VK_OEM_2, VK_OEM_COMMA, VK_OEM_MINUS, VK_OEM_PERIOD, VK_OEM_PLUS,
+    },
     UI::WindowsAndMessaging as wm,
 };
 
@@ -29,7 +31,7 @@ pub const TBM_GETPOS: u32 = Controls::TBM_SETPOS - 5;
 pub struct Settings {
     pub rate: i32,
     pub voice: String,
-    pub hotkeys: [(u32, u32); 8],
+    pub hotkeys: [(u32, u32); 9],
     pub cleaners: Vec<RegexCleanerPair>,
     #[serde(default)]
     pub time_estimater: [Variance; 21],
@@ -41,7 +43,7 @@ pub struct SettingsWindow {
     window: HWND,
     rate: (HWND, HWND),
     voice: (HWND, HWND),
-    hotkeys: [(HWND, HWND); 8],
+    hotkeys: [(HWND, HWND); 9],
     cleaners: Vec<(Option<bool>, HWND, HWND, HWND, HWND)>,
     add_cleaner: HWND,
     reset: HWND,
@@ -56,7 +58,7 @@ impl SettingsWindow {
             window: HWND(0),
             rate: (HWND(0), HWND(0)),
             voice: (HWND(0), HWND(0)),
-            hotkeys: [(HWND(0), HWND(0)); 8],
+            hotkeys: [(HWND(0), HWND(0)); 9],
             cleaners: Vec::new(),
             add_cleaner: HWND(0),
             reset: HWND(0),
@@ -311,7 +313,7 @@ impl SettingsWindow {
         WideString::from_raw(buf).as_string()
     }
 
-    pub fn get_inner_hotkeys(&self) -> [(u32, u32); 8] {
+    pub fn get_inner_hotkeys(&self) -> [(u32, u32); 9] {
         for (&(a, b), hwnd) in self.settings.hotkeys.iter().zip(self.hotkeys.iter()) {
             unsafe {
                 wm::SendMessageW(
@@ -592,6 +594,7 @@ impl Settings {
                 (7, 0x52 as u32),            // ctrl-alt-shift-r
                 (7, 0x53 as u32),            // ctrl-alt-shift-s
                 (3, VK_OEM_2.0.into()),      // ctrl-alt-?
+                (3, VK_OEM_COMMA.0.into()),  // ctrl-alt-,
                 (2, VK_OEM_PERIOD.0.into()), // ctrl-.
                 (3, VK_OEM_MINUS.0.into()),  // ctrl-alt--
                 (3, VK_OEM_PLUS.0.into()),   // ctrl-alt-=
