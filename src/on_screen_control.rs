@@ -59,7 +59,7 @@ impl OnScreenControlWindow {
                 HINSTANCE(0),
                 Some(&mut *out as *mut _ as *mut _),
             );
-            // HWND_TOPMOST set window to always be on top
+            // HWND_TOPMOST sets window to always be on top
             wm::SetWindowPos(
                 out.window,
                 wm::HWND_TOPMOST,
