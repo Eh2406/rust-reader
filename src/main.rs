@@ -1,5 +1,5 @@
 // Comment out the following line in order to see console output
-//#![cfg_attr(not(test), windows_subsystem = "windows")]
+#![cfg_attr(not(test), windows_subsystem = "windows")]
 
 use windows::Win32::{
     Foundation::{LPARAM, WPARAM},
