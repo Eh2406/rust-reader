@@ -22,6 +22,7 @@ use std::ops::Range;
 use std::ptr::null_mut;
 use std::time::Instant;
 
+use crate::on_screen_control::*;
 use crate::window::*;
 
 pub const WM_SAPI_EVENT: u32 = wm::WM_APP + 15;
@@ -50,9 +51,11 @@ pub struct SpVoice {
     // https://msdn.microsoft.com/en-us/library/ms723602.aspx
     voice: Speech::ISpVoice,
     window: HWND,
+    controls: Box<OnScreenControlWindow>,
     edit: HWND,
     rate: HWND,
     reload_settings: HWND,
+    show_controls: HWND,
     nicon: Shell::NOTIFYICONDATAW,
     last_read: WideString,
     last_update: Option<(Instant, Range<usize>)>,
@@ -68,9 +71,11 @@ impl SpVoice {
                 voice: syscom::CoCreateInstance(&Speech::SpVoice, None, syscom::CLSCTX_ALL)
                     .expect("failed for SpVoice at CoCreateInstance"),
                 window: HWND(0),
+                controls: OnScreenControlWindow::new(),
                 edit: HWND(0),
                 rate: HWND(0),
                 reload_settings: HWND(0),
+                show_controls: HWND(0),
                 nicon: zeroed(),
                 last_read: WideString::new(),
                 last_update: None,
@@ -139,6 +144,7 @@ impl SpVoice {
             );
             out.rate = create_static_window(out.window, None);
             out.reload_settings = create_button_window(out.window, w!("Show Settings"));
+            out.show_controls = create_button_window(out.window, w!("Show Controls"));
             move_window(
                 out.window,
                 &RECT {
@@ -458,8 +464,10 @@ impl Windowed for SpVoice {
                 if (w_param.0 <= 2) && rect.right > 0 && rect.bottom > 0 {
                     let (up, down) = rect.inset(3).split_rows(25);
                     move_window(self.edit, &down.inset(3));
-                    let (left, right) = up.split_columns(120);
-                    move_window(self.reload_settings, &left.inset(3));
+                    let (left, right) = up.split_columns(240);
+                    let (left_button, right_button) = left.split_columns(120);
+                    move_window(self.reload_settings, &left_button.inset(3));
+                    move_window(self.show_controls, &right_button.inset(3));
                     unsafe {
                         Gdi::InvalidateRect(self.rate, None, true);
                     }
@@ -476,11 +484,14 @@ impl Windowed for SpVoice {
             wm::WM_COMMAND => {
                 use crate::press_hotkey;
                 use crate::Action;
-                if self.reload_settings.0 == l_param.0
-                    && ((w_param.0 >> 16) & 0xffff) as u32 == wm::BN_CLICKED
-                {
-                    press_hotkey(Action::ShowSettings);
-                    return Some(LRESULT(0));
+                if ((w_param.0 >> 16) & 0xffff) as u32 == wm::BN_CLICKED {
+                    if self.reload_settings.0 == l_param.0 {
+                        press_hotkey(Action::ShowSettings);
+                        return Some(LRESULT(0));
+                    } else if self.show_controls.0 == l_param.0 {
+                        self.controls.toggle_controls_visible();
+                        return Some(LRESULT(0));
+                    }
                 }
             }
             WM_APP_NOTIFICATION_ICON => {

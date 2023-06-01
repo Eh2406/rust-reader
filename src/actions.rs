@@ -5,19 +5,17 @@ pub enum Action {
     ReloadSettings,
     ShowSettings,
     ToggleWindowVisible,
-    ShowControls,
     PlayPause,
     RateDown,
     RateUp,
 }
 
-pub const ACTION_LIST: [Action; 9] = [
+pub const ACTION_LIST: [Action; 8] = [
     Action::Read,
     Action::Close,
     Action::ReloadSettings,
     Action::ShowSettings,
     Action::ToggleWindowVisible,
-    Action::ShowControls,
     Action::PlayPause,
     Action::RateDown,
     Action::RateUp,
@@ -44,7 +42,6 @@ impl ::std::fmt::Display for Action {
             ReloadSettings => write!(f, "reload_settings"),
             ShowSettings => write!(f, "show_settings"),
             ToggleWindowVisible => write!(f, "toggle_window_visible"),
-            ShowControls => write!(f, "show_controls"),
             PlayPause => write!(f, "play_pause"),
             RateDown => write!(f, "rate_down"),
             RateUp => write!(f, "rate_up"),
