@@ -85,8 +85,8 @@ impl OnScreenControlWindow {
         out
     }
 
-    pub fn show_window(&self) -> bool {
-        show_window(self.window, wm::SW_SHOW)
+    pub fn toggle_controls_visible(&self) -> bool {
+        toggle_window_visible(self.window)
     }
 }
 

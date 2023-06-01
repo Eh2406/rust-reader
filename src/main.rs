@@ -33,12 +33,10 @@ mod clean_text;
 use crate::clean_text::*;
 
 mod on_screen_control;
-use crate::on_screen_control::*;
 
 struct State {
     voice: Box<SpVoice>,
     settings: Box<SettingsWindow>,
-    controls: Box<OnScreenControlWindow>,
     hk: Vec<HotKey>,
 }
 
@@ -85,10 +83,6 @@ impl State {
         self.settings.show_window();
     }
 
-    fn show_controls(&mut self) {
-        self.controls.show_window();
-    }
-
     fn toggle_window_visible(&mut self) {
         self.voice.toggle_window_visible();
     }
@@ -114,7 +108,6 @@ impl State {
             Close => close(),
             ReloadSettings => self.reload_settings(),
             ShowSettings => self.show_settings(),
-            ShowControls => self.show_controls(),
             ToggleWindowVisible => self.toggle_window_visible(),
             PlayPause => self.play_pause(),
             RateDown => self.rate_change(-1),
@@ -178,7 +171,6 @@ fn main() {
     let mut state = State {
         voice,
         settings: SettingsWindow::new(settings, voices),
-        controls: OnScreenControlWindow::new(),
         hk,
     };
 
