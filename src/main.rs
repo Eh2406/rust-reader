@@ -9,7 +9,6 @@ use windows::Win32::{
 
 #[cfg(test)]
 #[macro_use]
-extern crate lazy_static;
 mod wide_string;
 mod window;
 use crate::window::*;
