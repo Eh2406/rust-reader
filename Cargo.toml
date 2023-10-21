@@ -33,7 +33,7 @@ chrono = { version = "0.4", features = ["serde"] }
 error-code = "2.3.1"
 
 [target.'cfg(windows)'.build-dependencies]
-winres = "0.1.12"
+winresource = "0.1.17"
 
 [dev-dependencies]
 quickcheck = "1.0.3"
