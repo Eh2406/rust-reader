@@ -109,19 +109,9 @@ pub fn convert_range<T>(v: &[T], r: &Range<T>) -> Range<usize>
 where
     T: Ord,
 {
-    use ordslice::Ext;
-    use std::cmp::Ordering;
-    let mut out = v.equal_range_by(|probe| {
-        if *probe < r.start {
-            Ordering::Less
-        } else if *probe > r.end {
-            Ordering::Greater
-        } else {
-            Ordering::Equal
-        }
-    });
-    out.end -= 1;
-    out
+    let lo = v.partition_point(|x| *x < r.start);
+    let hi = v.partition_point(|x| *x <= r.end);
+    lo..(hi - 1)
 }
 
 #[allow(dead_code)]
