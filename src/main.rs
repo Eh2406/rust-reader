@@ -7,8 +7,6 @@ use windows::Win32::{
     UI::WindowsAndMessaging as wm,
 };
 
-#[cfg(test)]
-#[macro_use]
 mod wide_string;
 mod window;
 use crate::window::*;
