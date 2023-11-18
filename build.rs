@@ -5,7 +5,7 @@ extern crate winresource;
 fn main() {
     let mut res = winresource::WindowsResource::new();
     res.set_manifest_file("rust_reader.manifest");
-    res.set_icon("Reader2.ico");
+    res.set_icon_with_id("Reader2.ico", "1");
     res.compile().unwrap();
 }
 
